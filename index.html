@@ -217,9 +217,9 @@
     transition:transform .15s, box-shadow .15s;
   }
   .prod-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-hover); }
-  .prod-cover{ height:110px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--blue),var(--green) 130%); }
+  .prod-cover{ height:170px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--blue),var(--green) 130%); }
   .prod-cover img{ width:100%; height:100%; object-fit:cover; }
-  .prod-cover .ic{ font-size:36px; color:#fff; opacity:.9; }
+  .prod-cover .ic{ font-size:48px; color:#fff; opacity:.9; }
   .prod-body{ padding:11px 13px; }
   .prod-title{ font-family:var(--font-head); font-weight:700; font-size:14.5px; line-height:1.25; word-break:break-word; }
   .prod-sub{ font-size:12px; color:var(--muted); margin-top:3px; }
@@ -400,7 +400,26 @@
     background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
     box-shadow: var(--shadow); padding:14px 16px;
   }
-  .aval-voice-name{ font-family: var(--font-head); font-weight:700; font-size:15px; margin-bottom:2px; word-break:break-word; }
+  .aval-voice-name{
+    font-family: var(--font-head); font-weight:700; font-size:15px; margin-bottom:2px;
+    word-break:break-word;
+    display:flex; align-items:flex-start; justify-content:space-between; gap:8px;
+  }
+  .aval-del-btn{
+    background:none; border:none; cursor:pointer; font-size:14px;
+    color:var(--muted); opacity:0; padding:2px 6px; border-radius:6px;
+    transition:all .15s ease; flex:0 0 auto;
+  }
+  .aval-card:hover .aval-del-btn{ opacity:.7; }
+  .aval-del-btn:hover{ opacity:1; background:rgba(220,38,38,.12); color:#DC2626; }
+  .aval-highlight{
+    animation: avalPulse 1.2s ease-in-out 2;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.35) !important;
+  }
+  @keyframes avalPulse{
+    0%,100%{ box-shadow: 0 0 0 3px rgba(37,99,235,.35); }
+    50%{ box-shadow: 0 0 0 6px rgba(37,99,235,.15); }
+  }
   .aval-used{ font-size:11.5px; color: var(--muted); margin-bottom:10px; }
   .aval-crit{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:7px 0; }
   .aval-crit-label{ font-size:13px; color: var(--ink); }
@@ -461,6 +480,165 @@
     position: relative;
   }
   .col-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+  /* ---- Modal: seleção de tipo do projeto ---- */
+  .tipo-grid{
+    display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
+    gap:8px;
+  }
+  .tipo-card{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:14px 8px; gap:6px; cursor:pointer;
+    background:var(--surface); border:1.5px solid var(--line); border-radius:12px;
+    transition:all .18s ease; text-align:center; position:relative;
+    user-select:none;
+  }
+  .tipo-card:hover{
+    border-color:var(--blue); background:rgba(37,99,235,.04);
+    transform:translateY(-1px);
+  }
+  .tipo-card.on{
+    border-color:var(--blue); background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(22,163,74,.06));
+    box-shadow:0 4px 12px rgba(37,99,235,.15);
+  }
+  .tipo-card.on::before{
+    content:'✓'; position:absolute; top:6px; right:6px;
+    width:18px; height:18px; border-radius:50%;
+    background:var(--blue); color:#fff; font-size:10px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 6px rgba(37,99,235,.35);
+  }
+  .tipo-ic{ font-size:26px; line-height:1; }
+  .tipo-nome{ font-weight:600; font-size:12px; color:var(--ink); line-height:1.2; }
+  .tipo-card-add{
+    border-style:dashed; color:var(--muted);
+  }
+  .tipo-card-add:hover{ color:var(--blue-deep); }
+
+  /* ---- Modal: capa mini ---- */
+  .capa-drop-mini{
+    position:relative; height:110px; border-radius:12px;
+    border:2px dashed var(--line); background:var(--surface-soft);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; overflow:hidden; transition:all .18s ease;
+  }
+  .capa-drop-mini:hover, .capa-drop-mini.drag-over{
+    border-color:var(--blue); background:rgba(37,99,235,.04);
+  }
+  .capa-drop-mini img{ width:100%; height:100%; object-fit:cover; }
+  #capaFichaHint{ display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--muted); }
+
+  /* ---- Modal: escolha do destino ---- */
+  .destino-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .destino-card{
+    display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer;
+    background:var(--surface); border:1.5px solid var(--line); border-radius:12px;
+    transition:all .18s ease; position:relative;
+    user-select:none;
+  }
+  .destino-card:hover{ border-color:var(--blue); background:rgba(37,99,235,.04); }
+  .destino-card input{ position:absolute; opacity:0; pointer-events:none; }
+  .destino-card:has(input:checked){
+    border-color:var(--blue); background:linear-gradient(135deg,rgba(37,99,235,.10),rgba(22,163,74,.06));
+    box-shadow:0 4px 12px rgba(37,99,235,.15);
+  }
+  .destino-card:has(input:checked)::after{
+    content:'✓'; position:absolute; top:6px; right:8px;
+    width:18px; height:18px; border-radius:50%;
+    background:var(--blue); color:#fff; font-size:10px; font-weight:800;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .destino-ic{ font-size:24px; }
+  .destino-tit{ font-weight:700; font-size:13px; }
+  .destino-sub{ font-size:11px; color:var(--muted); margin-top:1px; }
+
+  /* ---- Modernizando o campo Foto (opcional) ---- */
+  .photo-drop{
+    transition:all .18s ease;
+  }
+  .photo-drop:hover{ border-color:var(--blue); }
+
+  /* ---- Busca em Projetos ---- */
+  .proj-search-wrap{
+    display: flex; gap: 8px; align-items: center;
+    margin: 12px 0;
+  }
+
+  /* ---- Notificação de nomes similares ---- */
+  #similarNotice{ max-width: 1180px; margin: 8px auto 0; padding: 0 24px; }
+  .similar-notice{
+    display:flex; align-items:center; gap:12px;
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    border: 1px solid #FCD34D;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 12px rgba(217,119,6,.08);
+  }
+  .similar-notice-ic{ font-size:22px; flex:0 0 auto; }
+  .similar-notice-body{ flex:1; font-size:13px; color:#78350F; line-height:1.4; }
+  .similar-notice-cta{
+    background:#D97706; color:#fff; border:none;
+    padding:8px 14px; border-radius:8px; font-weight:600; font-size:12.5px;
+    cursor:pointer; flex:0 0 auto; transition:transform .12s, box-shadow .12s;
+  }
+  .similar-notice-cta:hover{ transform:translateY(-1px); box-shadow:0 4px 10px rgba(217,119,6,.3); }
+  .similar-notice-x{
+    background:none; border:none; color:#78350F; cursor:pointer;
+    padding:4px 8px; opacity:.6; font-size:14px; flex:0 0 auto;
+  }
+  .similar-notice-x:hover{ opacity:1; }
+
+  /* ---- Grupos similares na visualização filtrada ---- */
+  .similar-group-block{
+    background: linear-gradient(180deg, rgba(254,243,199,.35), transparent 30%);
+    border: 1px solid rgba(252, 211, 77, .5);
+    border-radius: 14px;
+    padding: 12px 14px 16px;
+    margin-bottom: 18px;
+  }
+  .similar-group-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; flex-wrap:wrap; margin-bottom:12px; padding-bottom:10px;
+    border-bottom:1px dashed rgba(252, 211, 77, .6);
+  }
+  .similar-group-title{
+    font-family:var(--font-head); font-weight:800; font-size:13.5px;
+    color:#78350F; margin-bottom:2px;
+  }
+  .similar-group-nomes{ font-size:12.5px; color:#78350F; opacity:.85; }
+  .similar-group-ignore{
+    background:#fff; color:#78350F; border:1.5px solid #FCD34D;
+    padding:8px 14px; border-radius:10px; font-weight:600; font-size:12.5px;
+    cursor:pointer; white-space:nowrap; transition:all .15s ease;
+  }
+  .similar-group-ignore:hover{
+    background:#FEF3C7; border-color:#D97706; transform:translateY(-1px);
+  }
+  .similar-restore-wrap{ text-align:center; margin: 24px 0 12px; }
+
+  /* ---- Sugestões nos inputs do modal ---- */
+  .entry-input-wrap{ position:relative; flex:1; min-width:0; }
+  .entry-input-wrap input{ width:100%; }
+  .entry-suggest{
+    position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; box-shadow:0 6px 20px rgba(15,23,42,.10);
+    z-index:20; padding:6px; display:none;
+  }
+  .entry-suggest-label{
+    font-size:11px; color:var(--muted); padding:4px 8px 6px;
+    font-weight:600;
+  }
+  .entry-suggest-item{
+    display:block; width:100%; text-align:left;
+    padding:7px 10px; border:none; background:transparent;
+    border-radius:6px; cursor:pointer; font-size:13px;
+    color:var(--ink); transition:background .12s;
+  }
+  .entry-suggest-item:hover{
+    background:linear-gradient(135deg, rgba(37,99,235,.10), rgba(22,163,74,.06));
+    color:var(--blue-deep); font-weight:600;
+  }
+
   /* ---- Wizard de novo projeto ---- */
   .wizard-modal{ max-width:520px; }
   .wizard-steps{ display:flex; align-items:center; gap:8px; margin-bottom:20px; }
@@ -626,16 +804,16 @@
   }
 
   .col-cover{
-    height: 96px;
+    height: 150px;
     display:flex; align-items:center; justify-content:center;
     background: linear-gradient(135deg, var(--blue) 0%, var(--green) 130%);
     position: relative;
   }
   .col-cover img{ width:100%; height:100%; object-fit:cover; }
-  .col-cover .col-icon{ font-size: 34px; color:#fff; opacity:.92; }
-  .col-body{ padding: 10px 12px; }
-  .col-title{ font-family: var(--font-head); font-weight:700; font-size:14.5px; line-height:1.25; word-break:break-word; }
-  .col-sub{ font-size:12px; color: var(--muted); margin-top:2px; }
+  .col-cover .col-icon{ font-size: 48px; color:#fff; opacity:.92; }
+  .col-body{ padding: 12px 14px; }
+  .col-title{ font-family: var(--font-head); font-weight:700; font-size:15.5px; line-height:1.25; word-break:break-word; }
+  .col-sub{ font-size:12.5px; color: var(--muted); margin-top:3px; }
   /* swatches de temporada */
   .cover-swatch-blue{ background:linear-gradient(135deg,#2563EB,#60A5FA) !important; }
   .cover-swatch-purple{ background:linear-gradient(135deg,#7C3AED,#A78BFA) !important; }
@@ -867,33 +1045,70 @@
   }
   .btn-primary:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37,99,235,0.4); }
 
+  .btn-danger{
+    background: transparent;
+    border: 1.5px solid rgba(220,38,38,0.3);
+    color: #DC2626;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn-danger:hover{
+    background: rgba(220,38,38,0.08);
+    border-color: #DC2626;
+  }
+  .btn-danger:active{ transform: scale(0.97); }
+
   /* ---------- A-Z rail ---------- */
   .az-rail{
-    max-width: 1180px;
-    margin: 12px auto 0;
-    padding: 0 24px;
-    display:flex;
-    gap: 5px;
-    overflow-x: auto;
-    padding-bottom: 4px;
+    position: fixed;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 6px;
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 999px;
+    box-shadow: 0 4px 20px rgba(15,23,42,.12);
+    border: 1px solid var(--line);
+    max-height: 82vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .az-rail::-webkit-scrollbar{ display:none; }
+
+  @media (max-width: 500px){
+    .az-rail{
+      right: 4px;
+      padding: 6px 4px;
+    }
+    .az-rail button{ width:20px; height:20px; font-size:10px; }
   }
   .az-rail button{
     font-family: var(--font-head);
     font-weight: 700;
-    font-size: 12px;
-    width: 30px; height: 30px;
+    font-size: 11px;
+    width: 22px; height: 22px;
     flex: 0 0 auto;
-    border-radius: 9px;
-    border: 1px solid transparent;
+    border-radius: 50%;
+    border: none;
     background: transparent;
     color: #B6C2D4;
     transition: all 0.12s ease;
+    padding: 0;
   }
   .az-rail button.has-entries{
     color: var(--blue-deep);
-    background: var(--surface);
-    border-color: var(--line);
-    box-shadow: 0 1px 4px rgba(30,58,138,0.06);
+    background: transparent;
   }
   .az-rail button.has-entries:hover{
     background: var(--blue-deep);
@@ -964,19 +1179,20 @@
   }
   .voice-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
 
-  .card-top{ display:flex; gap: 11px; align-items:flex-start; }
+  .card-top{ display:flex; gap: 13px; align-items:flex-start; }
   .photo{
-    width: 50px; height: 50px;
-    border-radius: 14px;
+    width: 72px; height: 72px;
+    border-radius: 16px;
     object-fit: cover;
     flex: 0 0 auto;
     background: var(--surface-soft);
     cursor: zoom-in;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   .photo:hover{
-    transform: scale(1.08);
-    box-shadow: 0 4px 14px rgba(30,58,138,0.25);
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(30,58,138,0.25);
   }
 
   /* ---------- Lightbox ---------- */
@@ -1015,15 +1231,16 @@
     color: rgba(255,255,255,0.65);
   }
   .photo-fallback{
-    width: 50px; height: 50px;
-    border-radius: 14px;
+    width: 72px; height: 72px;
+    border-radius: 16px;
     background: linear-gradient(135deg, var(--blue) 0%, var(--green) 130%);
     color: #fff;
     display:flex; align-items:center; justify-content:center;
     font-family: var(--font-head);
     font-weight: 700;
-    font-size: 16px;
+    font-size: 22px;
     flex: 0 0 auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
   .card-name-block{ min-width: 0; }
   .eyebrow{
@@ -1562,9 +1779,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <label class="toggle-inconsist">
       <input type="checkbox" id="inconsistentToggle"> só vozes trocadas
     </label>
+    <label class="toggle-inconsist">
+      <input type="checkbox" id="similarToggle"> só nomes similares
+    </label>
     <button class="btn-primary desktop-only" id="addBtn">+ Nova ficha</button>
   </div>
 
+  <div id="similarNotice" style="display:none;"></div>
   <div id="statPlates" class="stat-plates"></div>
 </header>
 
@@ -1679,6 +1900,49 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>
     </div>
 
+    <!-- SEÇÃO NOVA: Tipo do projeto -->
+    <div class="field">
+      <label>Tipo do projeto <span style="color:#DC2626;">*</span></label>
+      <div class="tipo-grid" id="tipoGrid"></div>
+    </div>
+
+    <!-- SEÇÃO NOVA: Capa do projeto -->
+    <div class="field">
+      <label>Capa do projeto (opcional)</label>
+      <div class="capa-drop-mini" id="capaFichaDrop">
+        <img id="capaFichaImg" src="" alt="" style="display:none;">
+        <div id="capaFichaHint">
+          <div style="font-size:32px;">🎬</div>
+          <div style="font-weight:600; font-size:12.5px;">Arraste ou clique</div>
+        </div>
+        <input type="file" id="capaFichaInput" accept="image/*" style="display:none;">
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Se o projeto já existe, a capa atual é mantida.</p>
+    </div>
+
+    <!-- SEÇÃO NOVA: Destino -->
+    <div class="field">
+      <label>Alocar em</label>
+      <div class="destino-grid">
+        <label class="destino-card">
+          <input type="radio" name="destino" value="prod" checked>
+          <div class="destino-ic">🎬</div>
+          <div class="destino-txt">
+            <div class="destino-tit">Em produção</div>
+            <div class="destino-sub">Aparece na Home</div>
+          </div>
+        </label>
+        <label class="destino-card">
+          <input type="radio" name="destino" value="conc">
+          <div class="destino-ic">✅</div>
+          <div class="destino-txt">
+            <div class="destino-tit">Concluídos</div>
+            <div class="destino-sub">Vai pro arquivo</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
     <div class="entries-title">
       <span>Projetos e vozes</span>
       <button class="add-row-btn" id="addRowBtn">+ Adicionar projeto</button>
@@ -1686,6 +1950,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <div id="entriesContainer"></div>
 
     <div class="modal-actions">
+      <button class="btn-danger" id="deleteModalBtn" style="display:none; margin-right:auto;">🗑️ Excluir ficha</button>
       <button class="btn-ghost" id="cancelModalBtn">Cancelar</button>
       <button class="btn-primary" id="saveModalBtn">Salvar ficha</button>
     </div>
@@ -1916,7 +2181,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     await loadParticipants();
     await loadAgenda();
     await loadChat();
+    invalidarCacheSimilares();
     render();
+    checaNotificacaoSimilares();
     if (currentView === 'home') renderHome();
     else if (currentView === 'colecoes') renderColecoes();
     else if (currentView === 'projetos') renderProjetos();
@@ -2162,15 +2429,28 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   });
 
   function populateFilterOptions(){
-    const voices = new Set();
+    // Vozes: consolida duplicatas por trim + case (mostra o "melhor" nome capitalizado)
+    const voiceMap = new Map();  // chave normalizada -> nome canônico (o mais frequente)
+    const voiceCount = new Map();
+    mainPeople().forEach(p => p.entries.forEach(e => {
+      const raw = (e.voice||'').trim();
+      if (!raw) return;
+      const key = raw.toLowerCase();
+      voiceCount.set(key, (voiceCount.get(key)||0)+1);
+      if (!voiceMap.has(key)) voiceMap.set(key, raw);
+    }));
+    const voices = [...voiceMap.entries()]
+      .map(([k,name]) => ({ key:k, name }))
+      .sort((a,b) => a.name.localeCompare(b.name,'pt-BR'));
+
     const projects = new Set();
-    mainPeople().forEach(p => p.entries.forEach(e => { voices.add(e.voice); projects.add(e.project); }));
+    mainPeople().forEach(p => p.entries.forEach(e => { projects.add(e.project); }));
 
     const currentVoice = voiceFilter.value;
     const currentProject = projectFilter.value;
 
     voiceFilter.innerHTML = '<option value="">Todas as vozes</option>' +
-      [...voices].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      voices.map(v => `<option value="${escapeHtml(v.name)}">${escapeHtml(v.name)}${voiceCount.get(v.key)>1?' ('+voiceCount.get(v.key)+')':''}</option>`).join('');
 
     const sortedProjects = [...projects].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const groups = {};
@@ -2186,25 +2466,37 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </optgroup>
       `).join('');
 
-    if ([...voices].includes(currentVoice)) voiceFilter.value = currentVoice;
+    if (voices.some(v => v.name === currentVoice)) voiceFilter.value = currentVoice;
     if ([...projects].includes(currentProject)) projectFilter.value = currentProject;
   }
 
   function getFiltered(){
     const q = searchInput.value.trim().toLowerCase();
-    const v = voiceFilter.value;
-    const pr = projectFilter.value;
-    const onlyInconsistent = inconsistentToggle.getAttribute('aria-pressed') === 'true';
+    const v = (voiceFilter.value || '').trim();
+    const pr = (projectFilter.value || '').trim();
+    const onlyInconsistent = inconsistentToggle.checked;
+    const onlySimilar = document.getElementById('similarToggle')?.checked;
+    const idsSimilares = onlySimilar ? idsComSimilar() : null;
 
     return mainPeople().filter(p => {
+      // busca: nome da pessoa, projeto ou voz (comparação case-insensitive normalizada)
       const matchesSearch = !q ||
         p.name.toLowerCase().includes(q) ||
-        p.entries.some(e => e.project.toLowerCase().includes(q) || e.voice.toLowerCase().includes(q));
-      const matchesVoice = !v || p.entries.some(e => e.voice === v);
-      const matchesProject = !pr || p.entries.some(e => e.project === pr);
-      const distinct = new Set(p.entries.map(e => e.voice)).size;
+        p.entries.some(e =>
+          (e.project||'').toLowerCase().includes(q) ||
+          (e.voice||'').toLowerCase().includes(q)
+        );
+      // voz: comparação case-insensitive e ignora espaços extras
+      const matchesVoice = !v || p.entries.some(e =>
+        (e.voice||'').trim().toLowerCase() === v.toLowerCase()
+      );
+      const matchesProject = !pr || p.entries.some(e =>
+        (e.project||'').trim().toLowerCase() === pr.toLowerCase()
+      );
+      const distinct = new Set(p.entries.map(e => (e.voice||'').trim().toLowerCase()).filter(Boolean)).size;
       const matchesInconsistent = !onlyInconsistent || distinct > 1;
-      return matchesSearch && matchesVoice && matchesProject && matchesInconsistent;
+      const matchesSimilar = !onlySimilar || idsSimilares.has(p.id);
+      return matchesSearch && matchesVoice && matchesProject && matchesInconsistent && matchesSimilar;
     }).sort((a,b) => a.name.localeCompare(b.name, 'pt-BR'));
   }
 
@@ -2270,6 +2562,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </details>
         <div class="card-actions" data-role="actions">
           <button data-action="edit" data-id="${p.id}">Editar</button>
+          <button data-action="mark-coadj" data-id="${p.id}" title="Move para a pasta de coadjuvantes do projeto">☾ Coadjuvante</button>
           <button class="danger" data-action="delete-ask" data-id="${p.id}">Excluir</button>
         </div>
       </div>
@@ -2312,6 +2605,73 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       groups[L].push(p);
     });
 
+    // Se o filtro "só nomes similares" está ativo, agrupa por grupo de similaridade
+    // (em vez de por letra) e adiciona botão "ignorar permanentemente" em cada bloco
+    const onlySimilar = document.getElementById('similarToggle')?.checked;
+    if (onlySimilar){
+      const gruposSim = grupoSimilares();
+      const filteredIds = new Set(filtered.map(p => p.id));
+      const pessoasPorId = {};
+      filtered.forEach(p => { pessoasPorId[p.id] = p; });
+
+      const blocos = gruposSim
+        .filter(g => g.some(id => filteredIds.has(id)))
+        .map(g => {
+          const pessoas = g.map(id => pessoasPorId[id]).filter(Boolean);
+          if (!pessoas.length) return '';
+          const nomes = pessoas.map(p => p.name).join(', ');
+          const chave = chaveGrupo(g);
+          return `
+            <div class="similar-group-block">
+              <div class="similar-group-head">
+                <div>
+                  <div class="similar-group-title">🔍 Possível duplicata</div>
+                  <div class="similar-group-nomes">${escapeHtml(nomes)}</div>
+                </div>
+                ${isAdmin ? `<button class="similar-group-ignore" data-ignore-group="${escapeHtml(chave)}" title="Estas pessoas são realmente diferentes — não avisar mais">✓ São pessoas diferentes</button>` : ''}
+              </div>
+              <div class="card-grid">${pessoas.map(personCardHtml).join('')}</div>
+            </div>`;
+        }).join('');
+
+      mainContent.innerHTML = blocos + `
+        <div class="similar-restore-wrap">
+          <button class="btn-ghost" id="restaurarIgnorados" style="font-size:12px;padding:8px 14px;">↻ Ver grupos que ignorei antes</button>
+        </div>`;
+      hydratePhotos();
+
+      // Handler: ignorar grupo permanentemente
+      mainContent.querySelectorAll('[data-ignore-group]').forEach(b => b.addEventListener('click', () => {
+        const chave = b.dataset.ignoreGroup;
+        const ids = chave.split('|');
+        if (!confirm(`Confirmar: essas ${ids.length} pessoas são realmente diferentes?\n\nO alerta não aparecerá mais para este grupo. Se depois surgir uma nova pessoa parecida com uma delas, o alerta volta.`)) return;
+        ignorarGrupoPermanentemente(ids);
+        invalidarCacheSimilares();
+        render();
+        showToast('Grupo ignorado. Não vai mais aparecer no alerta.');
+      }));
+
+      // Handler: restaurar todos os grupos ignorados
+      const restaurarBtn = $('#restaurarIgnorados');
+      if (restaurarBtn){
+        const qtd = gruposIgnorados().size;
+        if (qtd === 0){
+          restaurarBtn.style.display = 'none';
+        } else {
+          restaurarBtn.textContent = `↻ Ver os ${qtd} grupo${qtd===1?'':'s'} que ignorei antes`;
+          restaurarBtn.addEventListener('click', () => {
+            if (!confirm(`Restaurar ${qtd} grupo${qtd===1?'':'s'} que você marcou como "pessoas diferentes"?\n\nEles voltarão a aparecer aqui como possíveis duplicatas.`)) return;
+            restaurarTodosOsGruposIgnorados();
+            invalidarCacheSimilares();
+            render();
+            showToast('Grupos ignorados restaurados.');
+          });
+        }
+      }
+
+      return;
+    }
+
     const letters = Object.keys(groups).sort();
     mainContent.innerHTML = letters.map(L => `
       <h2 class="letter-heading" id="letter-${L}"><span class="chip">${L}</span></h2>
@@ -2323,6 +2683,114 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // ---------- Modal logic ----------
   let pendingPhoto = undefined; // undefined = sem mudança | null = remover | dataURL = nova foto
 
+  // ============================================================
+  //  Modal de ficha — TIPO, CAPA e DESTINO do projeto
+  // ============================================================
+  // Tipos padrão (usam a mesma tabela `categories` das Coleções).
+  // Usuário pode adicionar mais pelo botão "+".
+  const TIPOS_PADRAO = [
+    { nome:'Documentário',   icone:'🎥' },
+    { nome:'Filme',          icone:'🎬' },
+    { nome:'Desenho',        icone:'🎨' },
+    { nome:'Série',          icone:'📺' },
+    { nome:'Audiobook',      icone:'🎧' },
+    { nome:'Estudo Bíblico', icone:'📖' },
+  ];
+  function iconeDoTipo(nome){
+    const p = TIPOS_PADRAO.find(t => t.nome.toLowerCase() === (nome||'').toLowerCase());
+    return p ? p.icone : '📁';
+  }
+  let tipoSelecionado = null;   // nome do tipo escolhido
+  let pendingCapaFicha = null;  // dataURL da capa nova
+
+  function tiposDisponiveis(){
+    // combina padrão + categorias existentes (sem duplicar)
+    const usadas = new Set((categories||[]).map(c => (c.name||'').toLowerCase()));
+    const extras = (categories||[]).filter(c =>
+      !TIPOS_PADRAO.some(t => t.nome.toLowerCase() === (c.name||'').toLowerCase())
+    ).map(c => ({ nome:c.name, icone:iconeDoTipo(c.name), custom:true }));
+    return [...TIPOS_PADRAO, ...extras];
+  }
+
+  function renderTipoGrid(){
+    const grid = $('#tipoGrid'); if (!grid) return;
+    const lista = tiposDisponiveis();
+    grid.innerHTML = lista.map(t => `
+      <div class="tipo-card ${tipoSelecionado===t.nome?'on':''}" data-tipo="${escapeHtml(t.nome)}">
+        <div class="tipo-ic">${t.icone}</div>
+        <div class="tipo-nome">${escapeHtml(t.nome)}</div>
+      </div>
+    `).join('') + `
+      <div class="tipo-card tipo-card-add" id="tipoAddBtn">
+        <div class="tipo-ic">➕</div>
+        <div class="tipo-nome">Novo tipo</div>
+      </div>`;
+    grid.querySelectorAll('[data-tipo]').forEach(c => c.addEventListener('click', () => {
+      tipoSelecionado = c.dataset.tipo;
+      renderTipoGrid();
+    }));
+    const addBtn = $('#tipoAddBtn');
+    if (addBtn) addBtn.addEventListener('click', async () => {
+      const nome = prompt('Nome do novo tipo:');
+      if (!nome || !nome.trim()) return;
+      const clean = nome.trim();
+      if (tiposDisponiveis().some(t => t.nome.toLowerCase()===clean.toLowerCase())){
+        showToast('Esse tipo já existe.'); return;
+      }
+      // salva na tabela categories pra ficar disponível pra todos
+      try {
+        const { data, error } = await sb.from('categories')
+          .insert({ name: clean, sort_order: (categories||[]).length })
+          .select().single();
+        if (!error && data){
+          categories = [...(categories||[]), data];
+          tipoSelecionado = clean;
+          renderTipoGrid();
+          showToast('Tipo adicionado!');
+        } else {
+          showToast('Erro ao criar tipo.');
+        }
+      } catch(e){ showToast('Erro ao criar tipo.'); }
+    });
+  }
+
+  function wireCapaFicha(){
+    const drop = $('#capaFichaDrop');
+    const input = $('#capaFichaInput');
+    const img = $('#capaFichaImg');
+    const hint = $('#capaFichaHint');
+    if (!drop) return;
+    const usarArquivo = async (f) => {
+      if (!f || !f.type.startsWith('image/')) return;
+      try {
+        const d = await shrinkImage(f, 800, 0.85);
+        pendingCapaFicha = d;
+        img.src = d; img.style.display = 'block';
+        hint.style.display = 'none';
+      } catch(e){ showToast('Não consegui processar a imagem.'); }
+    };
+    drop.onclick = () => input.click();
+    input.onchange = e => usarArquivo(e.target.files && e.target.files[0]);
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('drag-over'); };
+    drop.ondragleave = () => drop.classList.remove('drag-over');
+    drop.ondrop = e => {
+      e.preventDefault(); drop.classList.remove('drag-over');
+      usarArquivo(e.dataTransfer.files && e.dataTransfer.files[0]);
+    };
+  }
+
+  function resetCapaFicha(){
+    pendingCapaFicha = null;
+    const img = $('#capaFichaImg'), hint = $('#capaFichaHint');
+    if (img){ img.src = ''; img.style.display = 'none'; }
+    if (hint) hint.style.display = 'flex';
+  }
+
+  function getDestinoSelecionado(){
+    const r = document.querySelector('input[name="destino"]:checked');
+    return r ? r.value : 'prod';
+  }
+
   async function openModal(personId){
     editingId = personId || null;
     const person = editingId ? people.find(p => p.id === editingId) : null;
@@ -2331,9 +2799,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#nameInput').value = person ? person.name : '';
     pendingPhoto = undefined;
 
+    // Reseta e prepara os novos campos
+    tipoSelecionado = null;
+    resetCapaFicha();
+    const radioProd = document.querySelector('input[name="destino"][value="prod"]');
+    if (radioProd) radioProd.checked = true;
+    renderTipoGrid();
+    wireCapaFicha();
+
     // Botão buscar pessoa: só aparece ao criar nova ficha
     const btnBuscar = $('#btnBuscarPessoa');
     if (btnBuscar) btnBuscar.style.display = person ? 'none' : 'flex';
+
+    // Botão excluir: só aparece ao editar (admin)
+    const btnDel = $('#deleteModalBtn');
+    if (btnDel) btnDel.style.display = (person && isAdmin) ? 'inline-flex' : 'none';
 
     // Fecha autocomplete ao abrir
     closeAcDropdown();
@@ -2487,15 +2967,201 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
   }
 
+  // === DETECÇÃO DE PERSONAGENS COM NOMES SIMILARES ===
+  // Identifica pessoas cujos nomes podem ser duplicatas (só letra diferente,
+  // acento, espaço extra, etc). Ajuda a limpar registros escritos errado.
+  let similarGroupsCache = null;
+
+  // Cada grupo tem uma chave estável: ids ordenados juntos com "|".
+  // Isso permite ao admin "ignorar permanentemente" um grupo específico.
+  // Se um NOVO id similar surgir, a chave muda e o aviso volta a aparecer.
+  function chaveGrupo(ids){
+    return [...ids].sort().join('|');
+  }
+  function gruposIgnorados(){
+    try {
+      return new Set(JSON.parse(localStorage.getItem('similar_grupos_ignorados') || '[]'));
+    } catch(e){ return new Set(); }
+  }
+  function ignorarGrupoPermanentemente(ids){
+    const set = gruposIgnorados();
+    set.add(chaveGrupo(ids));
+    localStorage.setItem('similar_grupos_ignorados', JSON.stringify([...set]));
+  }
+  function restaurarTodosOsGruposIgnorados(){
+    localStorage.removeItem('similar_grupos_ignorados');
+  }
+
+  function grupoSimilares(incluirIgnorados = false){
+    if (similarGroupsCache !== null && !incluirIgnorados) return similarGroupsCache;
+    const pessoas = mainPeople();
+    const grupos = [];
+    const jaVisto = new Set();
+    for (let i=0; i<pessoas.length; i++){
+      if (jaVisto.has(pessoas[i].id)) continue;
+      const a = (pessoas[i].name||'').trim();
+      if (a.length < 3) continue;
+      const grupo = [pessoas[i].id];
+      for (let j=i+1; j<pessoas.length; j++){
+        if (jaVisto.has(pessoas[j].id)) continue;
+        const b = (pessoas[j].name||'').trim();
+        if (b.length < 3) continue;
+        // similaridade: distância <= 2 OU um contém o outro (com >=80% dos chars)
+        const dist = levenshtein(a, b);
+        const maxLen = Math.max(a.length, b.length);
+        const similar = dist <= 2 && dist >= 1 && maxLen >= 4;
+        if (similar){
+          grupo.push(pessoas[j].id);
+          jaVisto.add(pessoas[j].id);
+        }
+      }
+      if (grupo.length > 1){
+        grupo.forEach(id => jaVisto.add(id));
+        grupos.push(grupo);
+      }
+    }
+    if (incluirIgnorados) return grupos;
+    // Filtra grupos permanentemente ignorados
+    const ignorados = gruposIgnorados();
+    const visiveis = grupos.filter(g => !ignorados.has(chaveGrupo(g)));
+    similarGroupsCache = visiveis;
+    return visiveis;
+  }
+  function invalidarCacheSimilares(){ similarGroupsCache = null; }
+
+  function idsComSimilar(){
+    return new Set(grupoSimilares().flat());
+  }
+
+  // Verifica se deve mostrar banner (>5 similares) e se já foi visto nos últimos 15 dias
+  function checaNotificacaoSimilares(){
+    const notice = document.getElementById('similarNotice');
+    if (!notice) return;
+    const grupos = grupoSimilares();
+    const total = grupos.reduce((s,g) => s + g.length, 0);
+    if (total < 5){ notice.style.display = 'none'; return; }
+    // notificação de 15 em 15 dias
+    const LS_KEY = 'similar_notice_dismissed';
+    const dismissed = Number(localStorage.getItem(LS_KEY) || 0);
+    const DIAS = 15 * 24 * 60 * 60 * 1000;
+    if (Date.now() - dismissed < DIAS){ notice.style.display = 'none'; return; }
+    notice.innerHTML = `
+      <div class="similar-notice">
+        <span class="similar-notice-ic">⚠️</span>
+        <div class="similar-notice-body">
+          <b>${total} personagens com nomes parecidos detectados</b><br>
+          <span style="font-size:12px;color:var(--muted);">Podem ser duplicatas escritas errado. Ative o filtro "só nomes similares" para revisar.</span>
+        </div>
+        <button class="similar-notice-cta" id="similarNoticeCta">Ver</button>
+        <button class="similar-notice-x" id="similarNoticeX" title="Fechar (15 dias)">✕</button>
+      </div>`;
+    notice.style.display = 'block';
+    document.getElementById('similarNoticeCta').onclick = () => {
+      const t = document.getElementById('similarToggle');
+      if (t){ t.checked = true; render(); }
+      localStorage.setItem(LS_KEY, String(Date.now()));
+      notice.style.display = 'none';
+    };
+    document.getElementById('similarNoticeX').onclick = () => {
+      localStorage.setItem(LS_KEY, String(Date.now()));
+      notice.style.display = 'none';
+    };
+  }
+
   function renderModalEntries(){
     entriesContainer.innerHTML = modalEntries.map((entry, i) => `
       <div class="modal-entry-row" data-index="${i}">
-        <input type="text" placeholder="Projeto" data-field="project" value="${escapeHtml(entry.project)}">
-        <input type="text" placeholder="Voz utilizada" data-field="voice" value="${escapeHtml(entry.voice)}">
+        <div class="entry-input-wrap">
+          <input type="text" placeholder="Projeto" data-field="project" value="${escapeHtml(entry.project)}" autocomplete="off">
+          <div class="entry-suggest" data-suggest-for="${i}-project"></div>
+        </div>
+        <div class="entry-input-wrap">
+          <input type="text" placeholder="Voz utilizada" data-field="voice" value="${escapeHtml(entry.voice)}" autocomplete="off">
+          <div class="entry-suggest" data-suggest-for="${i}-voice"></div>
+        </div>
         <input type="date" title="Data de uso (opcional)" data-field="date" value="${escapeHtml(entry.date || '')}">
         <button data-action="remove-row" data-index="${i}" title="Remover">✕</button>
       </div>
     `).join('');
+  }
+
+  // === SUGESTÃO DE VOZ E PROJETO (fuzzy match) ===
+  // Retorna nomes existentes parecidos com o que o user está digitando
+  function todasAsVozes(){
+    const s = new Set();
+    (people||[]).forEach(p => p.entries.forEach(e => {
+      const v = (e.voice||'').trim();
+      if (v) s.add(v);
+    }));
+    return [...s];
+  }
+  function todosOsProjetos(){
+    const s = new Set(Object.keys(projectMeta || {}));
+    (people||[]).forEach(p => p.entries.forEach(e => {
+      const pr = (e.project||'').trim();
+      if (pr) s.add(pr);
+    }));
+    return [...s];
+  }
+  // Distância de Levenshtein (mínima quantidade de edições entre 2 strings)
+  function levenshtein(a, b){
+    a = a.toLowerCase(); b = b.toLowerCase();
+    if (a === b) return 0;
+    if (!a.length) return b.length;
+    if (!b.length) return a.length;
+    const dp = Array(b.length+1).fill(0).map((_,i)=>i);
+    for (let i=1; i<=a.length; i++){
+      let prev = i-1; dp[0] = i;
+      for (let j=1; j<=b.length; j++){
+        const tmp = dp[j];
+        dp[j] = a[i-1] === b[j-1]
+          ? prev
+          : 1 + Math.min(prev, dp[j], dp[j-1]);
+        prev = tmp;
+      }
+    }
+    return dp[b.length];
+  }
+  function sugestoesPara(termo, lista){
+    const q = (termo||'').trim().toLowerCase();
+    if (q.length < 2) return [];
+    const jaExiste = lista.some(x => x.toLowerCase() === q);
+    if (jaExiste) return []; // não sugere se já for exato
+    const scored = lista.map(nome => {
+      const nq = nome.toLowerCase();
+      let score = -1;
+      if (nq.startsWith(q)) score = 100 - Math.abs(nq.length - q.length);
+      else if (nq.includes(q)) score = 60 - Math.abs(nq.length - q.length);
+      else {
+        // fuzzy: distância contra o nome INTEIRO
+        const distTotal = levenshtein(q, nq);
+        const maxDistTotal = Math.max(2, Math.floor(nq.length * 0.35));
+        if (distTotal <= maxDistTotal) {
+          score = 40 - distTotal * 5;
+        } else {
+          // fuzzy: também compara com cada PALAVRA do nome
+          // (útil pra "Marcus" achar "Marcos Souza" pelo primeiro nome)
+          const palavras = nq.split(/\s+/).filter(w => w.length >= 3);
+          for (const p of palavras){
+            const dist = levenshtein(q, p);
+            const maxDist = Math.max(1, Math.floor(p.length * 0.35));
+            if (dist <= maxDist){
+              score = Math.max(score, 35 - dist * 5);
+            }
+          }
+        }
+      }
+      return { nome, score };
+    }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
+    return scored.slice(0,4).map(x => x.nome);
+  }
+  function renderSugestoes(el, sugs, campo){
+    if (!sugs.length){ el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.innerHTML = `
+      <div class="entry-suggest-label">💡 Você quis dizer?</div>
+      ${sugs.map(s => `<button type="button" class="entry-suggest-item" data-pick="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')}
+    `;
+    el.style.display = 'block';
   }
 
   entriesContainer.addEventListener('input', (e) => {
@@ -2504,6 +3170,33 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const idx = Number(row.dataset.index);
     const field = e.target.dataset.field;
     if (modalEntries[idx]) modalEntries[idx][field] = e.target.value;
+
+    // Sugestões (fuzzy) apenas para voice e project
+    if (field === 'voice' || field === 'project'){
+      const wrap = e.target.closest('.entry-input-wrap');
+      const sugBox = wrap ? wrap.querySelector('.entry-suggest') : null;
+      if (sugBox){
+        const lista = field === 'voice' ? todasAsVozes() : todosOsProjetos();
+        const sugs = sugestoesPara(e.target.value, lista);
+        renderSugestoes(sugBox, sugs, field);
+      }
+    }
+  });
+
+  // Clique numa sugestão preenche o campo
+  entriesContainer.addEventListener('click', (e) => {
+    const pick = e.target.closest('[data-pick]');
+    if (!pick) return;
+    const row = pick.closest('.modal-entry-row');
+    const idx = Number(row.dataset.index);
+    const inputWrap = pick.closest('.entry-input-wrap');
+    const input = inputWrap.querySelector('input');
+    const field = input.dataset.field;
+    input.value = pick.dataset.pick;
+    if (modalEntries[idx]) modalEntries[idx][field] = pick.dataset.pick;
+    const sugBox = inputWrap.querySelector('.entry-suggest');
+    if (sugBox){ sugBox.innerHTML=''; sugBox.style.display='none'; }
+    showToast('✓ Voz vinculada à existente');
   });
 
   entriesContainer.addEventListener('click', (e) => {
@@ -2548,9 +3241,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const name = $('#nameInput').value.trim();
     if (!name){ showToast('Dê um nome para a ficha.'); $('#nameInput').focus(); return; }
 
+    // Valida tipo obrigatório
+    if (!tipoSelecionado){
+      showToast('Escolha o tipo do projeto.');
+      $('#tipoGrid').scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+
     const cleanEntries = modalEntries
       .map(e => ({ project: e.project.trim(), voice: e.voice.trim(), date: (e.date || '').trim() }))
       .filter(e => e.project && e.voice);
+
+    if (!cleanEntries.length){
+      showToast('Adicione ao menos um projeto e voz.');
+      return;
+    }
 
     $('#saveModalBtn').disabled = true;
 
@@ -2566,7 +3271,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const savedId = await savePerson(person);
     if (!savedId){ $('#saveModalBtn').disabled = false; return; }
 
-    // Aplica a mudança de foto usando o id real da pessoa.
+    // Aplica a mudança de foto da pessoa
     if (pendingPhoto === null){
       await deletePhoto(savedId);
       await sb.from('people').update({ has_photo: false }).eq('id', savedId);
@@ -2575,13 +3280,88 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       await sb.from('people').update({ has_photo: ok }).eq('id', savedId);
     }
 
+    // Para cada projeto único novo/existente: aplica tipo, destino e capa
+    const destino = getDestinoSelecionado();
+    const inProd = destino === 'prod';
+    const projetosUnicos = [...new Set(cleanEntries.map(e => e.project))];
+
+    for (const proj of projetosUnicos){
+      // 1. project_meta: define destino (produção/concluído) e marca capa se houver
+      const jaTemCapa = (projectMeta[proj] && projectMeta[proj].has_cover) || false;
+      const teraCapa = !!pendingCapaFicha || jaTemCapa;
+      try {
+        await sb.from('project_meta').upsert({
+          project: proj,
+          in_production: inProd,
+          archived: false,
+          has_cover: teraCapa,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'project' });
+        projectMeta[proj] = { in_production: inProd, archived: false, has_cover: teraCapa };
+      } catch(e){}
+
+      // 2. Salva capa nova se o usuário escolheu uma
+      if (pendingCapaFicha){
+        try {
+          const key = PROJ_COVER_PREFIX + projKey(proj);
+          const blob = dataUrlToBlob(pendingCapaFicha);
+          let { error } = await sb.storage.from(COVER_BUCKET)
+            .upload(key + '.jpg', blob, { upsert:true, contentType:'image/jpeg' });
+          if (error){
+            const r2 = await sb.storage.from(COVER_BUCKET)
+              .update(key + '.jpg', blob, { contentType:'image/jpeg' });
+            error = r2.error;
+          }
+          if (!error) delete coverCache[key];
+        } catch(e){}
+      }
+
+      // 3. Vincula o projeto à categoria (tipo) na tabela project_categories
+      try {
+        await sb.from('project_categories').upsert(
+          { project: proj, category: tipoSelecionado },
+          { onConflict: 'project' }
+        );
+      } catch(e){}
+    }
+
     $('#saveModalBtn').disabled = false;
     closeModal();
     await loadPeople();
-    showToast('Ficha salva.');
+    await loadProjectMeta();
+    showToast('Ficha salva!');
   });
 
   $('#cancelModalBtn').addEventListener('click', closeModal);
+
+  // Excluir ficha inteira (só admin, só ao editar)
+  $('#deleteModalBtn').addEventListener('click', async () => {
+    if (!editingId || !isAdmin) return;
+    const person = people.find(p => p.id === editingId);
+    if (!person) return;
+    const nome = person.name;
+    if (!confirm(`Tem certeza que quer excluir a ficha de "${nome}"?\n\nTudo será removido: foto, entradas de projeto e vozes. Esta ação não pode ser desfeita.`)) return;
+
+    const btn = $('#deleteModalBtn');
+    btn.disabled = true;
+    btn.textContent = 'Excluindo…';
+    try {
+      // apaga entradas
+      await sb.from('entries').delete().eq('person_id', editingId);
+      // apaga foto do storage se tiver
+      try { await deletePhoto(editingId); } catch(e){}
+      // apaga o registro da pessoa
+      const { error } = await sb.from('people').delete().eq('id', editingId);
+      if (error) throw error;
+      closeModal();
+      await loadPeople();
+      showToast(`Ficha de "${nome}" excluída.`);
+    } catch(e){
+      showToast('Erro ao excluir: '+(e.message||''));
+      btn.disabled = false;
+      btn.textContent = '🗑️ Excluir ficha';
+    }
+  });
   modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
   $('#addBtn').addEventListener('click', () => openModal(null));
@@ -2639,6 +3419,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
+    // Marca como coadjuvante: move todas as entradas para o projeto "X ⟫ Coadjuvantes"
+    const coadjBtn = e.target.closest('[data-action="mark-coadj"]');
+    if (coadjBtn){
+      const id = coadjBtn.dataset.id;
+      const person = people.find(p => p.id === id);
+      if (!person) return;
+      if (!confirm(`Marcar "${person.name}" como coadjuvante?\n\nSuas entradas serão movidas para a subpasta "⟫ Coadjuvantes" de cada projeto. A pessoa deixará de aparecer na lista principal.`)) return;
+
+      // Move cada entrada para a pasta de coadjuvantes do respectivo projeto
+      for (const e of person.entries){
+        if (isCoadjProject(e.project)) continue; // já é coadj
+        const novoProj = coadjProjectOf(e.project);
+        await sb.from('entries').update({ project: novoProj }).eq('id', e.id);
+      }
+      await loadPeople();
+      invalidarCacheSimilares();
+      render();
+      showToast(`"${person.name}" agora é coadjuvante.`);
+      return;
+    }
+
     const cancelBtn = e.target.closest('[data-action="delete-cancel"]');
     if (cancelBtn){ render(); return; }
 
@@ -2653,13 +3454,43 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   // ---------- Toolbar events ----------
   searchInput.addEventListener('input', render);
-  voiceFilter.addEventListener('change', render);
-  projectFilter.addEventListener('change', render);
-  inconsistentToggle.addEventListener('click', () => {
-    const pressed = inconsistentToggle.getAttribute('aria-pressed') === 'true';
-    inconsistentToggle.setAttribute('aria-pressed', String(!pressed));
+  voiceFilter.addEventListener('change', () => {
+    const v = voiceFilter.value;
+    // Se selecionou uma voz específica, redireciona pra aba Avaliação com ela filtrada
+    if (v){
+      avalSearch = v;
+      avalSort = 'nome';
+      voiceFilter.value = ''; // reseta o filtro pra próxima navegação
+      switchView('avaliacao');
+      // Rola até o card da voz e abre os comentários
+      setTimeout(() => {
+        const card = document.querySelector(`[data-voice-card="${CSS.escape(v)}"]`);
+        if (card){
+          card.scrollIntoView({behavior:'smooth', block:'center'});
+          card.classList.add('aval-highlight');
+          setTimeout(() => card.classList.remove('aval-highlight'), 2400);
+          // abre os comentários automaticamente
+          if (!openComments[v]){
+            openComments[v] = true;
+            renderAvaliacao();
+            setTimeout(() => {
+              const card2 = document.querySelector(`[data-voice-card="${CSS.escape(v)}"]`);
+              if (card2){
+                card2.scrollIntoView({behavior:'smooth', block:'center'});
+                card2.classList.add('aval-highlight');
+                setTimeout(() => card2.classList.remove('aval-highlight'), 2400);
+              }
+            }, 100);
+          }
+        }
+      }, 200);
+      return;
+    }
     render();
   });
+  projectFilter.addEventListener('change', render);
+  inconsistentToggle.addEventListener('change', render);
+  document.getElementById('similarToggle')?.addEventListener('change', render);
 
   azRail.addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-letter]');
@@ -3710,7 +4541,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const aberto = !!openComments[voice];
       return `
         <div class="aval-card" data-voice-card="${escapeHtml(voice)}">
-          <div class="aval-voice-name">${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}</div>
+          <div class="aval-voice-name">
+            <span>${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}</span>
+            ${isAdmin?`<button class="aval-del-btn" data-del-voice="${escapeHtml(voice)}" title="Remover avaliações e comentários desta voz">🗑️</button>`:''}
+          </div>
           <div class="aval-used">usada ${counts[voice]}× · ${nR? `avaliada por ${nR} pessoa${nR===1?'':'s'}` : 'sem avaliações'}</div>
           ${crits}
           <button class="cmt-toggle" data-toggle="${escapeHtml(voice)}">💬 ${nCmt? nCmt+' comentário'+(nCmt===1?'':'s') : 'Comentar'} ${aberto?'▲':'▼'}</button>
@@ -3736,6 +4570,29 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (si){ si.addEventListener('input', (e)=>{ avalSearch=e.target.value; const pos=e.target.selectionStart; renderAvaliacao(); const ni=$('#avalSearchInput'); if(ni){ni.focus(); ni.setSelectionRange(pos,pos);} }); }
     const ss = $('#avalSortSel');
     if (ss) ss.addEventListener('change', (e)=>{ avalSort=e.target.value; renderAvaliacao(); });
+
+    // Botão excluir voz (só admin): remove avaliações e comentários dela
+    if (isAdmin){
+      avaliacaoContent.querySelectorAll('[data-del-voice]').forEach(btn => btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const voice = btn.dataset.delVoice;
+        if (!confirm(`Remover TODAS as avaliações e comentários de "${voice}"?\n\nAs fichas dos personagens NÃO serão apagadas — só as notas e comentários desta voz aqui na aba Avaliação. Esta ação não pode ser desfeita.`)) return;
+        btn.disabled = true;
+        try {
+          await sb.from('voice_user_ratings').delete().eq('voice', voice);
+          await sb.from('voice_comments').delete().eq('voice', voice);
+          // limpa caches locais
+          delete ratingAgg[voice];
+          delete myRatings[voice];
+          delete commentsByVoice[voice];
+          showToast(`Avaliações de "${voice}" removidas.`);
+          renderAvaliacao();
+        } catch(err){
+          showToast('Erro ao remover: '+(err.message||''));
+          btn.disabled = false;
+        }
+      }));
+    }
   }
 
   // salva a MINHA nota daquela voz
@@ -3777,7 +4634,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (avgEl) avgEl.textContent = ca>0? ca.toFixed(1):'';
       const card = wrap.closest('[data-voice-card]');
       const avg = avgRating(voice);
-      card.querySelector('.aval-voice-name').innerHTML = `${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}`;
+      const nameEl = card.querySelector('.aval-voice-name > span:first-child');
+      if (nameEl){
+        nameEl.innerHTML = `${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}`;
+      }
       return;
     }
     // abrir/fechar comentários
@@ -3937,7 +4797,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   function allProjectsList(){
-    return [...new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    // BUG FIX: inclui projetos que existem em project_meta mesmo sem fichas cadastradas.
+    // Antes: só listava projetos com fichas, então projetos recém-criados sumiam.
+    const doCatalogo = new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)));
+    const doMeta = new Set(Object.keys(projectMeta || {}));
+    return [...new Set([...doCatalogo, ...doMeta])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
   function peopleCountForProject(project){
     const pl = project.toLowerCase();
@@ -4025,11 +4889,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // ============================================================
   const projetosContent = $('#projetosContent');
 
+  let projetosSearch = '';
+
   function renderProjetos(){
     const todos = allProjectsList().filter(pr => !(projectMeta[pr] && projectMeta[pr].archived));
-    const lista = projetosFilter==='producao'
+    let lista = projetosFilter==='producao'
       ? todos.filter(pr => projectMeta[pr] && projectMeta[pr].in_production)
       : todos.filter(pr => !(projectMeta[pr] && projectMeta[pr].in_production));
+
+    // Aplica busca por nome (case/acento insensitive)
+    const q = projetosSearch.trim().toLowerCase();
+    if (q){
+      lista = lista.filter(pr => pr.toLowerCase().includes(q));
+    }
 
     const cards = lista.map(pr => {
       const url = projCoverUrl(pr);
@@ -4064,10 +4936,34 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <button class="${projetosFilter==='producao'?'on':''}" data-filter="producao">Em produção</button>
         <button class="${projetosFilter==='concluidos'?'on':''}" data-filter="concluidos">Concluídos</button>
       </div>
+      <div class="proj-search-wrap">
+        <div class="search-box" style="flex:1;">
+          <input type="text" id="projSearchInput" placeholder="Buscar projeto${projetosFilter==='concluidos'?' concluído':''}…" autocomplete="off" value="${escapeHtml(projetosSearch)}">
+        </div>
+        ${projetosSearch ? `<button class="btn-ghost" id="projSearchClear" style="padding:8px 14px;font-size:13px;">Limpar</button>` : ''}
+      </div>
       ${lista.length? `<div class="prod-grid">${cards}</div>`
-        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>Nenhum projeto ${projetosFilter==='producao'?'em produção':'concluído'}. ${isAdmin?'Use o botão acima para criar.':''}</p></div>`}`;
+        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>${projetosSearch ? `Nenhum projeto ${projetosFilter==='producao'?'em produção':'concluído'} com "${escapeHtml(projetosSearch)}".` : `Nenhum projeto ${projetosFilter==='producao'?'em produção':'concluído'}. ${isAdmin?'Use o botão acima para criar.':''}`}</p></div>`}`;
 
-    projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{ projetosFilter=b.dataset.filter; renderProjetos(); }));
+    projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{
+      projetosFilter = b.dataset.filter;
+      projetosSearch = ''; // limpa busca ao trocar filtro
+      renderProjetos();
+    }));
+
+    // Busca de projetos
+    const searchInp = $('#projSearchInput');
+    if (searchInp){
+      searchInp.addEventListener('input', (e) => {
+        const pos = e.target.selectionStart;
+        projetosSearch = e.target.value;
+        renderProjetos();
+        const ni = $('#projSearchInput');
+        if (ni){ ni.focus(); ni.setSelectionRange(pos,pos); }
+      });
+    }
+    const clearBtn = $('#projSearchClear');
+    if (clearBtn) clearBtn.addEventListener('click', () => { projetosSearch = ''; renderProjetos(); });
 
     // Botão: novo projeto (wizard de 3 passos)
     const btnNovo = $('#btnNovoProjeto');
@@ -4227,32 +5123,52 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       btn.disabled = true;
       btn.textContent = 'Criando…';
       try{
-        // 1. cria o project_meta
+        // 1. Se tem capa, sobe primeiro (para saber se realmente foi salva)
+        let capaOk = false;
+        if (state.capaFile){
+          try {
+            // Detecta a extensão do arquivo
+            const ext = (state.capaFile.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
+            const key = PROJ_COVER_PREFIX + projKey(state.nome) + '.' + ext;
+            const { error: upErr } = await sb.storage.from('capas').upload(key, state.capaFile, {
+              upsert: true,
+              contentType: state.capaFile.type
+            });
+            if (upErr) {
+              console.error('Upload capa falhou:', upErr);
+              showToast('⚠ Não consegui salvar a capa: ' + upErr.message);
+            } else {
+              const { data: pub } = sb.storage.from('capas').getPublicUrl(key);
+              const url = pub && pub.publicUrl ? pub.publicUrl : null;
+              if (url){
+                // limpa o cache pra próxima busca pegar a nova capa
+                delete coverCache[PROJ_COVER_PREFIX + projKey(state.nome)];
+                capaOk = true;
+              }
+            }
+          } catch(e){
+            console.error('Erro upload capa:', e);
+            showToast('⚠ Erro ao subir capa: ' + (e.message||''));
+          }
+        }
+
+        // 2. Grava o project_meta (só marca has_cover se realmente salvou)
         await sb.from('project_meta').upsert({
           project: state.nome,
           in_production: state.inProd,
           archived: false,
-          has_cover: !!state.capaFile
+          has_cover: capaOk
         }, { onConflict:'project' });
 
-        // 2. sobe a capa se tiver
-        if (state.capaFile){
-          const key = PROJ_COVER_PREFIX + projKey(state.nome);
-          try {
-            await sb.storage.from('capas').upload(key, state.capaFile, { upsert:true, contentType: state.capaFile.type });
-            const { data: pub } = sb.storage.from('capas').getPublicUrl(key);
-            coverCache[key] = pub && pub.publicUrl ? pub.publicUrl : null;
-          } catch(e){ /* segue mesmo se a capa falhar */ }
-        }
-
-        // 3. cache local
+        // 3. Atualiza cache local
         projectMeta[state.nome] = {
-          in_production: state.inProd, archived: false, has_cover: !!state.capaFile
+          in_production: state.inProd, archived: false, has_cover: capaOk
         };
 
         ov.classList.remove('open');
         renderProjetos();
-        showToast(`✅ Projeto "${state.nome}" criado! Abra o projeto para adicionar pessoas.`);
+        if (currentView === 'home') renderHome();
+        showToast(`✅ Projeto "${state.nome}" criado! ${state.capaFile && !capaOk ? '(capa não salva)' : ''}`);
       }catch(err){
         showToast('Erro ao criar: ' + (err.message||''));
         btn.disabled = false;
@@ -5602,7 +6518,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         maybePromptProfile();
       } catch(e){ switchView('home'); }
       // Loading fica visível por 2 segundos e some
-      setTimeout(hideLoading, 4000);
+      setTimeout(hideLoading, 2000);
     } catch(e) {
       if (btnEl) btnEl.disabled = false;
       hideLoading();
@@ -5668,7 +6584,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           maybePromptProfile();
         } catch(e){ switchView('home'); }
         subscribeRealtime();
-        setTimeout(hideLoading, 4000);
+        setTimeout(hideLoading, 2000);
       } else {
         showLogin();
       }
