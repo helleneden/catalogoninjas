@@ -3427,22 +3427,50 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let agendaCalYear = new Date().getFullYear();
   let agendaCalMonth = new Date().getMonth(); // 0-11
   let agendaSelectedDay = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  // Chat: usamos um Map indexado por ID em vez de array.
-  // Com Map, gravar a mesma mensagem duas vezes simplesmente sobrescreve —
-  // duplicação vira impossível por construção, não por verificação.
-  let chatById = new Map();   // id -> mensagem
-  let chatChannel = null;     // canal realtime do chat
-  // View ordenada, derivada do Map
-  function chatList(){
-    return [...chatById.values()].sort((a,b)=>
-      String(a.created_at||'').localeCompare(String(b.created_at||''))
-    );
+  // ============================================================
+  //  CHAT — NOVA ARQUITETURA (banco = fonte da verdade)
+  // ============================================================
+  // Antes tentávamos manter um cache local sincronizado com o realtime.
+  // O problema: em várias condições de corrida (reconexão, canal duplo,
+  // eventos duplicados do Supabase), o cache divergia do banco.
+  //
+  // Solução nova: qualquer sinal do realtime dispara uma RECARGA completa
+  // do banco. O cache existe só pra render rápido — quem manda é o SELECT.
+  // Assim, duplicação vira impossível: o banco tem PK em id.
+  // ============================================================
+
+  let chatCache = [];         // lista renderizada (vem do banco)
+  let chatChannel = null;     // canal realtime único
+  let chatReloadPending = false;
+  let chatLastReload = 0;
+
+  // Recarrega do banco. Debounced: 10 chamadas em sequência viram 1 SELECT.
+  async function reloadChatFromDB(force){
+    if (chatReloadPending && !force) return;
+    chatReloadPending = true;
+    try{
+      // debounce: junta chamadas próximas em 200ms
+      await new Promise(r => setTimeout(r, 200));
+      const { data, error } = await sb.from('chat_messages')
+        .select('*').order('created_at', {ascending:true});
+      if (error) throw error;
+      chatCache = data || [];
+      chatLastReload = Date.now();
+      if (currentView === 'painel') rerenderChatMsgs();
+    }catch(e){
+      // silencioso — mantém o cache anterior
+    }finally{
+      chatReloadPending = false;
+    }
   }
-  function chatUpsert(msg){
-    if (!msg || !msg.id) return false;
-    const novo = !chatById.has(msg.id);
-    chatById.set(msg.id, msg);
-    return novo; // true se era inédita
+
+  async function loadChat(){
+    try{ await sb.rpc('purge_old_chat'); }catch(e){}
+    try{
+      const { data } = await sb.from('chat_messages').select('*').order('created_at', {ascending:true});
+      chatCache = data || [];
+      chatLastReload = Date.now();
+    }catch(e){ chatCache = []; }
   }
 
   async function loadRatings(){
@@ -4840,22 +4868,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // ---- Chat ----
-  async function loadChat(){
-    try{
-      try{ await sb.rpc('purge_old_chat'); }catch(e){}
-      const { data } = await sb.from('chat_messages').select('*').order('created_at', {ascending:true});
-      chatById = new Map();
-      (data||[]).forEach(m => chatById.set(m.id, m));
-    }catch(e){ chatById = new Map(); }
-  }
-
   function formatChatBody(body){
     // destaca @menções
     return escapeHtml(body).replace(/@(\w[\wÀ-ú\s]*)/g, '<span class="mention">@$1</span>');
   }
 
   function renderChatMsgs(){
-    const msgs = chatList();
+    const msgs = chatCache;
     if (!msgs.length) return `<div style="font-size:13px;color:var(--muted);text-align:center;padding:24px 0;">Sem mensagens ainda. Comece a conversa! 🥷</div>`;
 
     let lastDate = null;
@@ -5033,8 +5052,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         if (!confirm('Apagar esta mensagem?')) return;
         const id = delMsg.dataset.delMsg;
         await sb.from('chat_messages').delete().eq('id', id);
-        chatById.delete(id);
-        rerenderChatMsgs(); return;
+        await reloadChatFromDB(true);
+        return;
       }
       // admin: adicionar admin
       if (e.target.closest('#addAdminBtn')){ await handleAddAdmin(); return; }
@@ -5084,8 +5103,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     box.scrollTop = box.scrollHeight;
   }
 
-  // Envio de mensagem. Com o Map, mesmo que o INSERT local e o evento realtime
-  // cheguem juntos, os dois gravam na mesma chave — não há como duplicar.
+  // Envio de mensagem. Estratégia: INSERT no banco, depois RELOAD do banco.
+  // Não adicionamos ao cache localmente — deixamos o banco/realtime disparar
+  // o reload. Isso garante que a lista renderizada sempre reflete o banco.
   let enviandoChat = false;
   async function sendChatMsg(){
     if (enviandoChat) return;
@@ -5096,23 +5116,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     enviandoChat = true;
     chatIn.disabled = true;
     const texto = body;
-    chatIn.value = '';   // limpa já, pra não reenviar o mesmo texto
+    chatIn.value = '';
 
     try{
-      const { data, error } = await sb.from('chat_messages').insert({
+      const { error } = await sb.from('chat_messages').insert({
         user_id: myUserId,
         author_name: myProfile.display_name || 'Ninja',
         author_color: myProfile.ninja_color || 'azul',
         body: texto,
         reactions: {}
-      }).select().single();
+      });
 
       if (error){
         showToast('Erro ao enviar: '+error.message);
-        chatIn.value = texto;  // devolve o texto se falhou
-      } else if (data){
-        chatUpsert(data);
-        rerenderChatMsgs();
+        chatIn.value = texto;
+      } else {
+        // Recarrega do banco pra pegar a mensagem recém-criada (com id do servidor)
+        await reloadChatFromDB(true);
       }
     }catch(e){
       showToast('Erro ao enviar.');
@@ -5153,24 +5173,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   async function toggleReaction(msgId, emoji){
     if (!myUserId) return;
-    const msg = chatById.get(msgId); if (!msg) return;
+    const msg = chatCache.find(m => m.id === msgId); if (!msg) return;
     const reacts = { ...(msg.reactions||{}) };
     reacts[emoji] = [...(reacts[emoji] || [])];
     if (reacts[emoji].includes(myUserId)){
-      reacts[emoji] = reacts[emoji].filter(id=>id!==myUserId);
+      reacts[emoji] = reacts[emoji].filter(id => id !== myUserId);
       if (!reacts[emoji].length) delete reacts[emoji];
     } else {
       reacts[emoji].push(myUserId);
     }
-    // grava no Map (otimista) e renderiza
-    chatUpsert({ ...msg, reactions: reacts });
+    // Render otimista
+    msg.reactions = reacts;
     rerenderChatMsgs();
+    // Persiste e recarrega
     const { error } = await sb.from('chat_messages').update({ reactions: reacts }).eq('id', msgId);
     if (error){
-      // desfaz se falhou
-      chatUpsert(msg);
-      rerenderChatMsgs();
       showToast('Não consegui salvar a reação.');
+      await reloadChatFromDB(true);
     }
   }
 
@@ -5191,33 +5210,34 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     setTimeout(()=>document.addEventListener('click',()=>pick.remove(),{once:true}), 50);
   }
 
-  // Realtime do chat. Duas garantias:
-  // 1) o canal é criado uma única vez (guardado em chatChannel);
-  // 2) toda escrita passa por chatUpsert, que indexa por ID.
+  // Realtime: em vez de manipular o cache, apenas dispara reload do banco.
+  // Um único canal por sessão. Chamadas repetidas são ignoradas.
   function subscribeChat(){
-    if (chatChannel) return;  // já existe canal ativo — não cria outro
+    if (chatChannel) return;
 
-    // Remove qualquer canal 'chat-geral' órfão de uma sessão anterior
+    // Remove qualquer canal órfão de sessões anteriores
     try{
       (sb.getChannels() || []).forEach(ch => {
         if (ch.topic && ch.topic.includes('chat-geral')) sb.removeChannel(ch);
       });
     }catch(e){}
 
+    // Detecta se a nova mensagem é de outra pessoa (pra tocar som)
+    let ultimaMinha = null;
+
     chatChannel = sb.channel('chat-geral')
       .on('postgres_changes', {event:'INSERT', schema:'public', table:'chat_messages'}, (payload)=>{
-        const inedita = chatUpsert(payload.new);
-        if (currentView==='painel') rerenderChatMsgs();
-        // toca notificação só se for inédita e de outra pessoa
-        if (inedita && payload.new.user_id !== myUserId) playNotifSound();
+        // toca som se for de outra pessoa e não for eco da minha própria msg
+        if (payload.new && payload.new.user_id !== myUserId && payload.new.id !== ultimaMinha){
+          playNotifSound();
+        }
+        reloadChatFromDB();
       })
-      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'chat_messages'}, (payload)=>{
-        chatUpsert(payload.new);
-        if (currentView==='painel') rerenderChatMsgs();
+      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'chat_messages'}, ()=>{
+        reloadChatFromDB();
       })
-      .on('postgres_changes', {event:'DELETE', schema:'public', table:'chat_messages'}, (payload)=>{
-        chatById.delete(payload.old.id);
-        if (currentView==='painel') rerenderChatMsgs();
+      .on('postgres_changes', {event:'DELETE', schema:'public', table:'chat_messages'}, ()=>{
+        reloadChatFromDB();
       })
       .subscribe();
   }
