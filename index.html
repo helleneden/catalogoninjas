@@ -226,19 +226,44 @@
   .prod-badge{ position:absolute; top:8px; left:8px; background:var(--green-deep); color:#fff; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:20px; }
 
   /* modal de projeto (ordem de dublagem) */
-  .dub-list{ list-style:none; margin:0; padding:0; }
+  .dub-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
   .dub-item{
-    display:flex; align-items:center; gap:10px; padding:10px 12px; margin-bottom:6px;
-    background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    display:flex; align-items:center; gap:12px; padding:11px 14px;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    transition:all .18s ease;
+    position:relative;
   }
-  .dub-item.draggable{ cursor:grab; }
-  .dub-item.dragging{ opacity:.5; }
-  .dub-pos{ font-family:var(--font-head); font-weight:800; color:var(--blue-deep); min-width:22px; text-align:center; }
-  .dub-handle{ color:var(--muted); font-size:16px; cursor:grab; }
+  .dub-item:hover{
+    border-color:var(--blue);
+    box-shadow:0 2px 12px rgba(37,99,235,.10);
+    transform:translateY(-1px);
+  }
+  .dub-item.draggable{ cursor:default; }
+  .dub-item.dragging{
+    opacity:.5; transform:scale(.98) rotate(-.5deg);
+    box-shadow:0 8px 24px rgba(30,58,138,.20);
+    cursor:grabbing;
+  }
+  .dub-item.drag-over-top{ box-shadow:inset 0 3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
+  .dub-item.drag-over-bottom{ box-shadow:inset 0 -3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
+  .dub-pos{
+    font-family:var(--font-head); font-weight:800; font-size:12.5px;
+    color:#fff; background:linear-gradient(135deg,var(--blue),var(--blue-deep));
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+    box-shadow:0 2px 6px rgba(37,99,235,.25);
+  }
+  .dub-handle{
+    color:var(--muted); font-size:18px; cursor:grab;
+    padding:2px 6px; border-radius:6px; user-select:none;
+    transition:color .15s, background .15s;
+  }
+  .dub-handle:hover{ color:var(--blue-deep); background:rgba(37,99,235,.08); }
+  .dub-handle:active{ cursor:grabbing; }
   .dub-voice{ flex:1; min-width:0; }
-  .dub-voice .vn{ font-weight:600; font-size:13.5px; }
-  .dub-voice .pn{ font-size:11.5px; color:var(--muted); }
-  .dub-avatar{ width:36px; height:36px; border-radius:10px; font-size:13px; flex:0 0 auto; }
+  .dub-voice .vn{ font-weight:600; font-size:13.5px; line-height:1.2; }
+  .dub-voice .pn{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .dub-avatar{ width:38px; height:38px; border-radius:50%; font-size:13px; flex:0 0 auto; box-shadow:0 2px 6px rgba(0,0,0,.08); }
   .coadj-folder{
     display:flex; align-items:center; gap:12px; padding:12px 14px;
     background:var(--surface-soft); border:1.5px dashed var(--line); border-radius:12px;
@@ -247,10 +272,21 @@
   .coadj-folder:hover{ border-color:var(--blue); background:var(--bg); }
   .coadj-ic{ font-size:22px; }
   .dub-del{
-    background:none; border:none; cursor:pointer; font-size:15px; opacity:.6;
-    padding:4px 6px; border-radius:8px; flex:0 0 auto; transition:opacity .15s, background .15s;
+    background:none; border:none; cursor:pointer; font-size:15px; opacity:.5;
+    padding:6px 8px; border-radius:8px; flex:0 0 auto;
+    transition:opacity .15s, background .15s, color .15s;
+    color:var(--muted);
   }
-  .dub-del:hover{ opacity:1; background:rgba(220,38,38,.1); }
+  .dub-item:hover .dub-del{ opacity:1; }
+  .dub-del:hover{ background:rgba(220,38,38,.1); color:#DC2626; }
+
+  .empty-projeto{
+    text-align:center; padding:32px 20px; background:var(--surface-soft);
+    border:1.5px dashed var(--line); border-radius:14px;
+  }
+  .empty-projeto-ic{ font-size:44px; margin-bottom:8px; opacity:.6; }
+  .empty-projeto-tit{ font-family:var(--font-head); font-weight:700; font-size:15px; margin-bottom:4px; }
+  .empty-projeto-sub{ font-size:12.5px; color:var(--muted); line-height:1.5; }
 
   .admin-only{ display:none; }
   body.is-admin .admin-only{ display:inline-flex; }
@@ -425,6 +461,92 @@
     position: relative;
   }
   .col-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
+  /* ---- Wizard de novo projeto ---- */
+  .wizard-modal{ max-width:520px; }
+  .wizard-steps{ display:flex; align-items:center; gap:8px; margin-bottom:20px; }
+  .ws-step{
+    display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600;
+    color:var(--muted); white-space:nowrap;
+  }
+  .ws-step span{
+    width:26px; height:26px; border-radius:50%; background:var(--surface-soft);
+    border:1.5px solid var(--line); display:flex; align-items:center; justify-content:center;
+    font-size:12.5px; font-weight:700;
+    transition:all .2s ease;
+  }
+  .ws-step.on{ color:var(--ink); }
+  .ws-step.on span{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .ws-step.cur span{ box-shadow:0 0 0 4px rgba(37,99,235,.15); transform:scale(1.05); }
+  .ws-line{ flex:1; height:2px; background:var(--line); border-radius:99px; }
+
+  .seg-radio{ display:flex; gap:6px; }
+  .seg-radio button{
+    flex:1; padding:11px 14px; border-radius:10px; border:1.5px solid var(--line);
+    background:var(--surface); font-size:13px; font-weight:600; cursor:pointer;
+    color:var(--muted); transition:all .15s ease;
+  }
+  .seg-radio button:hover{ border-color:var(--blue); color:var(--blue-deep); }
+  .seg-radio button.on{
+    background:rgba(37,99,235,.08); border-color:var(--blue); color:var(--blue-deep);
+    box-shadow:0 2px 8px rgba(37,99,235,.12);
+  }
+
+  .wizard-capa{
+    position:relative; border:2px dashed var(--line); border-radius:14px;
+    min-height:200px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; overflow:hidden; background:var(--surface-soft);
+    transition:all .2s ease;
+  }
+  .wizard-capa:hover, .wizard-capa.drag-over{ border-color:var(--blue); background:rgba(37,99,235,.04); }
+  .wizard-capa img{ width:100%; height:100%; max-height:260px; object-fit:cover; display:block; }
+  .wizard-capa-empty{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:20px; text-align:center; }
+
+  .wizard-resumo{
+    display:flex; align-items:center; gap:14px; padding:16px;
+    background:var(--surface-soft); border:1px solid var(--line); border-radius:14px;
+  }
+  .wizard-resumo img{
+    width:64px; height:64px; border-radius:12px; object-fit:cover; flex:0 0 auto;
+    box-shadow:0 4px 12px rgba(0,0,0,.1);
+  }
+  .wizard-resumo-nocapa{
+    width:64px; height:64px; border-radius:12px; flex:0 0 auto;
+    background:linear-gradient(135deg,var(--blue),var(--green) 130%);
+    display:flex; align-items:center; justify-content:center; font-size:28px;
+  }
+  .wizard-resumo-nome{ font-family:var(--font-head); font-weight:800; font-size:16px; }
+  .wizard-resumo-status{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  /* ---- Lista arrastável de vozes/pessoas ---- */
+  .drag-list{ display:flex; flex-direction:column; gap:6px; }
+  .drag-item{
+    display:flex; align-items:center; gap:10px;
+    padding:10px 12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:10px; transition:all .18s ease;
+    cursor:default;
+  }
+  .drag-item:hover{ border-color:var(--blue); box-shadow:0 2px 8px rgba(37,99,235,.08); }
+  .drag-item.dragging{ opacity:.4; transform:scale(.98); }
+  .drag-item.drag-over{ border-color:var(--blue); box-shadow:0 -3px 0 var(--blue) inset; }
+  .drag-handle{
+    color:var(--muted); cursor:grab; user-select:none; font-size:16px;
+    padding:2px 4px; line-height:1;
+  }
+  .drag-handle:active{ cursor:grabbing; }
+  .drag-num{
+    background:var(--surface-soft); color:var(--muted);
+    font-family:var(--font-head); font-weight:700; font-size:12px;
+    width:24px; height:24px; border-radius:50%; display:flex;
+    align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .drag-item .photo, .drag-item .photo-fallback{
+    width:36px; height:36px; border-radius:50%; flex:0 0 auto;
+    font-size:12px;
+  }
+  .drag-body{ flex:1; min-width:0; }
+  .drag-name{ font-weight:600; font-size:13.5px; }
+  .drag-sub{ font-size:11.5px; color:var(--muted); }
+
   /* ---- Participantes do projeto ---- */
   .part-chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .part-chip{
@@ -3935,8 +4057,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <div class="home-hero" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
         <div><h1>🎬 Projetos</h1><p>Todos os projetos de dublagem.</p></div>
         ${isAdmin?`<div class="admin-only" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-primary" id="btnNovaProjFicha" style="white-space:nowrap;">+ Nova ficha de projeto</button>
-          <button class="btn-ghost" id="btnNovoProjMeta" style="white-space:nowrap;">⚙ Criar projeto vazio</button>
+          <button class="btn-primary" id="btnNovoProjeto" style="white-space:nowrap;">+ Novo projeto</button>
         </div>`:''}
       </div>
       <div class="seg-filter">
@@ -3948,13 +4069,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{ projetosFilter=b.dataset.filter; renderProjetos(); }));
 
-    // Botão: nova ficha de projeto → abre modal de criação (igual aba Fichas)
-    const btnFicha = $('#btnNovaProjFicha');
-    if (btnFicha) btnFicha.addEventListener('click', ()=>{ openModal(null); });
-
-    // Botão: criar projeto vazio (só metadado, sem ficha) → prompt de nome
-    const btnMeta = $('#btnNovoProjMeta');
-    if (btnMeta) btnMeta.addEventListener('click', ()=> openNovoProjModal());
+    // Botão: novo projeto (wizard de 3 passos)
+    const btnNovo = $('#btnNovoProjeto');
+    if (btnNovo) btnNovo.addEventListener('click', ()=> openWizardProjeto());
   }
 
   projetosContent.addEventListener('click', async (e) => {
@@ -3966,47 +4083,186 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (card) openProjetoModal(card.dataset.proj);
   });
 
-  function openNovoProjModal(){
+  // Wizard de 3 passos para criar novo projeto (Nome+Status → Capa → Pronto)
+  function openWizardProjeto(){
     if (!isAdmin) return;
+    const state = { passo: 1, nome: '', inProd: true, capaFile: null, capaPreview: null };
     const ov = ensureColOverlay();
-    ov.innerHTML = `
-      <div class="modal">
-        <h2>⚙ Criar projeto vazio</h2>
-        <p style="font-size:13px;color:var(--muted);margin:-8px 0 14px;">Cria um projeto no catálogo sem fichas de personagem. Útil pra organizar antes de cadastrar as vozes.</p>
-        <div class="field">
-          <label>Nome do projeto</label>
-          <input type="text" id="novoProjNome" placeholder="Ex: Documentário Avivamento T2" autocomplete="off">
-        </div>
-        <div class="field">
-          <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-            <input type="checkbox" id="novoProjProd" checked> Marcar como "em produção"
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button class="btn-ghost" id="novoProjCancel">Cancelar</button>
-          <button class="btn-primary" id="novoProjSave">Criar projeto</button>
-        </div>
-      </div>`;
-    ov.classList.add('open');
-    const inp = $('#novoProjNome');
-    inp.focus();
-    $('#novoProjCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', e=>{ if(e.target===ov) ov.classList.remove('open'); });
-    $('#novoProjSave').addEventListener('click', async ()=>{
-      const nome = inp.value.trim();
-      if (!nome){ showToast('Dê um nome ao projeto.'); return; }
-      if (allProjectsList().map(p=>p.toLowerCase()).includes(nome.toLowerCase())){
-        showToast('Já existe um projeto com este nome.'); return;
+
+    function render(){
+      ov.innerHTML = `
+        <div class="modal wizard-modal">
+          <div class="wizard-steps">
+            <div class="ws-step ${state.passo>=1?'on':''} ${state.passo===1?'cur':''}"><span>1</span> Nome</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=2?'on':''} ${state.passo===2?'cur':''}"><span>2</span> Capa</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=3?'on':''} ${state.passo===3?'cur':''}"><span>3</span> Pronto</div>
+          </div>
+
+          ${state.passo === 1 ? `
+            <h2 style="margin-top:8px;">Novo projeto</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Comece dando um nome ao projeto. Você pode adicionar as pessoas depois de criar.</p>
+            <div class="field">
+              <label>Nome do projeto</label>
+              <input type="text" id="wpNome" placeholder="Ex: Documentário Avivamento T2" autocomplete="off" value="${escapeHtml(state.nome)}">
+            </div>
+            <div class="field">
+              <label>Onde alocar</label>
+              <div class="seg-radio">
+                <button type="button" class="${state.inProd?'on':''}" data-alocar="prod">🎬 Em produção</button>
+                <button type="button" class="${!state.inProd?'on':''}" data-alocar="conc">✅ Concluídos</button>
+              </div>
+              <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Aparece na aba <b>Projetos</b> e no destaque da <b>Home</b> quando estiver em produção.</p>
+            </div>
+          ` : ''}
+
+          ${state.passo === 2 ? `
+            <h2 style="margin-top:8px;">Capa do projeto</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Suba uma imagem representativa. Você pode pular e adicionar depois.</p>
+            <div class="wizard-capa" id="wpCapaDrop">
+              ${state.capaPreview
+                ? `<img src="${state.capaPreview}" alt="prévia">`
+                : `<div class="wizard-capa-empty">
+                    <div style="font-size:44px;">🖼️</div>
+                    <div style="font-weight:600;">Arraste uma imagem aqui</div>
+                    <div style="font-size:12px;color:var(--muted);">ou clique para escolher</div>
+                  </div>`}
+              <input type="file" id="wpCapaInput" accept="image/*" style="display:none;">
+            </div>
+            ${state.capaPreview ? `<button class="btn-ghost" id="wpCapaRemover" style="margin-top:10px;font-size:12.5px;">Remover imagem</button>` : ''}
+          ` : ''}
+
+          ${state.passo === 3 ? `
+            <h2 style="margin-top:8px;text-align:center;">Pronto para criar</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 20px;text-align:center;">Revise as informações antes de confirmar.</p>
+            <div class="wizard-resumo">
+              ${state.capaPreview
+                ? `<img src="${state.capaPreview}" alt="">`
+                : `<div class="wizard-resumo-nocapa">🎬</div>`}
+              <div>
+                <div class="wizard-resumo-nome">${escapeHtml(state.nome)}</div>
+                <div class="wizard-resumo-status">
+                  ${state.inProd?'🎬 Em produção':'✅ Concluído'} · ${state.capaFile?'com capa':'sem capa'}
+                </div>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;">Depois de criado, abra o projeto para adicionar as pessoas.</p>
+          ` : ''}
+
+          <div class="modal-actions" style="margin-top:20px;">
+            <button class="btn-ghost" id="wpCancel">${state.passo===1?'Cancelar':'← Voltar'}</button>
+            <button class="btn-primary" id="wpNext">
+              ${state.passo===1?'Próximo →':state.passo===2?(state.capaFile?'Próximo →':'Pular →'):'Criar projeto ✓'}
+            </button>
+          </div>
+        </div>`;
+
+      wireStep();
+    }
+
+    function wireStep(){
+      $('#wpCancel').addEventListener('click', ()=>{
+        if (state.passo === 1) ov.classList.remove('open');
+        else { state.passo--; render(); }
+      });
+
+      if (state.passo === 1){
+        const inp = $('#wpNome');
+        inp.focus();
+        inp.addEventListener('input', e => state.nome = e.target.value);
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('#wpNext').click(); });
+        ov.querySelectorAll('[data-alocar]').forEach(b => b.addEventListener('click', () => {
+          state.inProd = b.dataset.alocar === 'prod'; render();
+        }));
       }
-      $('#novoProjSave').disabled = true;
-      const inProd = $('#novoProjProd').checked;
-      await sb.from('project_meta').upsert({ project:nome, in_production:inProd, archived:false }, { onConflict:'project' });
-      projectMeta[nome] = { in_production:inProd, archived:false, has_cover:false };
-      ov.classList.remove('open');
-      renderProjetos();
-      showToast(`Projeto "${nome}" criado!`);
-    });
-    inp.addEventListener('keydown', e=>{ if(e.key==='Enter') $('#novoProjSave').click(); });
+
+      if (state.passo === 2){
+        const drop = $('#wpCapaDrop');
+        const inp = $('#wpCapaInput');
+        drop.addEventListener('click', () => inp.click());
+        inp.addEventListener('change', () => {
+          const f = inp.files && inp.files[0];
+          if (f && f.type.startsWith('image/')) usarArquivo(f);
+        });
+        drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag-over'); });
+        drop.addEventListener('dragleave', () => drop.classList.remove('drag-over'));
+        drop.addEventListener('drop', e => {
+          e.preventDefault(); drop.classList.remove('drag-over');
+          const f = e.dataTransfer.files && e.dataTransfer.files[0];
+          if (f && f.type.startsWith('image/')) usarArquivo(f);
+        });
+        const rem = $('#wpCapaRemover');
+        if (rem) rem.addEventListener('click', () => { state.capaFile = null; state.capaPreview = null; render(); });
+
+        function usarArquivo(f){
+          state.capaFile = f;
+          const reader = new FileReader();
+          reader.onload = e => { state.capaPreview = e.target.result; render(); };
+          reader.readAsDataURL(f);
+        }
+      }
+
+      $('#wpNext').addEventListener('click', async () => {
+        if (state.passo === 1){
+          const nome = state.nome.trim();
+          if (!nome){ showToast('Dê um nome ao projeto.'); return; }
+          if (allProjectsList().map(p => p.toLowerCase()).includes(nome.toLowerCase())){
+            showToast('Já existe um projeto com este nome.'); return;
+          }
+          state.nome = nome;
+          state.passo = 2; render();
+        }
+        else if (state.passo === 2){
+          state.passo = 3; render();
+        }
+        else if (state.passo === 3){
+          await criarProjeto();
+        }
+      });
+    }
+
+    async function criarProjeto(){
+      const btn = $('#wpNext');
+      btn.disabled = true;
+      btn.textContent = 'Criando…';
+      try{
+        // 1. cria o project_meta
+        await sb.from('project_meta').upsert({
+          project: state.nome,
+          in_production: state.inProd,
+          archived: false,
+          has_cover: !!state.capaFile
+        }, { onConflict:'project' });
+
+        // 2. sobe a capa se tiver
+        if (state.capaFile){
+          const key = PROJ_COVER_PREFIX + projKey(state.nome);
+          try {
+            await sb.storage.from('capas').upload(key, state.capaFile, { upsert:true, contentType: state.capaFile.type });
+            const { data: pub } = sb.storage.from('capas').getPublicUrl(key);
+            coverCache[key] = pub && pub.publicUrl ? pub.publicUrl : null;
+          } catch(e){ /* segue mesmo se a capa falhar */ }
+        }
+
+        // 3. cache local
+        projectMeta[state.nome] = {
+          in_production: state.inProd, archived: false, has_cover: !!state.capaFile
+        };
+
+        ov.classList.remove('open');
+        renderProjetos();
+        showToast(`✅ Projeto "${state.nome}" criado! Abra o projeto para adicionar pessoas.`);
+      }catch(err){
+        showToast('Erro ao criar: ' + (err.message||''));
+        btn.disabled = false;
+        btn.textContent = 'Criar projeto ✓';
+      }
+    }
+
+    ov.classList.add('open');
+    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+    render();
   }
 
   async function moveProjeto(project){
@@ -4460,8 +4716,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         </div>`:''}
         <div class="field">
-          <label>Ordem de dublagem${isAdmin?' <span style="text-transform:none; font-weight:400; color:var(--muted);">(arraste para reordenar)</span>':''}</label>
-          <ol class="dub-list" id="dubList">
+          <label>Ordem de dublagem${isAdmin?' <span style="text-transform:none; font-weight:400; color:var(--muted);">(arraste ⠿ para reordenar)</span>':''}</label>
+          ${pairs.length ? `<ol class="dub-list" id="dubList">
             ${pairs.map((pr,i)=>{
               const initials = pr.person.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
               const avatar = pr.hasPhoto
@@ -4470,13 +4726,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               return `
               <li class="dub-item ${isAdmin?'draggable':''}" draggable="${isAdmin?'true':'false'}" data-voice="${escapeHtml(pr.voice)}" data-person-id="${pr.personId}">
                 <span class="dub-pos">${i+1}</span>
-                ${isAdmin?'<span class="dub-handle">⠿</span>':''}
+                ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn">${escapeHtml(pr.voice)}</div></div>
                 ${isAdmin?`<button class="dub-del admin-only" title="Remover" data-del-person="${pr.personId}" data-del-voice="${escapeHtml(pr.voice)}" data-del-proj="${escapeHtml(project)}">🗑️</button>`:''}
               </li>`;
             }).join('')}
-          </ol>
+          </ol>` : `
+          <div class="empty-projeto">
+            <div class="empty-projeto-ic">🎬</div>
+            <div class="empty-projeto-tit">Nenhuma pessoa neste projeto ainda</div>
+            <div class="empty-projeto-sub">${isAdmin?'Clique em <b>+ Adicionar pessoa</b> abaixo para vincular fichas a este projeto.':'Aguarde o admin adicionar as pessoas.'}</div>
+          </div>`}
+          ${isAdmin?`<button class="btn-ghost admin-only" id="btnAddPessoaProj" style="margin-top:12px;width:100%;justify-content:center;font-size:13px;padding:10px;">+ Adicionar pessoa ao projeto</button>`:''}
         </div>
         ${coadjuvantesOfProject(project).length ? `
         <div class="field">
@@ -4551,25 +4813,67 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         e.target.value='';
       });
 
-      // drag & drop da ordem
+      // botão "Adicionar pessoa ao projeto" — abre o modal de nova ficha pré-preenchido
+      const btnAdd = $('#btnAddPessoaProj');
+      if (btnAdd) btnAdd.addEventListener('click', ()=>{
+        ov.classList.remove('open');
+        openModal(null);
+        // pré-preenche o projeto no modal (após renderModalEntries)
+        setTimeout(()=>{
+          const projInp = document.querySelector('#modalEntries input[data-f="project"]');
+          if (projInp){ projInp.value = project; projInp.dispatchEvent(new Event('input', {bubbles:true})); }
+          const nameInp = $('#nameInput');
+          if (nameInp) nameInp.focus();
+        }, 100);
+      });
+
+      // drag & drop da ordem — só se há lista pra ordenar
       const list=$('#dubList');
+      if (!list){
+        // sem lista, só liga o botão salvar pra fazer nada
+        const btnSave = $('#projSaveOrder');
+        if (btnSave){ btnSave.style.display='none'; }
+        return;
+      }
       let dragEl=null;
-      list.addEventListener('dragstart', e=>{ dragEl=e.target.closest('.dub-item'); dragEl.classList.add('dragging'); });
-      list.addEventListener('dragend', e=>{ if(dragEl) dragEl.classList.remove('dragging'); dragEl=null; renumber(); });
+      function limparIndicadores(){
+        list.querySelectorAll('.dub-item').forEach(i => {
+          i.classList.remove('drag-over-top','drag-over-bottom');
+        });
+      }
+      list.addEventListener('dragstart', e=>{
+        dragEl=e.target.closest('.dub-item');
+        if(dragEl) setTimeout(()=>dragEl.classList.add('dragging'), 0);
+      });
+      list.addEventListener('dragend', e=>{
+        if(dragEl) dragEl.classList.remove('dragging');
+        limparIndicadores();
+        dragEl=null;
+        renumber();
+      });
       list.addEventListener('dragover', e=>{
         e.preventDefault();
-        const after=getDragAfter(list, e.clientY);
         if(!dragEl) return;
-        if(after==null) list.appendChild(dragEl); else list.insertBefore(dragEl, after);
+        limparIndicadores();
+        const alvo = e.target.closest('.dub-item:not(.dragging)');
+        if (!alvo){
+          // caiu no vazio no final
+          const items = [...list.querySelectorAll('.dub-item:not(.dragging)')];
+          if (items.length) items[items.length-1].classList.add('drag-over-bottom');
+          list.appendChild(dragEl);
+          return;
+        }
+        const box = alvo.getBoundingClientRect();
+        const meio = box.top + box.height/2;
+        if (e.clientY < meio){
+          alvo.classList.add('drag-over-top');
+          list.insertBefore(dragEl, alvo);
+        } else {
+          alvo.classList.add('drag-over-bottom');
+          list.insertBefore(dragEl, alvo.nextSibling);
+        }
       });
-      function getDragAfter(container, y){
-        const els=[...container.querySelectorAll('.dub-item:not(.dragging)')];
-        return els.reduce((closest,child)=>{
-          const box=child.getBoundingClientRect(); const offset=y-box.top-box.height/2;
-          if(offset<0 && offset>closest.offset) return {offset, element:child};
-          return closest;
-        }, {offset:-Infinity}).element;
-      }
+      list.addEventListener('drop', e => { e.preventDefault(); limparIndicadores(); });
       function renumber(){ [...list.querySelectorAll('.dub-item')].forEach((li,i)=> li.querySelector('.dub-pos').textContent=i+1); }
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
