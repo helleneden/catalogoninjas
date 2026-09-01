@@ -1113,57 +1113,57 @@
 
   /* ---------- A-Z rail ---------- */
   .az-rail{
-    position: fixed;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 90;
+    position: sticky;
+    top: 0;
+    z-index: 40;
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px 6px;
+    flex-direction: row;
+    gap: 4px;
+    padding: 10px 12px;
+    margin: 0 -12px 12px;
     background: rgba(255,255,255,.92);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border-radius: 999px;
-    box-shadow: 0 4px 20px rgba(15,23,42,.12);
-    border: 1px solid var(--line);
-    max-height: 82vh;
-    overflow-y: auto;
+    box-shadow: 0 2px 12px rgba(15,23,42,.06);
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
     scrollbar-width: none;
+    justify-content: center;
+    flex-wrap: nowrap;
   }
   .az-rail::-webkit-scrollbar{ display:none; }
-
-  @media (max-width: 500px){
-    .az-rail{
-      right: 4px;
-      padding: 6px 4px;
-    }
-    .az-rail button{ width:20px; height:20px; font-size:10px; }
-  }
   .az-rail button{
     font-family: var(--font-head);
     font-weight: 700;
-    font-size: 11px;
-    width: 22px; height: 22px;
+    font-size: 12.5px;
+    width: 30px; height: 30px;
     flex: 0 0 auto;
-    border-radius: 50%;
+    border-radius: 8px;
     border: none;
     background: transparent;
     color: #B6C2D4;
     transition: all 0.12s ease;
     padding: 0;
+    cursor: pointer;
   }
   .az-rail button.has-entries{
     color: var(--blue-deep);
-    background: transparent;
+    background: var(--surface-soft);
   }
   .az-rail button.has-entries:hover{
     background: var(--blue-deep);
     color: #fff;
-    border-color: var(--blue-deep);
   }
-  .az-rail button:disabled{ cursor: default; }
+  .az-rail button:disabled{ cursor: default; opacity: .35; }
+
+  @media (max-width: 640px){
+    .az-rail{
+      justify-content: flex-start;
+      padding: 8px 10px;
+      gap: 3px;
+    }
+    .az-rail button{ width:26px; height:26px; font-size:11.5px; }
+  }
 
   /* ---------- Main content ---------- */
   main{ max-width: 1180px; margin: 0 auto; padding: 18px 24px 90px; }
