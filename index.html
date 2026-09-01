@@ -587,6 +587,54 @@
   }
   .similar-notice-x:hover{ opacity:1; }
 
+  /* ---- Modal de confirmação bonito ---- */
+  .confirm-overlay{
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(15,23,42,0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+  }
+  .confirm-overlay.open{
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .confirm-modal{
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 28px 24px 22px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(15,23,42,0.35);
+    animation: confirmPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes confirmPop{
+    0%{ transform: scale(0.85); opacity: 0; }
+    100%{ transform: scale(1); opacity: 1; }
+  }
+  .confirm-icon{
+    width: 64px; height: 64px;
+    margin: 0 auto 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    box-shadow: 0 4px 14px rgba(217,119,6,0.2);
+  }
+  .confirm-actions{
+    display: flex; gap: 8px; justify-content: stretch;
+  }
+  .confirm-actions button{
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    justify-content: center;
+  }
+
   /* ---- Grupos similares na visualização filtrada ---- */
   .similar-group-block{
     background: linear-gradient(180deg, rgba(254,243,199,.35), transparent 30%);
@@ -2589,6 +2637,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
 
     if (filtered.length === 0){
+      // Mensagem específica quando o filtro "similares" está ativo
+      const onlySimilarAtivo = document.getElementById('similarToggle')?.checked;
+      if (onlySimilarAtivo){
+        const qtdIgnorados = gruposIgnorados().size;
+        mainContent.innerHTML = `
+          <div class="empty-state">
+            <h2 style="font-family:var(--font-head)">✓ Tudo limpo!</h2>
+            <p>Não achamos personagens com nomes parecidos${qtdIgnorados?` (fora os ${qtdIgnorados} grupo${qtdIgnorados===1?'':'s'} que você marcou como "pessoas diferentes")`:''}.</p>
+            ${qtdIgnorados?`<div class="similar-restore-wrap"><button class="btn-ghost" id="restaurarIgnorados2" style="font-size:12px;padding:8px 14px;">↻ Ver os ${qtdIgnorados} grupo${qtdIgnorados===1?'':'s'} que ignorei antes</button></div>`:''}
+          </div>
+        `;
+        const rBtn = $('#restaurarIgnorados2');
+        if (rBtn) rBtn.addEventListener('click', () => {
+          if (!confirm(`Restaurar ${qtdIgnorados} grupo${qtdIgnorados===1?'':'s'} que você marcou como "pessoas diferentes"?`)) return;
+          restaurarTodosOsGruposIgnorados();
+          invalidarCacheSimilares();
+          render();
+          showToast('Grupos ignorados restaurados.');
+        });
+        return;
+      }
       mainContent.innerHTML = `
         <div class="empty-state">
           <h2>Nada encontrado</h2>
@@ -2995,31 +3064,78 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function grupoSimilares(incluirIgnorados = false){
     if (similarGroupsCache !== null && !incluirIgnorados) return similarGroupsCache;
     const pessoas = mainPeople();
-    const grupos = [];
-    const jaVisto = new Set();
-    for (let i=0; i<pessoas.length; i++){
-      if (jaVisto.has(pessoas[i].id)) continue;
-      const a = (pessoas[i].name||'').trim();
-      if (a.length < 3) continue;
-      const grupo = [pessoas[i].id];
-      for (let j=i+1; j<pessoas.length; j++){
-        if (jaVisto.has(pessoas[j].id)) continue;
-        const b = (pessoas[j].name||'').trim();
-        if (b.length < 3) continue;
-        // similaridade: distância <= 2 OU um contém o outro (com >=80% dos chars)
-        const dist = levenshtein(a, b);
-        const maxLen = Math.max(a.length, b.length);
-        const similar = dist <= 2 && dist >= 1 && maxLen >= 4;
-        if (similar){
-          grupo.push(pessoas[j].id);
-          jaVisto.add(pessoas[j].id);
+
+    // Normaliza: minúsculas, sem acentos, sem pontuação/símbolos extras, espaços colapsados
+    function normalizar(s){
+      return (s||'').toString()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // remove acentos
+        .replace(/[^a-z0-9\s]/g,' ')  // símbolos viram espaço
+        .replace(/\s+/g,' ').trim();
+    }
+
+    // Cria dados normalizados
+    const dados = pessoas.map(p => ({
+      id: p.id,
+      nome: (p.name||'').trim(),
+      norm: normalizar(p.name)
+    })).filter(x => x.norm.length >= 3);
+
+    // Função de similaridade: retorna true se dois nomes provavelmente são a mesma pessoa
+    function saoSimilares(a, b){
+      if (a.norm === b.norm) return true;  // idênticos após normalizar (só diferença de acento/case)
+      // Levenshtein no nome inteiro normalizado
+      const dist = levenshtein(a.norm, b.norm);
+      const maxLen = Math.max(a.norm.length, b.norm.length);
+      // Tolerância: até 15% do tamanho do nome, com mínimo 1 e máximo 3
+      const tol = Math.min(3, Math.max(1, Math.floor(maxLen * 0.15)));
+      if (dist <= tol) return true;
+      // Também considera "um contém o outro" para casos como "João da Silva" vs "João Silva"
+      // Split em palavras e conta interseção
+      const pa = new Set(a.norm.split(' ').filter(w => w.length >= 3));
+      const pb = new Set(b.norm.split(' ').filter(w => w.length >= 3));
+      if (pa.size >= 2 && pb.size >= 2){
+        const inter = [...pa].filter(w => pb.has(w)).length;
+        // Se compartilham 2+ palavras significativas E os tamanhos das listas são parecidos
+        const minP = Math.min(pa.size, pb.size);
+        if (inter >= 2 && inter >= minP - 1) return true;
+      }
+      return false;
+    }
+
+    // Constrói grafo de adjacências: quem é similar a quem
+    const adj = new Map();
+    for (let i = 0; i < dados.length; i++){
+      adj.set(dados[i].id, new Set());
+    }
+    for (let i = 0; i < dados.length; i++){
+      for (let j = i+1; j < dados.length; j++){
+        if (saoSimilares(dados[i], dados[j])){
+          adj.get(dados[i].id).add(dados[j].id);
+          adj.get(dados[j].id).add(dados[i].id);
         }
       }
-      if (grupo.length > 1){
-        grupo.forEach(id => jaVisto.add(id));
-        grupos.push(grupo);
-      }
     }
+
+    // BFS para achar componentes conectados
+    const visitado = new Set();
+    const grupos = [];
+    for (const item of dados){
+      if (visitado.has(item.id)) continue;
+      const comp = [];
+      const fila = [item.id];
+      while (fila.length){
+        const cur = fila.shift();
+        if (visitado.has(cur)) continue;
+        visitado.add(cur);
+        comp.push(cur);
+        for (const viz of adj.get(cur) || []){
+          if (!visitado.has(viz)) fila.push(viz);
+        }
+      }
+      if (comp.length > 1) grupos.push(comp);
+    }
+
     if (incluirIgnorados) return grupos;
     // Filtra grupos permanentemente ignorados
     const ignorados = gruposIgnorados();
@@ -3058,7 +3174,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     notice.style.display = 'block';
     document.getElementById('similarNoticeCta').onclick = () => {
       const t = document.getElementById('similarToggle');
-      if (t){ t.checked = true; render(); }
+      if (t) t.checked = true;
+      // Precisa estar na aba Fichas pra ver o filtro funcionando
+      switchView('fichas');
+      // Rola pro topo do conteúdo
+      setTimeout(() => window.scrollTo({top:0, behavior:'smooth'}), 100);
       localStorage.setItem(LS_KEY, String(Date.now()));
       notice.style.display = 'none';
     };
@@ -5208,26 +5328,92 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#exCancel').addEventListener('click', ()=>ov.classList.remove('open'));
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
     $('#exArquivar').addEventListener('click', async ()=>{
-      await sb.from('project_meta').upsert({ project, archived:true, in_production:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
-      projectMeta[project] = { ...(projectMeta[project]||{}), archived:true, in_production:false };
-      ov.classList.remove('open'); renderProjetos(); showToast('Projeto arquivado.');
+      try{
+        await sb.from('project_meta').upsert({ project, archived:true, in_production:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
+        projectMeta[project] = { ...(projectMeta[project]||{}), archived:true, in_production:false };
+        ov.classList.remove('open'); renderProjetos(); showToast('Projeto arquivado.');
+      }catch(e){ showToast('Erro ao arquivar: '+(e.message||'')); }
     });
     $('#exExcluir').addEventListener('click', async ()=>{
-      if (!confirm('Tem CERTEZA? Isso apaga o projeto e as fichas que só existem nele. Não dá pra desfazer.')) return;
-      $('#exExcluir').disabled=true;
-      const pl = project.toLowerCase();
-      const afetadas = visiblePeople().filter(p => p.entries.some(e => (e.project||'').toLowerCase()===pl));
-      for (const p of afetadas){
-        await sb.from('entries').delete().eq('person_id', p.id).eq('project', project);
-        const { data: rest } = await sb.from('entries').select('id').eq('person_id', p.id);
-        if (!rest || rest.length===0) await sb.from('people').delete().eq('id', p.id);
+      // Modal de confirmação bonito em vez de confirm() nativo
+      const confirmed = await confirmarExclusao(project);
+      if (!confirmed) return;
+      const btn = $('#exExcluir');
+      btn.disabled = true;
+      btn.textContent = 'Excluindo…';
+
+      try {
+        const pl = project.toLowerCase();
+        const afetadas = visiblePeople().filter(p => p.entries.some(e => (e.project||'').toLowerCase()===pl));
+        for (const p of afetadas){
+          const { error: e1 } = await sb.from('entries').delete().eq('person_id', p.id).eq('project', project);
+          if (e1) throw e1;
+          const { data: rest } = await sb.from('entries').select('id').eq('person_id', p.id);
+          if (!rest || rest.length===0){
+            const { error: e2 } = await sb.from('people').delete().eq('id', p.id);
+            if (e2) throw e2;
+          }
+        }
+        // Apaga metadados do projeto
+        const { error: e3 } = await sb.from('project_meta').delete().eq('project', project);
+        if (e3) throw e3;
+        await sb.from('dub_order').delete().eq('project', project);
+        // Apaga também categoria e participantes se existirem
+        try { await sb.from('project_categories').delete().eq('project', project); } catch(e){}
+        try { await sb.from('project_participants').delete().eq('project', project); } catch(e){}
+
+        // IMPORTANTE: limpa o cache local (senão o projeto continua aparecendo)
+        delete projectMeta[project];
+        delete projectCats[project];
+        delete projectParticipants[project];
+
+        ov.classList.remove('open');
+        await loadPeople();
+        await loadProjectMeta();
+        renderProjetos();
+        if (currentView === 'home') renderHome();
+        showToast('✅ Projeto "'+project+'" excluído.');
+      } catch(err){
+        console.error('Erro ao excluir projeto:', err);
+        showToast('❌ Erro ao excluir: '+(err.message||err.details||'tente de novo'));
+        btn.disabled = false;
+        btn.textContent = '🗑️ Excluir permanentemente';
       }
-      await sb.from('project_meta').delete().eq('project', project);
-      await sb.from('dub_order').delete().eq('project', project);
-      ov.classList.remove('open');
-      await loadPeople();
-      renderProjetos();
-      showToast('Projeto excluído.');
+    });
+  }
+
+  // Modal de confirmação bonito (substitui window.confirm)
+  // Retorna Promise<boolean>
+  function confirmarExclusao(nomeItem){
+    return new Promise(resolve => {
+      // Cria um overlay temporário sobre o overlay atual
+      const conf = document.createElement('div');
+      conf.className = 'modal-overlay confirm-overlay open';
+      conf.style.zIndex = '9999';
+      conf.innerHTML = `
+        <div class="modal confirm-modal">
+          <div class="confirm-icon">⚠️</div>
+          <h2 style="text-align:center; margin:8px 0 4px;">Tem certeza?</h2>
+          <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 6px;">Vai apagar o projeto <b style="color:var(--ink);">${escapeHtml(nomeItem)}</b> e todas as fichas que existem só nele.</p>
+          <p style="text-align:center; font-size:12px; color:#DC2626; font-weight:600; margin:0 0 20px;">Esta ação não pode ser desfeita.</p>
+          <div class="confirm-actions">
+            <button class="btn-ghost" id="confirmCancel">Cancelar</button>
+            <button class="btn-primary" id="confirmYes" style="background:#DC2626;">🗑️ Sim, excluir</button>
+          </div>
+        </div>`;
+      document.body.appendChild(conf);
+
+      const cleanup = (result) => {
+        conf.classList.remove('open');
+        setTimeout(() => conf.remove(), 200);
+        resolve(result);
+      };
+      conf.querySelector('#confirmCancel').addEventListener('click', () => cleanup(false));
+      conf.querySelector('#confirmYes').addEventListener('click', () => cleanup(true));
+      conf.addEventListener('click', (e) => { if (e.target === conf) cleanup(false); });
+      // ESC também fecha
+      const escHandler = (e) => { if (e.key === 'Escape'){ cleanup(false); document.removeEventListener('keydown', escHandler); } };
+      document.addEventListener('keydown', escHandler);
     });
   }
 
