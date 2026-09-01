@@ -1113,15 +1113,16 @@
 
   /* ---------- A-Z rail ---------- */
   .az-rail{
-    position: sticky;
-    top: 0;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 220px; /* fallback - JS ajusta dinamicamente */
     z-index: 40;
     display: flex;
     flex-direction: row;
     gap: 4px;
     padding: 10px 12px;
-    margin: 0 -12px 12px;
-    background: rgba(255,255,255,.92);
+    background: rgba(255,255,255,.95);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     box-shadow: 0 2px 12px rgba(15,23,42,.06);
@@ -3769,6 +3770,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#avaliacaoView').style.display = avaliacao ? '' : 'none';
     const toolbar = document.querySelector('.toolbar');
     if (toolbar) toolbar.style.display = fichas ? '' : 'none';
+    // Posiciona a barra A-Z logo abaixo do header dinamicamente
+    if (fichas){
+      requestAnimationFrame(() => posicionarAzRail());
+    }
     if (home) renderHome();
     if (painel) renderPainel();
     if (projetos) renderProjetos();
@@ -3778,6 +3783,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (avaliacao) renderAvaliacao();
     if (fichas) render();
   }
+
+  // Mede a altura real do header e posiciona a barra A-Z logo abaixo.
+  // Roda ao entrar na aba, ao redimensionar a janela e após render.
+  function posicionarAzRail(){
+    const header = document.querySelector('.site-header');
+    if (!header || !azRail) return;
+    const h = header.getBoundingClientRect().height;
+    azRail.style.top = h + 'px';
+    // Também ajusta o padding-top do mainContent pra não sobrepor
+    const railH = azRail.getBoundingClientRect().height;
+    mainContent.style.paddingTop = (railH + 12) + 'px';
+  }
+  window.addEventListener('resize', () => {
+    if (currentView === 'fichas') posicionarAzRail();
+  });
 
   document.querySelectorAll('.view-tabs .tab').forEach(t => {
     t.addEventListener('click', () => switchView(t.dataset.view));
