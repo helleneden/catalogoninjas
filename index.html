@@ -7668,6 +7668,123 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
+  // Renderiza sugestões de colegas de cena das pessoas do projeto atual.
+  // Aparece direto no modal do projeto pra facilitar adicionar mais fichas.
+  function renderSugestoesColegasProjeto(project){
+    const box = document.getElementById('projSugestoesBox');
+    if (!box) return;
+
+    const pl = project.trim().toLowerCase();
+
+    // Pessoas atuais no projeto
+    const pessoasAtuais = mainPeople().filter(p =>
+      p.entries.some(e => (e.project||'').trim().toLowerCase() === pl)
+    );
+    if (pessoasAtuais.length === 0){
+      box.innerHTML = '';
+      return;
+    }
+
+    const idsAtuais = new Set(pessoasAtuais.map(p => p.id));
+
+    // Junta os projetos anteriores de cada pessoa atual (excluindo o atual)
+    const projetosAnteriores = new Set();
+    pessoasAtuais.forEach(p => {
+      p.entries.forEach(e => {
+        const pr = (e.project||'').trim();
+        if (pr && pr.toLowerCase() !== pl){
+          projetosAnteriores.add(pr);
+        }
+      });
+    });
+
+    if (projetosAnteriores.size === 0){
+      box.innerHTML = '';
+      return;
+    }
+
+    // Pega colegas: pessoas que estiveram nesses projetos, mas NÃO estão no atual
+    const colegasMap = new Map(); // id -> {personId, personName, hasPhoto, voice, projetoOrigem, count}
+    mainPeople().forEach(p => {
+      if (idsAtuais.has(p.id)) return;
+      p.entries.forEach(e => {
+        if (projetosAnteriores.has(e.project)){
+          if (!colegasMap.has(p.id)){
+            colegasMap.set(p.id, {
+              personId: p.id,
+              personName: p.name,
+              hasPhoto: p.hasPhoto,
+              voice: e.voice || '',
+              projetoOrigem: e.project,
+              count: 1
+            });
+          } else {
+            colegasMap.get(p.id).count++;
+          }
+        }
+      });
+    });
+
+    // Ordena por count decrescente (quem apareceu mais vezes com essa turma)
+    const colegas = [...colegasMap.values()]
+      .sort((a,b) => b.count - a.count)
+      .slice(0, 10);
+
+    if (colegas.length === 0){
+      box.innerHTML = '';
+      return;
+    }
+
+    box.innerHTML = `
+      <div style="padding:14px 16px;background:linear-gradient(180deg, rgba(37,99,235,.06), rgba(22,163,74,.03));border:1.5px solid rgba(37,99,235,.20);border-radius:14px;">
+        <div style="font-family:var(--font-head);font-weight:700;font-size:14px;color:var(--blue-deep);margin-bottom:4px;">🎯 Sugestões — colegas de cena</div>
+        <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">Pessoas que já trabalharam com quem está neste projeto. Clique pra adicionar.</div>
+        <div class="wp-marcadas-list">
+          ${colegas.map(c => {
+            const iniciais = c.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            return `
+              <div class="wp-marcada-item" data-sug-proj-add="${c.personId}" style="cursor:pointer;">
+                <div class="wp-marcada-ph photo-fallback" ${c.hasPhoto?`data-photo-for="${c.personId}" data-name="${escapeHtml(c.personName)}"`:''}>${iniciais}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.personName)}</div>
+                  <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎬 ${escapeHtml(c.projetoOrigem)} · 🎤 ${escapeHtml(c.voice||'(sem voz)')}</div>
+                </div>
+                <span style="color:var(--blue);font-weight:700;font-size:18px;">+</span>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    // Handler: clicar adiciona a pessoa ao projeto direto
+    box.querySelectorAll('[data-sug-proj-add]').forEach(card => card.addEventListener('click', async () => {
+      const id = card.dataset.sugProjAdd;
+      const p = mainPeople().find(x => x.id === id);
+      if (!p) return;
+      const vozPadrao = (p.entries[0] && p.entries[0].voice) || '(voz não definida)';
+      card.style.opacity = '.5';
+      card.style.pointerEvents = 'none';
+      try {
+        const { error } = await sb.from('entries').insert({
+          person_id: id,
+          project,
+          voice: vozPadrao,
+          date: null
+        });
+        if (error) throw error;
+        showToast(`✅ "${p.name}" adicionado ao projeto.`);
+        await loadPeople();
+        invalidarCacheSimilares();
+        openProjetoModal(project); // reabre atualizado
+      } catch(e){
+        showToast('Erro: '+(e.message||''));
+        card.style.opacity = '';
+        card.style.pointerEvents = '';
+      }
+    }));
+    hydratePhotos();
+  }
+
   // Modal para adicionar pessoas a um projeto existente: buscar existentes ou criar nova
   async function abrirAdicionarPessoaAoProjeto(project, onDone){
     const ov = document.createElement('div');
@@ -7683,7 +7800,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     function render(){
       const arr = [...local.pessoasParaAdicionar.values()];
       ov.innerHTML = `
-        <div class="modal" style="max-width:640px;">
+        <div class="modal" style="max-width:640px;overflow:visible;">
           <h2>Adicionar pessoas ao projeto</h2>
           <p style="font-size:13px;color:var(--muted);margin:-6px 0 14px;">
             Projeto: <b style="color:var(--ink);">${escapeHtml(project)}</b>
@@ -7692,7 +7809,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <label>Buscar ficha existente ou criar nova</label>
             <div class="ac-wrap">
               <input type="text" id="addPessoaInput" placeholder="Digite o nome do personagem..." autocomplete="off">
-              <div class="ac-dropdown" id="addPessoaDrop"></div>
+              <div class="ac-dropdown" id="addPessoaDrop" style="max-height:340px;"></div>
             </div>
             <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Escolha uma ficha já cadastrada (a voz vem dela) ou crie uma nova.</p>
           </div>
@@ -8032,6 +8149,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
 
         ${isAdmin?`
+        <!-- BLOCO: Sugestões de colegas de cena das pessoas do projeto -->
+        <div class="field" id="projSugestoesField">
+          <div id="projSugestoesBox"></div>
+        </div>
+        `:''}
+
+        ${isAdmin?`
         <!-- BLOCO: Coleção (tipo) e Franquia -->
         <div class="field">
           <label>🗂 Coleção (tipo do projeto)</label>
@@ -8306,6 +8430,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           openProjetoModal(project);
         } catch(e){ showToast('Erro: '+(e.message||'')); }
       });
+
+      // === BLOCO DE SUGESTÕES DE COLEGAS DE CENA ===
+      renderSugestoesColegasProjeto(project);
 
       // drag & drop da ordem — só se há lista pra ordenar
       const list=$('#dubList');
