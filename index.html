@@ -7718,33 +7718,120 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const box = $('#addPessoaMarcadas');
       if (!box) return;
       const arr = [...local.pessoasParaAdicionar.values()];
-      if (arr.length === 0){
-        box.innerHTML = '';
-        return;
+      let html = '';
+      if (arr.length > 0){
+        html += `
+          <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);">
+            <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">${arr.length} pessoa${arr.length===1?'':'s'} selecionada${arr.length===1?'':'s'}</div>
+            <div class="wp-marcadas-list">
+              ${arr.map(p => {
+                const iniciais = p.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+                return `
+                  <div class="wp-marcada-item">
+                    <div class="wp-marcada-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.personId}" data-name="${escapeHtml(p.personName)}"`:''}>${iniciais}</div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}</div>
+                      <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎤 ${escapeHtml(p.voice || '(voz não definida)')}</div>
+                    </div>
+                    <button type="button" class="wp-remover" data-remover="${p.personId}" title="Remover">✕</button>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
       }
-      box.innerHTML = `
-        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);">
-          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">${arr.length} pessoa${arr.length===1?'':'s'} selecionada${arr.length===1?'':'s'}</div>
-          <div class="wp-marcadas-list">
-            ${arr.map(p => {
-              const iniciais = p.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
-              return `
-                <div class="wp-marcada-item">
-                  <div class="wp-marcada-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.personId}" data-name="${escapeHtml(p.personName)}"`:''}>${iniciais}</div>
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}</div>
-                    <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎤 ${escapeHtml(p.voice || '(voz não definida)')}</div>
-                  </div>
-                  <button type="button" class="wp-remover" data-remover="${p.personId}" title="Remover">✕</button>
-                </div>`;
-            }).join('')}
-          </div>
-        </div>`;
+
+      // Sugestões de colegas de cena das pessoas marcadas (existentes, não novas)
+      const colegas = calcularColegasSugeridos();
+      if (colegas.length > 0){
+        html += `
+          <div style="margin-top:14px;padding-top:12px;border-top:1px dashed rgba(37,99,235,.25);">
+            <div style="font-size:12.5px;color:var(--blue-deep);margin-bottom:8px;font-weight:700;">🎯 Colegas de cena — sugestões (marque pra adicionar juntos)</div>
+            <div class="wp-marcadas-list">
+              ${colegas.map(c => {
+                const iniciais = c.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+                return `
+                  <div class="wp-marcada-item" data-sug-add="${c.personId}" style="cursor:pointer;border-color:rgba(37,99,235,.30);background:rgba(37,99,235,.04);">
+                    <div class="wp-marcada-ph photo-fallback" ${c.hasPhoto?`data-photo-for="${c.personId}" data-name="${escapeHtml(c.personName)}"`:''}>${iniciais}</div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.personName)}</div>
+                      <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">vem de: ${escapeHtml(c.projetoOrigem)} · 🎤 ${escapeHtml(c.voice||'(sem voz)')}</div>
+                    </div>
+                    <span style="color:var(--blue);font-weight:700;font-size:16px;">+</span>
+                  </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+      }
+
+      box.innerHTML = html;
       box.querySelectorAll('[data-remover]').forEach(btn => btn.addEventListener('click', () => {
         local.pessoasParaAdicionar.delete(btn.dataset.remover);
         render();
       }));
+      // Handler dos cards de sugestão de colegas
+      box.querySelectorAll('[data-sug-add]').forEach(card => card.addEventListener('click', () => {
+        const id = card.dataset.sugAdd;
+        const p = mainPeople().find(x => x.id === id);
+        if (!p) return;
+        const vozPadrao = (p.entries[0] && p.entries[0].voice) || '';
+        local.pessoasParaAdicionar.set(id, {
+          personId: id,
+          personName: p.name,
+          hasPhoto: p.hasPhoto,
+          voice: vozPadrao,
+          _nova: false
+        });
+        render();
+      }));
       hydratePhotos();
+    }
+
+    // Calcula pessoas que já foram "colegas de cena" das marcadas em outros projetos
+    function calcularColegasSugeridos(){
+      const marcadas = [...local.pessoasParaAdicionar.values()].filter(p => !p._nova);
+      if (marcadas.length === 0) return [];
+
+      // Pessoas já no projeto atual (não sugerir)
+      const jaNoProjeto = new Set();
+      mainPeople().forEach(p => {
+        p.entries.forEach(e => {
+          if ((e.project||'').trim().toLowerCase() === project.trim().toLowerCase()){
+            jaNoProjeto.add(p.id);
+          }
+        });
+      });
+
+      // Pra cada pessoa marcada, olha os projetos onde ela esteve e pega os colegas
+      const colegasMap = new Map(); // personId -> {personId, personName, hasPhoto, voice, projetoOrigem}
+      for (const marcada of marcadas){
+        const pessoa = mainPeople().find(p => p.id === marcada.personId);
+        if (!pessoa) continue;
+        // Projetos onde essa pessoa participou (exceto o atual)
+        const projetosDela = new Set(pessoa.entries
+          .map(e => e.project)
+          .filter(p => p && p.trim().toLowerCase() !== project.trim().toLowerCase()));
+
+        // Pra cada projeto, pega colegas
+        mainPeople().forEach(p => {
+          if (p.id === marcada.personId) return;
+          if (jaNoProjeto.has(p.id)) return;
+          if (local.pessoasParaAdicionar.has(p.id)) return;
+          if (colegasMap.has(p.id)) return;
+          for (const e of p.entries){
+            if (projetosDela.has(e.project)){
+              colegasMap.set(p.id, {
+                personId: p.id,
+                personName: p.name,
+                hasPhoto: p.hasPhoto,
+                voice: e.voice || '',
+                projetoOrigem: e.project
+              });
+              break;
+            }
+          }
+        });
+      }
+      return [...colegasMap.values()].slice(0, 10);
     }
 
     function wireInput(){
@@ -7937,8 +8024,50 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="empty-projeto-tit">Nenhuma pessoa neste projeto ainda</div>
             <div class="empty-projeto-sub">${isAdmin?'Clique em <b>+ Adicionar pessoa</b> abaixo para vincular fichas a este projeto.':'Aguarde o admin adicionar as pessoas.'}</div>
           </div>`}
-          ${isAdmin?`<button class="btn-ghost admin-only" id="btnAddPessoaProj" style="margin-top:12px;width:100%;justify-content:center;font-size:13px;padding:10px;">+ Adicionar pessoa ao projeto</button>`:''}
+          ${isAdmin?`
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+            <button class="btn-ghost admin-only" id="btnAddFichaExistente" style="flex:1;min-width:180px;justify-content:center;font-size:13px;padding:10px;">🔍 Adicionar ficha existente</button>
+            <button class="btn-primary admin-only" id="btnCriarNovaFicha" style="flex:1;min-width:180px;justify-content:center;font-size:13px;padding:10px;">✨ Criar nova ficha</button>
+          </div>`:''}
         </div>
+
+        ${isAdmin?`
+        <!-- BLOCO: Coleção (tipo) e Franquia -->
+        <div class="field">
+          <label>🗂 Coleção (tipo do projeto)</label>
+          <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Filme, Documentário, Desenho... A coleção agrupa projetos do mesmo tipo.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="projColecaoSel" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;background:var(--surface);">
+              <option value="">— Nenhuma coleção —</option>
+              ${(categories||[]).map(c => {
+                const franquiaAtual = franchises.find(f => f.id === projectFranchise[project]);
+                const catAtual = franquiaAtual ? franquiaAtual.category_id : null;
+                return `<option value="${c.id}" ${catAtual===c.id?'selected':''}>${escapeHtml(c.name)}</option>`;
+              }).join('')}
+              <option value="__nova__">➕ Criar nova coleção…</option>
+            </select>
+            <button type="button" class="btn-ghost" id="projSalvarColecao" style="padding:8px 14px;font-size:13px;">Salvar coleção</button>
+          </div>
+          <div id="projColecaoNova" style="display:none;margin-top:8px;">
+            <input type="text" id="projColecaoNovaNome" placeholder="Nome da nova coleção" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+          </div>
+        </div>
+
+        <div class="field" id="projFranquiaField" style="${projectFranchise[project] || (franchises||[]).some(f=>f.category_id===((franchises.find(f=>f.id===projectFranchise[project])||{}).category_id)) ? '' : ''}">
+          <label>🎬 Franquia (opcional)</label>
+          <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Se este projeto faz parte de uma série ou franquia dentro da coleção.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <select id="projFranquiaSel" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;background:var(--surface);">
+              <option value="">— Nenhuma franquia —</option>
+              <option value="__nova__">➕ Criar nova franquia…</option>
+            </select>
+            <button type="button" class="btn-ghost" id="projSalvarFranquia" style="padding:8px 14px;font-size:13px;">Salvar franquia</button>
+          </div>
+          <div id="projFranquiaNova" style="display:none;margin-top:8px;">
+            <input type="text" id="projFranquiaNovaNome" placeholder="Nome da nova franquia" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+          </div>
+        </div>
+        `:''}
         ${coadjuvantesOfProject(project).length ? `
         <div class="field">
           <div class="coadj-folder" id="coadjFolder">
@@ -8012,13 +8141,170 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         e.target.value='';
       });
 
-      // botão "Adicionar pessoa ao projeto" — abre modal com busca de pessoas existentes ou criar nova
-      const btnAdd = $('#btnAddPessoaProj');
-      if (btnAdd) btnAdd.addEventListener('click', ()=>{
+      // Botão "Adicionar ficha existente" — abre modal de busca com sugestões de colegas
+      const btnAddExist = $('#btnAddFichaExistente');
+      if (btnAddExist) btnAddExist.addEventListener('click', ()=>{
         abrirAdicionarPessoaAoProjeto(project, () => {
-          // callback pós-adicionar: reabre o modal do projeto atualizado
           openProjetoModal(project);
         });
+      });
+
+      // Botão "Criar nova ficha" — abre modal de nova ficha com projeto pré-preenchido
+      const btnCriarNova = $('#btnCriarNovaFicha');
+      if (btnCriarNova) btnCriarNova.addEventListener('click', ()=>{
+        ov.classList.remove('open');
+        openModal(null);
+        // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
+        setTimeout(()=>{
+          const projInp = $('#projMainInput');
+          if (projInp){
+            projInp.value = project;
+            projInp.dispatchEvent(new Event('input', {bubbles:true}));
+          }
+          const nameInp = $('#nameInput');
+          if (nameInp) nameInp.focus();
+        }, 100);
+      });
+
+      // === COLEÇÃO E FRANQUIA ===
+      const colSel = $('#projColecaoSel');
+      const colNovaBox = $('#projColecaoNova');
+      const colNovaNome = $('#projColecaoNovaNome');
+      const btnSalvarCol = $('#projSalvarColecao');
+
+      const franSel = $('#projFranquiaSel');
+      const franNovaBox = $('#projFranquiaNova');
+      const franNovaNome = $('#projFranquiaNovaNome');
+      const btnSalvarFran = $('#projSalvarFranquia');
+
+      // Ao trocar coleção no select
+      if (colSel) colSel.addEventListener('change', () => {
+        if (colSel.value === '__nova__'){
+          colNovaBox.style.display = 'block';
+          colNovaNome.focus();
+        } else {
+          colNovaBox.style.display = 'none';
+        }
+        // Atualiza franquias do select conforme a coleção escolhida
+        atualizarFranquiasDoSelect(colSel.value);
+      });
+
+      function atualizarFranquiasDoSelect(catId){
+        if (!franSel) return;
+        const franquiaAtual = projectFranchise[project];
+        const opts = ['<option value="">— Nenhuma franquia —</option>'];
+        if (catId && catId !== '__nova__'){
+          (franchises||[]).filter(f => f.category_id === catId).forEach(f => {
+            opts.push(`<option value="${f.id}" ${franquiaAtual===f.id?'selected':''}>${escapeHtml(f.name)}</option>`);
+          });
+        }
+        opts.push('<option value="__nova__">➕ Criar nova franquia…</option>');
+        franSel.innerHTML = opts.join('');
+      }
+      // Inicializa franquias do select com a coleção atual selecionada
+      if (colSel) atualizarFranquiasDoSelect(colSel.value);
+
+      if (franSel) franSel.addEventListener('change', () => {
+        if (franSel.value === '__nova__'){
+          franNovaBox.style.display = 'block';
+          franNovaNome.focus();
+        } else {
+          franNovaBox.style.display = 'none';
+        }
+      });
+
+      // Salvar coleção
+      if (btnSalvarCol) btnSalvarCol.addEventListener('click', async () => {
+        let catId = colSel.value;
+        if (catId === '__nova__'){
+          const nome = (colNovaNome.value||'').trim();
+          if (!nome){ showToast('Digite o nome da nova coleção.'); return; }
+          try {
+            const { data, error } = await sb.from('categories')
+              .insert({ name: nome, sort_order: (categories||[]).length })
+              .select().single();
+            if (error || !data) throw (error || new Error('Erro'));
+            categories = [...(categories||[]), data];
+            catId = data.id;
+          } catch(e){ showToast('Erro: '+e.message); return; }
+        }
+        if (!catId){
+          // Escolheu "nenhuma" — remove vínculo se houver
+          try {
+            await sb.from('project_franchise').delete().eq('project', project);
+            delete projectFranchise[project];
+            showToast('✅ Coleção removida.');
+            openProjetoModal(project);
+          } catch(e){ showToast('Erro: '+e.message); }
+          return;
+        }
+        // Vincular projeto à coleção — mas project_franchise precisa de franquia
+        // Solução: criar/usar franquia "geral" com o nome da coleção
+        // Melhor: apenas atualizar o select de franquias e pedir pro admin selecionar/criar uma
+        try {
+          // Se admin escolheu só a coleção sem franquia, cria/usa uma franquia default
+          const fransDaCol = (franchises||[]).filter(f => f.category_id === catId);
+          let franquiaId;
+          if (fransDaCol.length === 0){
+            // Cria franquia "Geral" pra vincular
+            const { data: nf, error: efn } = await sb.from('franchises')
+              .insert({ category_id: catId, name: 'Geral', sort_order: 0 })
+              .select().single();
+            if (efn || !nf) throw (efn || new Error('erro'));
+            franchises = [...(franchises||[]), nf];
+            franquiaId = nf.id;
+          } else {
+            // Usa a primeira franquia como fallback (admin pode ajustar depois)
+            franquiaId = fransDaCol[0].id;
+          }
+          await sb.from('project_franchise').upsert(
+            { project, franchise_id: franquiaId },
+            { onConflict: 'project' }
+          );
+          projectFranchise[project] = franquiaId;
+          showToast('✅ Coleção salva.');
+          openProjetoModal(project);
+        } catch(e){ showToast('Erro: '+(e.message||'')); }
+      });
+
+      // Salvar franquia
+      if (btnSalvarFran) btnSalvarFran.addEventListener('click', async () => {
+        const catId = colSel.value;
+        if (!catId || catId === '__nova__'){
+          showToast('Escolha e salve uma coleção primeiro.');
+          return;
+        }
+        let franquiaId = franSel.value;
+        if (franquiaId === '__nova__'){
+          const nome = (franNovaNome.value||'').trim();
+          if (!nome){ showToast('Digite o nome da nova franquia.'); return; }
+          try {
+            const { data, error } = await sb.from('franchises')
+              .insert({
+                category_id: catId,
+                name: nome,
+                sort_order: (franchises||[]).filter(f=>f.category_id===catId).length
+              })
+              .select().single();
+            if (error || !data) throw (error || new Error('Erro'));
+            franchises = [...(franchises||[]), data];
+            franquiaId = data.id;
+          } catch(e){ showToast('Erro: '+e.message); return; }
+        }
+        if (!franquiaId){
+          // Remove franquia mas mantém dentro da coleção? Precisa manter ao menos uma
+          showToast('Escolha uma franquia ou crie uma nova.');
+          return;
+        }
+        try {
+          await sb.from('project_franchise').upsert(
+            { project, franchise_id: franquiaId },
+            { onConflict: 'project' }
+          );
+          projectFranchise[project] = franquiaId;
+          showToast('✅ Franquia salva.');
+          openProjetoModal(project);
+        } catch(e){ showToast('Erro: '+(e.message||'')); }
       });
 
       // drag & drop da ordem — só se há lista pra ordenar
