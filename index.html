@@ -810,6 +810,76 @@
     line-height: 1;
   }
 
+  /* ---- Lightbox pra ampliar foto ---- */
+  .lightbox-overlay{
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px 20px;
+    opacity: 0;
+    transition: opacity .2s ease;
+    cursor: zoom-out;
+  }
+  .lightbox-overlay.open{ opacity: 1; }
+  .lightbox-content{
+    max-width: min(90vw, 700px);
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    animation: lightboxZoom .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes lightboxZoom{
+    0%{ transform: scale(0.85); opacity: 0; }
+    100%{ transform: scale(1); opacity: 1; }
+  }
+  .lightbox-content img{
+    max-width: 100%;
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    cursor: default;
+  }
+  .lightbox-caption{
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 12px;
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(0,0,0,.5);
+  }
+  .lightbox-close{
+    position: fixed;
+    top: 20px; right: 20px;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  .lightbox-close:hover{ background: rgba(255,255,255,.28); }
+
+  /* Adiciona feedback visual no hover da foto (indica que dá pra clicar) */
+  .photo-drop img{
+    transition: opacity .15s, transform .15s;
+  }
+  .photo-drop:hover img{
+    opacity: 0.88;
+    transform: scale(1.02);
+  }
+  .photo-drop{
+    cursor: zoom-in;
+  }
+
   /* ---- Modal de confirmação bonito ---- */
   .confirm-overlay{
     position: fixed; inset: 0; z-index: 9999;
@@ -3834,13 +3904,61 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       img.style.display = 'block';
       hint.style.display = 'none';
       removeBtn.style.display = 'inline-block';
+      // Dica visual: cursor de zoom pra mostrar que dá pra clicar
+      const drop = $('#photoDrop');
+      if (drop){
+        drop.title = 'Clique pra ampliar. Use "Escolher do computador" pra trocar.';
+      }
     } else {
       img.src = '';
       img.style.display = 'none';
       hint.style.display = 'block';
       removeBtn.style.display = 'none';
+      const drop = $('#photoDrop');
+      if (drop){ drop.title = 'Clique pra escolher uma foto.'; }
     }
   }
+
+  // === LIGHTBOX: amplia foto pra ver melhor o rosto ===
+  function abrirLightbox(url, legenda){
+    if (!url) return;
+    const ov = document.createElement('div');
+    ov.className = 'lightbox-overlay';
+    ov.innerHTML = `
+      <button class="lightbox-close" title="Fechar (ESC)">✕</button>
+      <div class="lightbox-content" onclick="event.stopPropagation()">
+        <img src="${escapeHtml(url)}" alt="${escapeHtml(legenda||'')}">
+        ${legenda ? `<div class="lightbox-caption">${escapeHtml(legenda)}</div>` : ''}
+      </div>
+    `;
+    document.body.appendChild(ov);
+    // Animação: fade in
+    requestAnimationFrame(() => ov.classList.add('open'));
+
+    const cleanup = () => {
+      ov.classList.remove('open');
+      setTimeout(() => ov.remove(), 200);
+      document.removeEventListener('keydown', escHandler);
+    };
+    const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
+    document.addEventListener('keydown', escHandler);
+    ov.addEventListener('click', cleanup);
+    ov.querySelector('.lightbox-close').addEventListener('click', cleanup);
+  }
+
+  // Listener global: qualquer <img class="photo"> clicada abre lightbox.
+  // Usa delegation pra pegar fotos que ainda serão criadas via hydratePhotos.
+  document.addEventListener('click', (e) => {
+    const img = e.target.closest('img.photo');
+    if (!img) return;
+    // Não abre lightbox se o clique é dentro de um card interativo (evita conflito com editar/etc)
+    // Só abre se for exatamente na foto (não bubble de outros elementos)
+    if (e.target !== img) return;
+    // Não abre em fotos dentro do modal de nova ficha nas linhas de "colegas" (essas são pequenas demais)
+    if (img.closest('.suges-photo, .suges-buscar-item .ph, .proj-mini-ic')) return;
+    e.stopPropagation();
+    abrirLightbox(img.src, img.alt || 'Foto');
+  });
 
   // === DETECÇÃO DE PERSONAGENS COM NOMES SIMILARES ===
   // Identifica pessoas cujos nomes podem ser duplicatas (só letra diferente,
@@ -4146,7 +4264,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   // Upload de foto: escolher arquivo, encolher e mostrar preview (salva só ao gravar a ficha).
   $('#photoPickBtn').addEventListener('click', () => $('#photoFileInput').click());
-  $('#photoDrop').addEventListener('click', () => $('#photoFileInput').click());
+
+  // Clique na área da foto:
+  //  - Se já tem foto (preview ou existente): abre o lightbox pra ampliar
+  //  - Se não tem: abre o seletor de arquivo
+  $('#photoDrop').addEventListener('click', () => {
+    const img = $('#photoPreviewImg');
+    const temPreview = img && img.src && img.style.display !== 'none';
+    if (temPreview){
+      abrirLightbox(img.src, $('#nameInput').value.trim() || 'Foto');
+    } else {
+      $('#photoFileInput').click();
+    }
+  });
+
   $('#photoRemoveBtn').addEventListener('click', () => {
     pendingPhoto = null;
     setPhotoPreview(null);
