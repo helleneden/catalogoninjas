@@ -410,8 +410,16 @@
     color:var(--muted); opacity:0; padding:2px 6px; border-radius:6px;
     transition:all .15s ease; flex:0 0 auto;
   }
-  .aval-card:hover .aval-del-btn{ opacity:.7; }
+  .aval-card:hover .aval-del-btn,
+  .aval-card:hover .aval-rename-btn{ opacity:.7; }
   .aval-del-btn:hover{ opacity:1; background:rgba(220,38,38,.12); color:#DC2626; }
+  .aval-actions-btns{ display:inline-flex; gap:2px; flex:0 0 auto; }
+  .aval-rename-btn{
+    background:none; border:none; cursor:pointer; font-size:14px;
+    color:var(--muted); opacity:0; padding:2px 6px; border-radius:6px;
+    transition:all .15s ease;
+  }
+  .aval-rename-btn:hover{ opacity:1; background:rgba(37,99,235,.12); color:var(--blue-deep); }
   .aval-highlight{
     animation: avalPulse 1.2s ease-in-out 2;
     box-shadow: 0 0 0 3px rgba(37,99,235,.35) !important;
@@ -509,6 +517,8 @@
     background: linear-gradient(180deg, rgba(37,99,235,.06), rgba(22,163,74,.03) 100%);
     border: 1.5px solid rgba(37,99,235,.20);
     border-radius: 14px;
+    max-width: 100%;
+    overflow: hidden;
   }
   .suges-head{
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -527,6 +537,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+    min-width: 0;
   }
   @media (max-width: 520px){
     .suges-list{ grid-template-columns: 1fr; }
@@ -537,6 +548,8 @@
     border-radius: 12px; cursor: pointer; transition: all .15s ease;
     user-select: none;
     min-height: 62px;
+    min-width: 0;
+    overflow: hidden;
   }
   .suges-item:hover{ border-color: var(--blue); background: rgba(37,99,235,.04); }
   .suges-item.on{
@@ -559,14 +572,20 @@
     overflow: hidden;
   }
   .suges-photo img{ width:100%; height:100%; object-fit:cover; }
-  .suges-info{ flex: 1; min-width: 0; }
+  .suges-info{
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+  }
   .suges-name{
     font-weight: 700; font-size: 13.5px; color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
   }
   .suges-proj{
     font-size: 12px; color: var(--muted); margin-top: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
   }
 
   /* ---- Busca "Encontrar mais pessoas" ---- */
@@ -750,6 +769,46 @@
     padding:4px 8px; opacity:.6; font-size:14px; flex:0 0 auto;
   }
   .similar-notice-x:hover{ opacity:1; }
+
+  /* ---- Mini cards de projetos na ficha (modo editar) ---- */
+  .proj-mini-list{
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .proj-mini-card{
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .15s ease;
+    min-width: 0;
+  }
+  .proj-mini-card:hover{
+    border-color: var(--blue);
+    background: rgba(37,99,235,.04);
+    transform: translateX(2px);
+  }
+  .proj-mini-ic{
+    font-size: 22px; flex: 0 0 auto;
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(22,163,74,.06));
+    border-radius: 10px;
+  }
+  .proj-mini-body{ flex: 1; min-width: 0; }
+  .proj-mini-title{
+    font-weight: 700; font-size: 13.5px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .proj-mini-sub{
+    font-size: 12px; color: var(--muted); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .proj-mini-arrow{
+    flex: 0 0 auto; font-size: 22px; color: var(--muted);
+    line-height: 1;
+  }
 
   /* ---- Modal de confirmação bonito ---- */
   .confirm-overlay{
@@ -1751,7 +1810,10 @@
     max-width: 720px;
     padding: 24px 24px 20px;
     box-shadow: 0 24px 60px rgba(15,23,42,0.25);
+    overflow: hidden;
+    box-sizing: border-box;
   }
+  .modal *{ box-sizing: border-box; }
   .modal h2{
     font-family: var(--font-head);
     font-weight: 800;
@@ -2114,7 +2176,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
 
     <!-- Voz utilizada com autocomplete e detecção -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label for="voiceMainInput">Voz utilizada <span style="color:#DC2626;">*</span></label>
       <div class="ac-wrap">
         <input type="text" id="voiceMainInput" placeholder="Ex: Marcus Jr, Kelly Souza" autocomplete="off">
@@ -2124,16 +2186,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
 
     <!-- Bloco de sugestões (aparece quando voz existente) -->
-    <div id="sugestoesBloco" style="display:none;"></div>
+    <div id="sugestoesBloco" style="display:none;" data-only-new></div>
 
     <!-- SEÇÃO: Tipo do projeto -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label>Tipo do projeto <span style="color:#DC2626;">*</span></label>
       <div class="tipo-grid" id="tipoGrid"></div>
     </div>
 
     <!-- SEÇÃO: Projeto (nome) -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label for="projMainInput">Nome do projeto <span style="color:#DC2626;">*</span></label>
       <div class="ac-wrap">
         <input type="text" id="projMainInput" placeholder="Ex: Documentário Avivamento T2" autocomplete="off">
@@ -2142,7 +2204,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
 
     <!-- SEÇÃO: Capa do projeto -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label>Capa do projeto (opcional)</label>
       <div class="capa-drop-mini" id="capaFichaDrop">
         <img id="capaFichaImg" src="" alt="" style="display:none;">
@@ -2156,7 +2218,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
 
     <!-- SEÇÃO: Destino -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label>Alocar em</label>
       <div class="destino-grid">
         <label class="destino-card">
@@ -2179,10 +2241,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
 
     <!-- Data(s) opcional(is) -->
-    <div class="field">
+    <div class="field" data-only-new>
       <label>Data de uso (opcional)</label>
       <input type="date" id="dateMainInput" style="max-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">
     </div>
+
+    <!-- MODO EDITAR: lista de projetos desta ficha (clicáveis) -->
+    <div id="projetosDaFichaBox" style="display:none;"></div>
 
     <div class="modal-actions">
       <button class="btn-danger" id="deleteModalBtn" style="display:none; margin-right:auto;">🗑️ Excluir ficha</button>
@@ -3074,16 +3139,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   async function openModal(personId){
     editingId = personId || null;
     const person = editingId ? people.find(p => p.id === editingId) : null;
+    const isEditing = !!person;
 
-    $('#modalTitle').textContent = person ? 'Editar ficha' : 'Nova ficha';
+    $('#modalTitle').textContent = isEditing ? 'Editar ficha' : 'Nova ficha';
     $('#nameInput').value = person ? person.name : '';
     pendingPhoto = undefined;
 
-    // Reseta os campos únicos (voz, projeto, data)
+    // Reseta e prepara os campos únicos
     const primeira = person && person.entries[0] ? person.entries[0] : {voice:'', project:'', date:''};
-    $('#voiceMainInput').value = primeira.voice || '';
-    $('#projMainInput').value = primeira.project || '';
-    $('#dateMainInput').value = primeira.date || '';
+    $('#voiceMainInput').value = isEditing ? '' : (primeira.voice || '');
+    $('#projMainInput').value = isEditing ? '' : (primeira.project || '');
+    $('#dateMainInput').value = isEditing ? '' : (primeira.date || '');
     $('#voiceExistingBox').style.display = 'none';
     $('#voiceExistingBox').innerHTML = '';
     $('#sugestoesBloco').style.display = 'none';
@@ -3091,7 +3157,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     sugestoesMarcadas = new Set();
     pessoasExtras = [];
 
-    // Reseta e prepara os campos existentes
+    // Reseta os campos de projeto
     tipoSelecionado = null;
     resetCapaFicha();
     const radioProd = document.querySelector('input[name="destino"][value="prod"]');
@@ -3099,43 +3165,95 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     renderTipoGrid();
     wireCapaFicha();
 
-    // Se for edição, pré-seleciona o tipo do projeto
-    if (person && primeira.project){
-      const cat = projectCats[primeira.project];
-      if (cat){
-        tipoSelecionado = cat;
-        renderTipoGrid();
-      }
+    // === MODO EDITAR ===
+    // Esconde tudo relacionado a criar projeto novo, mostra lista dos projetos existentes
+    document.querySelectorAll('[data-only-new]').forEach(el => {
+      el.style.display = isEditing ? 'none' : '';
+    });
+    const projetosBox = $('#projetosDaFichaBox');
+    if (isEditing){
+      renderProjetosDaFicha(person);
+      projetosBox.style.display = 'block';
+    } else {
+      projetosBox.style.display = 'none';
+      projetosBox.innerHTML = '';
     }
 
     // Botão buscar pessoa: só aparece ao criar nova ficha
     const btnBuscar = $('#btnBuscarPessoa');
-    if (btnBuscar) btnBuscar.style.display = person ? 'none' : 'flex';
+    if (btnBuscar) btnBuscar.style.display = isEditing ? 'none' : 'flex';
 
     // Botão excluir: só aparece ao editar (admin)
     const btnDel = $('#deleteModalBtn');
-    if (btnDel) btnDel.style.display = (person && isAdmin) ? 'inline-flex' : 'none';
+    if (btnDel) btnDel.style.display = (isEditing && isAdmin) ? 'inline-flex' : 'none';
 
     // Fecha autocomplete ao abrir
     closeAcDropdown();
 
-    // Mantém compatibilidade: modalEntries usada em outros lugares
+    // Mantém compatibilidade
     modalEntries = person ? person.entries.map(e => ({...e})) : [{project:'', voice:'', date:''}];
 
     modalOverlay.classList.add('open');
     $('#nameInput').focus();
 
-    // Mostra a foto atual (buscada da gaveta) se houver.
+    // Mostra a foto atual (buscada da gaveta) se houver
     setPhotoPreview(null);
     if (person && person.hasPhoto){
       const dataUrl = await fetchPhoto(person.id);
       if (dataUrl && editingId === person.id) setPhotoPreview(dataUrl);
     }
+  }
 
-    // Se está editando e tem voz, dispara detecção da voz
-    if (person && primeira.voice){
-      detectarVozExistente(primeira.voice);
+  // Renderiza a lista de projetos da ficha (modo editar)
+  function renderProjetosDaFicha(person){
+    const box = $('#projetosDaFichaBox');
+    if (!box) return;
+    if (!person.entries || person.entries.length === 0){
+      box.innerHTML = `
+        <div class="field">
+          <label>Projetos desta ficha</label>
+          <div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;background:var(--surface-soft);border-radius:10px;">
+            Ainda não está em nenhum projeto.
+          </div>
+        </div>`;
+      return;
     }
+    // Agrupa por projeto (uma pessoa pode ter várias vozes no mesmo projeto)
+    const porProjeto = new Map();
+    person.entries.forEach(e => {
+      if (!porProjeto.has(e.project)) porProjeto.set(e.project, []);
+      porProjeto.get(e.project).push(e);
+    });
+    const cards = [...porProjeto.entries()].map(([proj, entries]) => {
+      const vozes = [...new Set(entries.map(e => e.voice).filter(Boolean))];
+      const tipo = projectCats[proj] || '';
+      const icone = tipo ? iconeDoTipo(tipo) : '📁';
+      return `
+        <div class="proj-mini-card" data-open-proj="${escapeHtml(proj)}">
+          <div class="proj-mini-ic">${icone}</div>
+          <div class="proj-mini-body">
+            <div class="proj-mini-title">${escapeHtml(proj)}</div>
+            <div class="proj-mini-sub">🎤 ${escapeHtml(vozes.join(', ') || '(sem voz)')}</div>
+          </div>
+          <div class="proj-mini-arrow">›</div>
+        </div>`;
+    }).join('');
+    box.innerHTML = `
+      <div class="field">
+        <label>Projetos desta ficha (${porProjeto.size})</label>
+        <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Clique num projeto para abri-lo.</p>
+        <div class="proj-mini-list">${cards}</div>
+      </div>`;
+    // Handler: clicar no card abre o projeto
+    box.querySelectorAll('[data-open-proj]').forEach(card => {
+      card.addEventListener('click', () => {
+        const proj = card.dataset.openProj;
+        closeModal();
+        setTimeout(() => {
+          if (typeof openProjetoModal === 'function') openProjetoModal(proj);
+        }, 200);
+      });
+    });
   }
 
   function closeModal(){
@@ -4055,14 +4173,46 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const name = $('#nameInput').value.trim();
     if (!name){ showToast('Dê um nome para a ficha.'); $('#nameInput').focus(); return; }
 
-    // Valida tipo obrigatório
+    const isEditing = !!editingId;
+
+    // === MODO EDITAR: só salva nome e foto, não mexe em projetos ===
+    if (isEditing){
+      $('#saveModalBtn').disabled = true;
+      $('#saveModalBtn').textContent = 'Salvando…';
+      try {
+        // Atualiza nome (se mudou)
+        const existing = people.find(p => p.id === editingId);
+        if (existing && existing.name !== name){
+          await sb.from('people').update({ name }).eq('id', editingId);
+        }
+        // Aplica foto
+        if (pendingPhoto === null){
+          await deletePhoto(editingId);
+          await sb.from('people').update({ has_photo: false }).eq('id', editingId);
+        } else if (typeof pendingPhoto === 'string'){
+          const ok = await savePhoto(editingId, pendingPhoto);
+          await sb.from('people').update({ has_photo: ok }).eq('id', editingId);
+        }
+        closeModal();
+        await loadPeople();
+        invalidarCacheSimilares();
+        showToast('✅ Ficha atualizada.');
+      } catch(e){
+        showToast('Erro ao salvar: '+(e.message||''));
+      } finally {
+        $('#saveModalBtn').disabled = false;
+        $('#saveModalBtn').textContent = 'Salvar ficha';
+      }
+      return;
+    }
+
+    // === MODO NOVA FICHA: fluxo completo com voz/projeto/tipo obrigatórios ===
     if (!tipoSelecionado){
       showToast('Escolha o tipo do projeto.');
       $('#tipoGrid').scrollIntoView({behavior:'smooth', block:'center'});
       return;
     }
 
-    // Pega os campos únicos
     const voz = $('#voiceMainInput').value.trim();
     const projeto = $('#projMainInput').value.trim();
     const data = $('#dateMainInput').value.trim();
@@ -4070,20 +4220,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!voz){ showToast('Digite a voz utilizada.'); $('#voiceMainInput').focus(); return; }
     if (!projeto){ showToast('Digite o nome do projeto.'); $('#projMainInput').focus(); return; }
 
-    // Monta a entrada principal
     const cleanEntries = [{ project: projeto, voice: voz, date: data }];
 
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
 
-    // Monta o objeto da pessoa e grava no banco (gera o id real, se novo).
-    const existing = editingId ? people.find(p => p.id === editingId) : null;
+    const existing = null;
     const person = {
-      id: editingId || null,
+      id: null,
       name,
-      hasPhoto: existing ? existing.hasPhoto : false,
+      hasPhoto: false,
       entries: cleanEntries,
-      _existsInDb: !!editingId
+      _existsInDb: false
     };
     const savedId = await savePerson(person);
     if (!savedId){
@@ -5428,7 +5576,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="aval-card" data-voice-card="${escapeHtml(voice)}">
           <div class="aval-voice-name">
             <span>${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}</span>
-            ${isAdmin?`<button class="aval-del-btn" data-del-voice="${escapeHtml(voice)}" title="Remover avaliações e comentários desta voz">🗑️</button>`:''}
+            ${isAdmin?`<span class="aval-actions-btns">
+              <button class="aval-rename-btn" data-rename-voice="${escapeHtml(voice)}" title="Renomear ou juntar com outra voz">✎</button>
+              <button class="aval-del-btn" data-del-voice="${escapeHtml(voice)}" title="Remover avaliações e comentários desta voz">🗑️</button>
+            </span>`:''}
           </div>
           <div class="aval-used">usada ${counts[voice]}× · ${nR? `avaliada por ${nR} pessoa${nR===1?'':'s'}` : 'sem avaliações'}</div>
           ${crits}
@@ -5477,7 +5628,152 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           btn.disabled = false;
         }
       }));
+
+      // Botão renomear voz (com merge automático se novo nome já existir)
+      avaliacaoContent.querySelectorAll('[data-rename-voice]').forEach(btn => btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const voice = btn.dataset.renameVoice;
+        await abrirRenomearVoz(voice);
+      }));
     }
+  }
+
+  // Modal de renomear voz — se o novo nome já existir, junta as entradas
+  async function abrirRenomearVoz(vozAtual){
+    // Conta quantas entradas usam essa voz
+    const totalUsos = mainPeople().reduce((sum, p) =>
+      sum + p.entries.filter(e => (e.voice||'').trim() === vozAtual).length, 0
+    );
+
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay confirm-overlay open';
+    ov.style.zIndex = '9999';
+    ov.innerHTML = `
+      <div class="modal confirm-modal" style="max-width:500px;">
+        <div class="confirm-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);">✎</div>
+        <h2 style="text-align:center; margin:8px 0 4px;">Renomear voz</h2>
+        <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
+          Voz atual: <b style="color:var(--ink);">"${escapeHtml(vozAtual)}"</b><br>
+          <span style="font-size:12px;">Usada em <b>${totalUsos}</b> ficha${totalUsos===1?'':'s'}</span>
+        </p>
+        <div class="field">
+          <label for="renomearInput">Novo nome</label>
+          <input type="text" id="renomearInput" value="${escapeHtml(vozAtual)}" style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+          <div id="renomearInfo" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+        <div class="confirm-actions" style="margin-top:16px;">
+          <button class="btn-ghost" id="renomearCancel">Cancelar</button>
+          <button class="btn-primary" id="renomearConfirm">Renomear</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const input = ov.querySelector('#renomearInput');
+    const info = ov.querySelector('#renomearInfo');
+    const btnConfirm = ov.querySelector('#renomearConfirm');
+    input.focus();
+    input.select();
+
+    // Feedback dinâmico ao digitar: se o nome bater com outra voz, avisa que vai juntar
+    const atualizarInfo = () => {
+      const novo = input.value.trim();
+      if (!novo || novo === vozAtual){
+        info.innerHTML = '';
+        btnConfirm.textContent = 'Renomear';
+        btnConfirm.disabled = !novo || novo === vozAtual;
+        return;
+      }
+      // Compara case-insensitive pra achar match exato (independente de caixa)
+      const novoLower = novo.toLowerCase();
+      const jaExiste = todasAsVozes().some(v =>
+        v !== vozAtual && v.toLowerCase() === novoLower
+      );
+      if (jaExiste){
+        // Encontra o nome canônico existente pra mostrar
+        const canonico = todasAsVozes().find(v => v !== vozAtual && v.toLowerCase() === novoLower);
+        const usosDestino = mainPeople().reduce((s,p) =>
+          s + p.entries.filter(e => (e.voice||'').trim() === canonico).length, 0
+        );
+        info.innerHTML = `<div style="padding:8px 12px;background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;color:#78350F;">
+          ⚡ <b>Vai juntar com "${escapeHtml(canonico)}"</b> — que já tem ${usosDestino} ficha${usosDestino===1?'':'s'}.
+          As ${totalUsos} entradas de "${escapeHtml(vozAtual)}" serão movidas pra lá.
+        </div>`;
+        btnConfirm.textContent = `Juntar com "${canonico}"`;
+      } else {
+        info.innerHTML = `<div style="padding:8px 12px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.25);border-radius:8px;color:var(--blue-deep);">
+          ✨ Nome novo. Todas as ${totalUsos} entradas serão renomeadas.
+        </div>`;
+        btnConfirm.textContent = 'Renomear';
+      }
+      btnConfirm.disabled = false;
+    };
+    input.addEventListener('input', atualizarInfo);
+    atualizarInfo();
+
+    // Handlers
+    const cleanup = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
+    ov.querySelector('#renomearCancel').addEventListener('click', cleanup);
+    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+    const escHandler = (e) => { if (e.key === 'Escape'){ cleanup(); document.removeEventListener('keydown', escHandler); } };
+    document.addEventListener('keydown', escHandler);
+
+    btnConfirm.addEventListener('click', async () => {
+      const novo = input.value.trim();
+      if (!novo || novo === vozAtual) return;
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = 'Aplicando…';
+
+      // Encontra nome canônico se for merge
+      const novoLower = novo.toLowerCase();
+      const canonico = todasAsVozes().find(v => v !== vozAtual && v.toLowerCase() === novoLower);
+      const destino = canonico || novo;
+
+      try {
+        // Atualiza todas as entradas: voice = destino WHERE voice = vozAtual
+        const { error: e1 } = await sb.from('entries').update({ voice: destino }).eq('voice', vozAtual);
+        if (e1) throw e1;
+
+        // Se for MERGE: junta avaliações e comentários também (transfere de vozAtual pra destino)
+        if (canonico){
+          // Comentários simplesmente mudam de voz
+          try { await sb.from('voice_comments').update({ voice: destino }).eq('voice', vozAtual); } catch(e){}
+          // Avaliações: pode dar conflito de unique (user+voice), então pega existentes e faz upsert
+          try {
+            const { data: velhas } = await sb.from('voice_user_ratings').select('*').eq('voice', vozAtual);
+            for (const r of (velhas||[])){
+              await sb.from('voice_user_ratings').upsert({
+                ...r, id: undefined, voice: destino
+              }, { onConflict: 'user_id,voice,criterion' });
+            }
+            await sb.from('voice_user_ratings').delete().eq('voice', vozAtual);
+          } catch(e){ console.warn('Merge ratings:', e); }
+        }
+
+        // Atualiza caches locais
+        if (canonico){
+          delete ratingAgg[vozAtual];
+          delete myRatings[vozAtual];
+          delete commentsByVoice[vozAtual];
+        } else {
+          if (ratingAgg[vozAtual]){ ratingAgg[destino] = ratingAgg[vozAtual]; delete ratingAgg[vozAtual]; }
+          if (myRatings[vozAtual]){ myRatings[destino] = myRatings[vozAtual]; delete myRatings[vozAtual]; }
+          if (commentsByVoice[vozAtual]){ commentsByVoice[destino] = commentsByVoice[vozAtual]; delete commentsByVoice[vozAtual]; }
+        }
+
+        cleanup();
+        await loadPeople();
+        await loadRatings();
+        await loadComments();
+        renderAvaliacao();
+        showToast(canonico
+          ? `✅ "${vozAtual}" juntada com "${destino}".`
+          : `✅ Voz renomeada para "${destino}".`);
+      } catch(err){
+        console.error(err);
+        showToast('Erro ao renomear: '+(err.message||''));
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = 'Renomear';
+      }
+    });
   }
 
   // salva a MINHA nota daquela voz
