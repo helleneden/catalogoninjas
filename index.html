@@ -7668,8 +7668,233 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
-  async function openProjetoModal(project){
-    const ov = ensureColOverlay();
+  // Modal para adicionar pessoas a um projeto existente: buscar existentes ou criar nova
+  async function abrirAdicionarPessoaAoProjeto(project, onDone){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay confirm-overlay open';
+    ov.style.zIndex = '9999';
+
+    // State local
+    const local = {
+      pessoasParaAdicionar: new Map(), // id -> {personId, personName, hasPhoto, voice, _nova}
+      dataPadrao: new Date().toISOString().slice(0, 10)
+    };
+
+    function render(){
+      const arr = [...local.pessoasParaAdicionar.values()];
+      ov.innerHTML = `
+        <div class="modal" style="max-width:640px;">
+          <h2>Adicionar pessoas ao projeto</h2>
+          <p style="font-size:13px;color:var(--muted);margin:-6px 0 14px;">
+            Projeto: <b style="color:var(--ink);">${escapeHtml(project)}</b>
+          </p>
+          <div class="field">
+            <label>Buscar ficha existente ou criar nova</label>
+            <div class="ac-wrap">
+              <input type="text" id="addPessoaInput" placeholder="Digite o nome do personagem..." autocomplete="off">
+              <div class="ac-dropdown" id="addPessoaDrop"></div>
+            </div>
+            <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Escolha uma ficha já cadastrada (a voz vem dela) ou crie uma nova.</p>
+          </div>
+          <div class="field">
+            <label>Data de uso (opcional)</label>
+            <input type="date" id="addPessoaData" value="${local.dataPadrao}" style="max-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">
+          </div>
+          <div id="addPessoaMarcadas"></div>
+          <div class="modal-actions" style="margin-top:18px;">
+            <button class="btn-ghost" id="addPessoaCancel">Cancelar</button>
+            <button class="btn-primary" id="addPessoaConfirm" ${arr.length===0?'disabled':''}>
+              ${arr.length===0 ? 'Adicionar ao projeto' : `Adicionar ${arr.length} pessoa${arr.length===1?'':'s'}`}
+            </button>
+          </div>
+        </div>`;
+      renderMarcadas();
+      wireInput();
+      $('#addPessoaCancel').addEventListener('click', cleanup);
+      $('#addPessoaConfirm').addEventListener('click', confirmar);
+    }
+
+    function renderMarcadas(){
+      const box = $('#addPessoaMarcadas');
+      if (!box) return;
+      const arr = [...local.pessoasParaAdicionar.values()];
+      if (arr.length === 0){
+        box.innerHTML = '';
+        return;
+      }
+      box.innerHTML = `
+        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">${arr.length} pessoa${arr.length===1?'':'s'} selecionada${arr.length===1?'':'s'}</div>
+          <div class="wp-marcadas-list">
+            ${arr.map(p => {
+              const iniciais = p.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+              return `
+                <div class="wp-marcada-item">
+                  <div class="wp-marcada-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.personId}" data-name="${escapeHtml(p.personName)}"`:''}>${iniciais}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}</div>
+                    <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎤 ${escapeHtml(p.voice || '(voz não definida)')}</div>
+                  </div>
+                  <button type="button" class="wp-remover" data-remover="${p.personId}" title="Remover">✕</button>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      box.querySelectorAll('[data-remover]').forEach(btn => btn.addEventListener('click', () => {
+        local.pessoasParaAdicionar.delete(btn.dataset.remover);
+        render();
+      }));
+      hydratePhotos();
+    }
+
+    function wireInput(){
+      const input = $('#addPessoaInput');
+      const drop = $('#addPessoaDrop');
+      if (!input || !drop) return;
+      let timer = null;
+      input.focus();
+
+      // Pessoas já no projeto (pra excluir das sugestões)
+      const jaNoProjeto = new Set();
+      mainPeople().forEach(p => {
+        p.entries.forEach(e => {
+          if ((e.project||'').trim().toLowerCase() === project.trim().toLowerCase()){
+            jaNoProjeto.add(p.id);
+          }
+        });
+      });
+
+      const renderDrop = () => {
+        const q = input.value.trim();
+        if (q.length < 1){ drop.classList.remove('open'); return; }
+        const ql = q.toLowerCase();
+        const matches = visiblePeople().filter(p => {
+          if (jaNoProjeto.has(p.id)) return false;
+          if (local.pessoasParaAdicionar.has(p.id)) return false;
+          return p.name.toLowerCase().includes(ql);
+        }).slice(0, 8);
+        const nenhumaExata = !visiblePeople().some(p => p.name.trim().toLowerCase() === ql);
+
+        let html = '';
+        if (matches.length){
+          html += matches.map(p => {
+            const iniciais = p.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            const vozPadrao = (p.entries[0] && p.entries[0].voice) || '';
+            const projs = p.entries.length;
+            return `
+              <div class="ac-item" data-add-id="${p.id}" data-add-name="${escapeHtml(p.name)}" data-add-photo="${p.hasPhoto?1:0}" data-add-voice="${escapeHtml(vozPadrao)}">
+                <div style="display:flex;align-items:center;gap:10px;width:100%;">
+                  <div class="photo-fallback" ${p.hasPhoto?`data-photo-for="${p.id}" data-name="${escapeHtml(p.name)}"`:''} style="width:30px;height:30px;border-radius:7px;font-size:11px;">${iniciais}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="ac-name">${escapeHtml(p.name)}</div>
+                    <div class="ac-sub">${projs} projeto${projs===1?'':'s'}${vozPadrao?` · voz: ${escapeHtml(vozPadrao)}`:''}</div>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+        }
+        if (q.length >= 2 && nenhumaExata){
+          html += `<div class="ac-item" data-nova-nome="${escapeHtml(q)}" style="color:var(--blue-deep);font-weight:600;">
+            ➕ Criar nova ficha: "${escapeHtml(q)}"
+          </div>`;
+        }
+        if (!html){ drop.classList.remove('open'); return; }
+        drop.innerHTML = html;
+        drop.classList.add('open');
+        hydratePhotos();
+      };
+
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(renderDrop, 100);
+      });
+      input.addEventListener('focus', () => { if (input.value.trim().length >= 1) renderDrop(); });
+      input.addEventListener('blur', () => setTimeout(() => drop.classList.remove('open'), 200));
+
+      drop.addEventListener('click', (e) => {
+        // Existente
+        const addItem = e.target.closest('[data-add-id]');
+        if (addItem){
+          const id = addItem.dataset.addId;
+          local.pessoasParaAdicionar.set(id, {
+            personId: id,
+            personName: addItem.dataset.addName,
+            hasPhoto: addItem.dataset.addPhoto === '1',
+            voice: addItem.dataset.addVoice || '',
+            _nova: false
+          });
+          input.value = '';
+          drop.classList.remove('open');
+          render();
+          return;
+        }
+        // Nova
+        const novaItem = e.target.closest('[data-nova-nome]');
+        if (novaItem){
+          const nome = novaItem.dataset.novaNome;
+          const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+          local.pessoasParaAdicionar.set(tempId, {
+            personId: tempId,
+            personName: nome,
+            hasPhoto: false,
+            voice: '',
+            _nova: true
+          });
+          input.value = '';
+          drop.classList.remove('open');
+          render();
+          return;
+        }
+      });
+    }
+
+    const cleanup = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); document.removeEventListener('keydown', escHandler); };
+    const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
+    document.addEventListener('keydown', escHandler);
+    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+
+    async function confirmar(){
+      const arr = [...local.pessoasParaAdicionar.values()];
+      if (arr.length === 0){ showToast('Adicione ao menos uma pessoa.'); return; }
+      const data = $('#addPessoaData').value || null;
+      const btn = $('#addPessoaConfirm');
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+
+      let ok = 0;
+      for (const pessoa of arr){
+        try {
+          let personIdReal = pessoa.personId;
+          if (pessoa._nova){
+            const { data: nova, error: errN } = await sb.from('people')
+              .insert({ name: pessoa.personName, has_photo: false })
+              .select('id').single();
+            if (errN || !nova){ console.error(errN); continue; }
+            personIdReal = nova.id;
+          }
+          const { error: errE } = await sb.from('entries').insert({
+            person_id: personIdReal,
+            project,
+            voice: pessoa.voice || '(voz não definida)',
+            date: data
+          });
+          if (errE){ console.error(errE); continue; }
+          ok++;
+        } catch(e){ console.error(e); }
+      }
+
+      cleanup();
+      await loadPeople();
+      invalidarCacheSimilares();
+      showToast(`✅ ${ok} pessoa${ok===1?'':'s'} adicionada${ok===1?'':'s'} ao projeto.`);
+      if (onDone) onDone();
+    }
+
+    document.body.appendChild(ov);
+    render();
+  }
+
+  async function openProjetoModal(project){    const ov = ensureColOverlay();
     const pairs = orderedVoicesForProject(project);
     const url = projCoverUrl(project);
     ov.innerHTML = `
@@ -7787,18 +8012,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         e.target.value='';
       });
 
-      // botão "Adicionar pessoa ao projeto" — abre o modal de nova ficha pré-preenchido
+      // botão "Adicionar pessoa ao projeto" — abre modal com busca de pessoas existentes ou criar nova
       const btnAdd = $('#btnAddPessoaProj');
       if (btnAdd) btnAdd.addEventListener('click', ()=>{
-        ov.classList.remove('open');
-        openModal(null);
-        // pré-preenche o projeto no modal (após renderModalEntries)
-        setTimeout(()=>{
-          const projInp = document.querySelector('#modalEntries input[data-f="project"]');
-          if (projInp){ projInp.value = project; projInp.dispatchEvent(new Event('input', {bubbles:true})); }
-          const nameInp = $('#nameInput');
-          if (nameInp) nameInp.focus();
-        }, 100);
+        abrirAdicionarPessoaAoProjeto(project, () => {
+          // callback pós-adicionar: reabre o modal do projeto atualizado
+          openProjetoModal(project);
+        });
       });
 
       // drag & drop da ordem — só se há lista pra ordenar
