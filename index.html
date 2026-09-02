@@ -775,19 +775,26 @@
     display: flex; flex-direction: column; gap: 6px;
   }
   .proj-mini-card{
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 14px;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 10px;
-    cursor: pointer;
     transition: all .15s ease;
     min-width: 0;
+    overflow: hidden;
   }
   .proj-mini-card:hover{
     border-color: var(--blue);
+    box-shadow: 0 2px 8px rgba(37,99,235,.08);
+  }
+  .proj-mini-card-head{
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background .12s;
+    min-width: 0;
+  }
+  .proj-mini-card-head:hover{
     background: rgba(37,99,235,.04);
-    transform: translateX(2px);
   }
   .proj-mini-ic{
     font-size: 22px; flex: 0 0 auto;
@@ -809,6 +816,44 @@
     flex: 0 0 auto; font-size: 22px; color: var(--muted);
     line-height: 1;
   }
+  /* Linhas de voz dentro do card */
+  .proj-voz-lista{
+    border-top: 1px dashed var(--line);
+    padding: 4px 14px 8px;
+    background: var(--surface-soft);
+  }
+  .proj-voz-linha{
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0;
+    min-width: 0;
+  }
+  .proj-voz-linha + .proj-voz-linha{
+    border-top: 1px dotted var(--line);
+  }
+  .proj-voz-info{
+    flex: 1; display: flex; align-items: center; gap: 6px;
+    min-width: 0; font-size: 12.5px;
+  }
+  .proj-voz-mic{ opacity: .6; flex: 0 0 auto; }
+  .proj-voz-nome{
+    font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .proj-voz-data{
+    color: var(--muted); font-size: 11.5px; flex: 0 0 auto;
+  }
+  .proj-voz-alt-btn{
+    background: none; border: none;
+    width: 28px; height: 28px; border-radius: 6px;
+    color: var(--muted); cursor: pointer;
+    font-size: 13px; flex: 0 0 auto;
+    transition: all .12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .proj-voz-alt-btn:hover{
+    background: rgba(37,99,235,.10);
+    color: var(--blue-deep);
+  }
 
   /* ---- Lightbox pra ampliar foto ---- */
   .lightbox-overlay{
@@ -825,8 +870,8 @@
   }
   .lightbox-overlay.open{ opacity: 1; }
   .lightbox-content{
-    max-width: min(90vw, 700px);
-    max-height: 85vh;
+    max-width: min(95vw, 1200px);
+    max-height: 92vh;
     display: flex; flex-direction: column;
     align-items: center;
     animation: lightboxZoom .3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -837,7 +882,8 @@
   }
   .lightbox-content img{
     max-width: 100%;
-    max-height: 78vh;
+    max-height: 88vh;
+    min-height: min(70vh, 500px);
     object-fit: contain;
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
@@ -867,6 +913,38 @@
     -webkit-backdrop-filter: blur(4px);
   }
   .lightbox-close:hover{ background: rgba(255,255,255,.28); }
+
+  /* ---- Itens da busca de "juntar ficha" ---- */
+  .merge-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .12s;
+    margin-bottom: 6px;
+    min-width: 0;
+  }
+  .merge-item:hover{
+    border-color: var(--blue);
+    background: rgba(37,99,235,.04);
+  }
+  .merge-item.on{
+    border-color: var(--blue);
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(22,163,74,.05));
+    box-shadow: 0 2px 8px rgba(37,99,235,.12);
+  }
+  .merge-ph{
+    width: 38px; height: 38px; border-radius: 9px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--green) 130%);
+    color: #fff; font-weight: 700;
+    overflow: hidden;
+  }
+  .merge-ph img{ width: 100%; height: 100%; object-fit: cover; }
 
   /* Adiciona feedback visual no hover da foto (indica que dá pra clicar) */
   .photo-drop img{
@@ -1047,6 +1125,44 @@
   .drag-item:hover{ border-color:var(--blue); box-shadow:0 2px 8px rgba(37,99,235,.08); }
   .drag-item.dragging{ opacity:.4; transform:scale(.98); }
   .drag-item.drag-over{ border-color:var(--blue); box-shadow:0 -3px 0 var(--blue) inset; }
+
+  /* ---- Wizard novo projeto: passo pessoas ---- */
+  .wp-marcadas-list{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media (max-width: 560px){
+    .wp-marcadas-list{ grid-template-columns: 1fr; }
+  }
+  .wp-marcada-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .wp-marcada-ph{
+    width: 36px; height: 36px; border-radius: 9px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--green) 130%);
+    color: #fff; font-weight: 700;
+    overflow: hidden;
+  }
+  .wp-marcada-ph img{ width:100%; height:100%; object-fit:cover; }
+  .wp-remover{
+    background: none; border: none;
+    width: 26px; height: 26px; border-radius: 6px;
+    color: var(--muted); cursor: pointer;
+    font-size: 13px; flex: 0 0 auto;
+    transition: all .12s;
+  }
+  .wp-remover:hover{ background: rgba(220,38,38,.10); color: #DC2626; }
+
   .drag-handle{
     color:var(--muted); cursor:grab; user-select:none; font-size:16px;
     padding:2px 4px; line-height:1;
@@ -2239,8 +2355,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="photo-upload-actions">
           <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
           <button type="button" class="btn-ghost" id="photoPickBtn">Escolher do computador</button>
-          <button type="button" class="btn-ghost" id="photoRemoveBtn" style="display:none; color:#DC2626;">Remover foto</button>
-          <span style="font-size:11px; color:var(--muted);">A imagem é reduzida automaticamente antes de salvar.</span>
+          <span style="font-size:11px; color:var(--muted);">Clique na foto pra ampliar. A imagem é reduzida automaticamente antes de salvar.</span>
         </div>
       </div>
     </div>
@@ -2258,56 +2373,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <!-- Bloco de sugestões (aparece quando voz existente) -->
     <div id="sugestoesBloco" style="display:none;" data-only-new></div>
 
-    <!-- SEÇÃO: Tipo do projeto -->
+    <!-- SEÇÃO: Nome do projeto (obrigatório para novas fichas) -->
     <div class="field" data-only-new>
-      <label>Tipo do projeto <span style="color:#DC2626;">*</span></label>
-      <div class="tipo-grid" id="tipoGrid"></div>
-    </div>
-
-    <!-- SEÇÃO: Projeto (nome) -->
-    <div class="field" data-only-new>
-      <label for="projMainInput">Nome do projeto <span style="color:#DC2626;">*</span></label>
+      <label for="projMainInput">Projeto <span style="color:#DC2626;">*</span></label>
       <div class="ac-wrap">
-        <input type="text" id="projMainInput" placeholder="Ex: Documentário Avivamento T2" autocomplete="off">
+        <input type="text" id="projMainInput" placeholder="Digite um projeto existente" autocomplete="off">
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
-    </div>
-
-    <!-- SEÇÃO: Capa do projeto -->
-    <div class="field" data-only-new>
-      <label>Capa do projeto (opcional)</label>
-      <div class="capa-drop-mini" id="capaFichaDrop">
-        <img id="capaFichaImg" src="" alt="" style="display:none;">
-        <div id="capaFichaHint">
-          <div style="font-size:32px;">🎬</div>
-          <div style="font-weight:600; font-size:12.5px;">Arraste ou clique</div>
-        </div>
-        <input type="file" id="capaFichaInput" accept="image/*" style="display:none;">
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Se o projeto já existe, a capa atual é mantida.</p>
-    </div>
-
-    <!-- SEÇÃO: Destino -->
-    <div class="field" data-only-new>
-      <label>Alocar em</label>
-      <div class="destino-grid">
-        <label class="destino-card">
-          <input type="radio" name="destino" value="prod" checked>
-          <div class="destino-ic">🎬</div>
-          <div class="destino-txt">
-            <div class="destino-tit">Em produção</div>
-            <div class="destino-sub">Aparece na Home</div>
-          </div>
-        </label>
-        <label class="destino-card">
-          <input type="radio" name="destino" value="conc">
-          <div class="destino-ic">✅</div>
-          <div class="destino-txt">
-            <div class="destino-tit">Concluídos</div>
-            <div class="destino-sub">Vai pro arquivo</div>
-          </div>
-        </label>
-      </div>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Só projetos já existentes. Pra criar projeto novo, vá em <b>Projetos → + Novo projeto</b>.</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -2316,10 +2389,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <input type="date" id="dateMainInput" style="max-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">
     </div>
 
+    <!-- Campos escondidos (compatibilidade com JS existente) -->
+    <div style="display:none;">
+      <div class="tipo-grid" id="tipoGrid"></div>
+      <div class="capa-drop-mini" id="capaFichaDrop">
+        <img id="capaFichaImg" src="" alt="">
+        <div id="capaFichaHint"></div>
+        <input type="file" id="capaFichaInput" accept="image/*">
+      </div>
+      <input type="radio" name="destino" value="prod" checked>
+      <input type="radio" name="destino" value="conc">
+    </div>
+
     <!-- MODO EDITAR: lista de projetos desta ficha (clicáveis) -->
     <div id="projetosDaFichaBox" style="display:none;"></div>
 
     <div class="modal-actions">
+      <button class="btn-ghost" id="mergeModalBtn" style="display:none;">🔗 Juntar com outra ficha</button>
       <button class="btn-danger" id="deleteModalBtn" style="display:none; margin-right:auto;">🗑️ Excluir ficha</button>
       <button class="btn-ghost" id="cancelModalBtn">Cancelar</button>
       <button class="btn-primary" id="saveModalBtn">Salvar ficha</button>
@@ -3257,6 +3343,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const btnDel = $('#deleteModalBtn');
     if (btnDel) btnDel.style.display = (isEditing && isAdmin) ? 'inline-flex' : 'none';
 
+    // Botão juntar: só aparece ao editar (admin) — permite mesclar com outra ficha
+    const btnMerge = $('#mergeModalBtn');
+    if (btnMerge) btnMerge.style.display = (isEditing && isAdmin) ? 'inline-flex' : 'none';
+
     // Fecha autocomplete ao abrir
     closeAcDropdown();
 
@@ -3290,39 +3380,177 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     // Agrupa por projeto (uma pessoa pode ter várias vozes no mesmo projeto)
     const porProjeto = new Map();
-    person.entries.forEach(e => {
+    person.entries.forEach((e, idx) => {
       if (!porProjeto.has(e.project)) porProjeto.set(e.project, []);
-      porProjeto.get(e.project).push(e);
+      porProjeto.get(e.project).push({ ...e, _idx: idx });
     });
     const cards = [...porProjeto.entries()].map(([proj, entries]) => {
-      const vozes = [...new Set(entries.map(e => e.voice).filter(Boolean))];
       const tipo = projectCats[proj] || '';
       const icone = tipo ? iconeDoTipo(tipo) : '📁';
-      return `
-        <div class="proj-mini-card" data-open-proj="${escapeHtml(proj)}">
-          <div class="proj-mini-ic">${icone}</div>
-          <div class="proj-mini-body">
-            <div class="proj-mini-title">${escapeHtml(proj)}</div>
-            <div class="proj-mini-sub">🎤 ${escapeHtml(vozes.join(', ') || '(sem voz)')}</div>
+      // Uma linha por entrada, com botão alterar voz individual
+      const linhasVoz = entries.map(e => `
+        <div class="proj-voz-linha">
+          <div class="proj-voz-info">
+            <span class="proj-voz-mic">🎤</span>
+            <span class="proj-voz-nome">${escapeHtml(e.voice || '(sem voz)')}</span>
+            ${e.date ? `<span class="proj-voz-data">· ${escapeHtml(e.date)}</span>` : ''}
           </div>
-          <div class="proj-mini-arrow">›</div>
+          ${isAdmin ? `<button class="proj-voz-alt-btn" data-alt-voz="${e.id || e._idx}" data-alt-proj="${escapeHtml(proj)}" data-alt-voice-atual="${escapeHtml(e.voice||'')}" data-alt-data-atual="${escapeHtml(e.date||'')}" title="Alterar voz / data">✎</button>` : ''}
+        </div>
+      `).join('');
+      return `
+        <div class="proj-mini-card">
+          <div class="proj-mini-card-head" data-open-proj="${escapeHtml(proj)}">
+            <div class="proj-mini-ic">${icone}</div>
+            <div class="proj-mini-body">
+              <div class="proj-mini-title">${escapeHtml(proj)}</div>
+              <div class="proj-mini-sub" style="font-size:11px;color:var(--muted);">clique pra abrir o projeto</div>
+            </div>
+            <div class="proj-mini-arrow">›</div>
+          </div>
+          <div class="proj-voz-lista">${linhasVoz}</div>
         </div>`;
     }).join('');
     box.innerHTML = `
       <div class="field">
         <label>Projetos desta ficha (${porProjeto.size})</label>
-        <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Clique num projeto para abri-lo.</p>
+        <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Clique no projeto pra abri-lo. Use o ✎ pra alterar voz ou data de cada entrada.</p>
         <div class="proj-mini-list">${cards}</div>
       </div>`;
-    // Handler: clicar no card abre o projeto
-    box.querySelectorAll('[data-open-proj]').forEach(card => {
-      card.addEventListener('click', () => {
-        const proj = card.dataset.openProj;
+    // Handler: clicar no cabeçalho do card abre o projeto
+    box.querySelectorAll('[data-open-proj]').forEach(head => {
+      head.addEventListener('click', (e) => {
+        // Só se o clique foi no cabeçalho, não no botão de alterar
+        if (e.target.closest('[data-alt-voz]')) return;
+        const proj = head.dataset.openProj;
         closeModal();
         setTimeout(() => {
           if (typeof openProjetoModal === 'function') openProjetoModal(proj);
         }, 200);
       });
+    });
+    // Handler: alterar voz / data
+    box.querySelectorAll('[data-alt-voz]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const entryIdxOrId = btn.dataset.altVoz;
+        const proj = btn.dataset.altProj;
+        const vozAtual = btn.dataset.altVoiceAtual;
+        const dataAtual = btn.dataset.altDataAtual;
+        abrirAlterarVozData(person, entryIdxOrId, proj, vozAtual, dataAtual);
+      });
+    });
+  }
+
+  // Modal pra alterar voz ou data de uma entrada específica
+  async function abrirAlterarVozData(person, entryIdxOrId, projeto, vozAtual, dataAtual){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay confirm-overlay open';
+    ov.style.zIndex = '9999';
+    // Data de hoje pra usar como "data de alteração"
+    const hojeStr = new Date().toISOString().slice(0, 10);
+    ov.innerHTML = `
+      <div class="modal confirm-modal" style="max-width:480px;">
+        <div class="confirm-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);">✎</div>
+        <h2 style="text-align:center; margin:8px 0 4px;">Alterar voz</h2>
+        <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
+          Personagem: <b style="color:var(--ink);">${escapeHtml(person.name)}</b><br>
+          Projeto: <b style="color:var(--ink);">${escapeHtml(projeto)}</b>
+        </p>
+        <div class="field">
+          <label for="altVozInput">Nova voz</label>
+          <div class="ac-wrap">
+            <input type="text" id="altVozInput" value="${escapeHtml(vozAtual)}" placeholder="Ex: Marcus Jr" autocomplete="off"
+                   style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+            <div class="ac-dropdown" id="altVozDrop"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="altDataInput">Data da alteração</label>
+          <input type="date" id="altDataInput" value="${escapeHtml(dataAtual || hojeStr)}"
+                 style="max-width:220px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+          <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Registra quando a voz foi trocada.</p>
+        </div>
+        <div class="confirm-actions" style="margin-top:16px;">
+          <button class="btn-ghost" id="altCancel">Cancelar</button>
+          <button class="btn-primary" id="altConfirm">Salvar alteração</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const vozInput = ov.querySelector('#altVozInput');
+    const vozDrop = ov.querySelector('#altVozDrop');
+    const dataInput = ov.querySelector('#altDataInput');
+    vozInput.focus();
+    vozInput.select();
+
+    // Autocomplete de voz
+    let acTimer = null;
+    vozInput.addEventListener('input', () => {
+      clearTimeout(acTimer);
+      const q = vozInput.value.trim().toLowerCase();
+      if (q.length < 2){ vozDrop.classList.remove('open'); return; }
+      acTimer = setTimeout(() => {
+        const matches = todasAsVozes().filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+        if (!matches.length){ vozDrop.classList.remove('open'); return; }
+        vozDrop.innerHTML = matches.map(v => `<div class="ac-item" data-pick-voz="${escapeHtml(v)}"><div><div class="ac-name">${escapeHtml(v)}</div></div></div>`).join('');
+        vozDrop.classList.add('open');
+      }, 100);
+    });
+    vozDrop.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-pick-voz]');
+      if (item){
+        vozInput.value = item.dataset.pickVoz;
+        vozDrop.classList.remove('open');
+      }
+    });
+
+    const cleanup = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); document.removeEventListener('keydown', escHandler); };
+    const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
+    document.addEventListener('keydown', escHandler);
+    ov.querySelector('#altCancel').addEventListener('click', cleanup);
+    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+
+    ov.querySelector('#altConfirm').addEventListener('click', async () => {
+      const novaVoz = vozInput.value.trim();
+      const novaData = dataInput.value.trim();
+      if (!novaVoz){ showToast('Digite a voz.'); vozInput.focus(); return; }
+      const btn = ov.querySelector('#altConfirm');
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+      try {
+        // Se a entrada tem id (do banco), atualiza por id. Se não, atualiza por combinação person+project+voice
+        const entry = person.entries.find((e, i) => (e.id && String(e.id) === entryIdxOrId) || (!e.id && String(i) === entryIdxOrId));
+        if (!entry) throw new Error('Entrada não encontrada.');
+
+        if (entry.id){
+          const { error } = await sb.from('entries').update({
+            voice: novaVoz,
+            date: novaData || null
+          }).eq('id', entry.id);
+          if (error) throw error;
+        } else {
+          // Fallback: match por person+project+voice antiga
+          const { error } = await sb.from('entries').update({
+            voice: novaVoz, date: novaData || null
+          }).eq('person_id', person.id).eq('project', projeto).eq('voice', vozAtual);
+          if (error) throw error;
+        }
+
+        cleanup();
+        await loadPeople();
+        invalidarCacheSimilares();
+        // Reabre o modal editar da mesma pessoa pra refletir a mudança
+        const personAtualizado = people.find(p => p.id === person.id);
+        if (personAtualizado){
+          renderProjetosDaFicha(personAtualizado);
+        }
+        showToast(`✅ Voz alterada para "${novaVoz}".`);
+      } catch(err){
+        console.error(err);
+        showToast('Erro ao alterar: '+(err.message||''));
+        btn.disabled = false;
+        btn.textContent = 'Salvar alteração';
+      }
     });
   }
 
@@ -3898,12 +4126,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function setPhotoPreview(dataUrl){
     const img = $('#photoPreviewImg');
     const hint = $('#photoDropHint');
-    const removeBtn = $('#photoRemoveBtn');
+    const removeBtn = $('#photoRemoveBtn'); // pode não existir mais
     if (dataUrl){
       img.src = dataUrl;
       img.style.display = 'block';
       hint.style.display = 'none';
-      removeBtn.style.display = 'inline-block';
+      if (removeBtn) removeBtn.style.display = 'inline-block';
       // Dica visual: cursor de zoom pra mostrar que dá pra clicar
       const drop = $('#photoDrop');
       if (drop){
@@ -3913,7 +4141,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       img.src = '';
       img.style.display = 'none';
       hint.style.display = 'block';
-      removeBtn.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'none';
       const drop = $('#photoDrop');
       if (drop){ drop.title = 'Clique pra escolher uma foto.'; }
     }
@@ -4278,7 +4506,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
   });
 
-  $('#photoRemoveBtn').addEventListener('click', () => {
+  const _photoRemoveBtn = $('#photoRemoveBtn');
+  if (_photoRemoveBtn) _photoRemoveBtn.addEventListener('click', () => {
     pendingPhoto = null;
     setPhotoPreview(null);
   });
@@ -4337,26 +4566,31 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    // === MODO NOVA FICHA: fluxo completo com voz/projeto/tipo obrigatórios ===
-    if (!tipoSelecionado){
-      showToast('Escolha o tipo do projeto.');
-      $('#tipoGrid').scrollIntoView({behavior:'smooth', block:'center'});
-      return;
-    }
-
+    // === MODO NOVA FICHA: só cria a ficha da pessoa vinculando a um PROJETO EXISTENTE ===
+    // (tipo/capa/destino do projeto são configurados quando o projeto é criado)
     const voz = $('#voiceMainInput').value.trim();
     const projeto = $('#projMainInput').value.trim();
     const data = $('#dateMainInput').value.trim();
 
     if (!voz){ showToast('Digite a voz utilizada.'); $('#voiceMainInput').focus(); return; }
-    if (!projeto){ showToast('Digite o nome do projeto.'); $('#projMainInput').focus(); return; }
+    if (!projeto){ showToast('Digite o nome de um projeto existente.'); $('#projMainInput').focus(); return; }
 
-    const cleanEntries = [{ project: projeto, voice: voz, date: data }];
+    // Verifica se o projeto existe
+    const todosProjs = todosOsProjetos();
+    const projLower = projeto.toLowerCase();
+    if (!todosProjs.some(p => p.toLowerCase() === projLower)){
+      showToast('Projeto não existe. Crie em: Projetos → + Novo projeto');
+      $('#projMainInput').focus();
+      return;
+    }
+    // Usa o nome canônico (caso o admin tenha digitado com case diferente)
+    const projetoCanonico = todosProjs.find(p => p.toLowerCase() === projLower);
+
+    const cleanEntries = [{ project: projetoCanonico, voice: voz, date: data }];
 
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
 
-    const existing = null;
     const person = {
       id: null,
       name,
@@ -4380,57 +4614,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       await sb.from('people').update({ has_photo: ok }).eq('id', savedId);
     }
 
-    // 1. project_meta pro projeto principal
-    const destino = getDestinoSelecionado();
-    const inProd = destino === 'prod';
-    const jaTemCapa = (projectMeta[projeto] && projectMeta[projeto].has_cover) || false;
-    const teraCapa = !!pendingCapaFicha || jaTemCapa;
-    try {
-      await sb.from('project_meta').upsert({
-        project: projeto,
-        in_production: inProd,
-        archived: false,
-        has_cover: teraCapa,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'project' });
-      projectMeta[projeto] = { in_production: inProd, archived: false, has_cover: teraCapa };
-    } catch(e){}
-
-    // 2. Salva capa nova se o usuário escolheu uma
-    if (pendingCapaFicha){
-      try {
-        const key = PROJ_COVER_PREFIX + projKey(projeto);
-        const blob = dataUrlToBlob(pendingCapaFicha);
-        let { error } = await sb.storage.from(COVER_BUCKET)
-          .upload(key + '.jpg', blob, { upsert:true, contentType:'image/jpeg' });
-        if (error){
-          const r2 = await sb.storage.from(COVER_BUCKET)
-            .update(key + '.jpg', blob, { contentType:'image/jpeg' });
-          error = r2.error;
-        }
-        if (!error) delete coverCache[key];
-      } catch(e){}
-    }
-
-    // 3. Vincula o projeto à categoria (tipo)
-    try {
-      await sb.from('project_categories').upsert(
-        { project: projeto, category: tipoSelecionado },
-        { onConflict: 'project' }
-      );
-      projectCats[projeto] = tipoSelecionado;
-    } catch(e){}
-
-    // 4. Cria as SUGESTÕES marcadas — inclui:
-    //    (a) colegas do mesmo projeto (sugestoesDisponiveis)
-    //    (b) pessoas adicionadas via busca "encontrar mais" (pessoasExtras)
-    //    (c) pessoas NOVAS criadas via "Criar nova pessoa"
+    // Cria as SUGESTÕES marcadas — colegas de cena + pessoas extras
     let criadasSugestoes = 0;
     if (sugestoesMarcadas.size > 0){
       for (const chave of sugestoesMarcadas){
-        // Tenta achar em sugestoesDisponiveis primeiro (colegas de cena)
         let sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave);
-        // Se não achou, procura nas pessoasExtras (busca manual)
         if (!sug){
           sug = pessoasExtras.find(s => `${s.personId}||__extra__` === chave);
         }
@@ -4438,25 +4626,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
         try {
           let personIdReal = sug.personId;
-
-          // Se é pessoa NOVA (não existe no banco ainda), cria primeiro
           if (sug._nova){
             const { data: novaPessoa, error: errNova } = await sb.from('people')
               .insert({ name: sug.personName, has_photo: false })
               .select('id')
               .single();
-            if (errNova || !novaPessoa){
-              console.error('Erro ao criar pessoa nova:', errNova);
-              continue;
-            }
+            if (errNova || !novaPessoa){ console.error('Erro ao criar pessoa nova:', errNova); continue; }
             personIdReal = novaPessoa.id;
           }
-
-          // Vincula a pessoa ao projeto atual
           await sb.from('entries').insert({
             person_id: personIdReal,
-            project: projeto,
-            voice: sug.voice || voz, // preserva voz original ou usa atual
+            project: projetoCanonico,
+            voice: sug.voice || voz,
             date: data || null
           });
           criadasSugestoes++;
@@ -4478,6 +4659,152 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   });
 
   $('#cancelModalBtn').addEventListener('click', closeModal);
+
+  // Juntar ficha atual com outra: move todas as entradas pra ficha destino, mantém foto/nome do destino
+  $('#mergeModalBtn').addEventListener('click', async () => {
+    if (!editingId || !isAdmin) return;
+    const atual = people.find(p => p.id === editingId);
+    if (!atual) return;
+    await abrirJuntarFicha(atual);
+  });
+
+  async function abrirJuntarFicha(fichaAtual){
+    // Lista de possíveis destinos (todas as fichas, exceto a atual)
+    const outras = visiblePeople().filter(p => p.id !== fichaAtual.id);
+
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay confirm-overlay open';
+    ov.style.zIndex = '9999';
+    ov.innerHTML = `
+      <div class="modal confirm-modal" style="max-width:560px;">
+        <div class="confirm-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);">🔗</div>
+        <h2 style="text-align:center; margin:8px 0 4px;">Juntar fichas</h2>
+        <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 12px;">
+          A ficha <b style="color:var(--ink);">"${escapeHtml(fichaAtual.name)}"</b> vai virar parte de outra ficha.<br>
+          <span style="font-size:12px;">Todas as ${fichaAtual.entries.length} entrada${fichaAtual.entries.length===1?'':'s'} de projeto serão movidas. A foto e nome da ficha destino são mantidos.</span>
+        </p>
+        <div class="field">
+          <label for="mergeSearchInput">Buscar ficha destino</label>
+          <input type="text" id="mergeSearchInput" placeholder="Digite o nome..." autocomplete="off"
+                 style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+          <div id="mergeResultados" style="margin-top:8px;max-height:280px;overflow-y:auto;"></div>
+        </div>
+        <div id="mergePreview" style="display:none;margin-top:12px;padding:12px;background:linear-gradient(135deg,rgba(37,99,235,.08),rgba(22,163,74,.04));border:1px solid rgba(37,99,235,.25);border-radius:10px;font-size:13px;"></div>
+        <div class="confirm-actions" style="margin-top:16px;">
+          <button class="btn-ghost" id="mergeCancel">Cancelar</button>
+          <button class="btn-primary" id="mergeConfirm" disabled>Juntar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const input = ov.querySelector('#mergeSearchInput');
+    const resultados = ov.querySelector('#mergeResultados');
+    const preview = ov.querySelector('#mergePreview');
+    const btnConfirm = ov.querySelector('#mergeConfirm');
+    let selecionadoId = null;
+
+    input.focus();
+
+    const cleanup = () => {
+      ov.classList.remove('open');
+      setTimeout(() => ov.remove(), 200);
+      document.removeEventListener('keydown', escHandler);
+    };
+    const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
+    document.addEventListener('keydown', escHandler);
+    ov.querySelector('#mergeCancel').addEventListener('click', cleanup);
+    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+
+    const renderResultados = () => {
+      const q = input.value.trim().toLowerCase();
+      if (q.length < 1){
+        resultados.innerHTML = '<p style="font-size:12px;color:var(--muted);padding:8px;">Digite o nome pra buscar.</p>';
+        return;
+      }
+      const matches = outras.filter(p => p.name.toLowerCase().includes(q)).slice(0, 10);
+      if (!matches.length){
+        resultados.innerHTML = '<p style="font-size:12px;color:var(--muted);padding:8px;">Nenhuma ficha encontrada.</p>';
+        return;
+      }
+      resultados.innerHTML = matches.map(p => {
+        const iniciais = p.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const numEntradas = p.entries.length;
+        const projetos = [...new Set(p.entries.map(e => e.project))];
+        const projTxt = projetos.length > 2
+          ? `${projetos.slice(0,2).map(escapeHtml).join(', ')} +${projetos.length-2}`
+          : projetos.map(escapeHtml).join(', ');
+        const sel = selecionadoId === p.id;
+        return `<div class="merge-item ${sel?'on':''}" data-merge-id="${p.id}">
+          <div class="merge-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.id}" data-name="${escapeHtml(p.name)}"`:''}>${iniciais}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.name)}</div>
+            <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${numEntradas} entrada${numEntradas===1?'':'s'} · ${projTxt||'sem projeto'}</div>
+          </div>
+          ${sel?'<span style="color:var(--blue);font-weight:700;">✓</span>':''}
+        </div>`;
+      }).join('');
+      hydratePhotos();
+    };
+
+    input.addEventListener('input', renderResultados);
+    renderResultados();
+
+    resultados.addEventListener('click', (e) => {
+      const item = e.target.closest('[data-merge-id]');
+      if (!item) return;
+      selecionadoId = item.dataset.mergeId;
+      renderResultados();
+      // Mostra preview
+      const destino = outras.find(p => p.id === selecionadoId);
+      if (destino){
+        const entradasDestino = destino.entries.length;
+        const entradasAtual = fichaAtual.entries.length;
+        preview.style.display = 'block';
+        preview.innerHTML = `
+          <div style="font-weight:700;color:var(--blue-deep);margin-bottom:6px;">📋 Resumo da junção</div>
+          <div>• A ficha <b>"${escapeHtml(fichaAtual.name)}"</b> (${entradasAtual} entradas) será <b>removida</b></div>
+          <div>• Suas ${entradasAtual} entradas vão pra <b>"${escapeHtml(destino.name)}"</b></div>
+          <div>• "${escapeHtml(destino.name)}" ficará com <b>${entradasDestino + entradasAtual}</b> entradas no total</div>
+          <div style="margin-top:6px;color:#78350F;font-size:12px;">⚠ A foto/nome de "${escapeHtml(fichaAtual.name)}" serão perdidos. Manter os de "${escapeHtml(destino.name)}".</div>
+        `;
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = `Juntar em "${destino.name}"`;
+      }
+    });
+
+    btnConfirm.addEventListener('click', async () => {
+      if (!selecionadoId) return;
+      const destino = outras.find(p => p.id === selecionadoId);
+      if (!destino) return;
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = 'Juntando…';
+
+      try {
+        // 1. Move todas as entradas do fichaAtual pro destino
+        const { error: e1 } = await sb.from('entries')
+          .update({ person_id: destino.id })
+          .eq('person_id', fichaAtual.id);
+        if (e1) throw e1;
+
+        // 2. Apaga a foto da ficha antiga (a nova mantém a dela)
+        try { await deletePhoto(fichaAtual.id); } catch(e){}
+
+        // 3. Remove o registro da pessoa antiga
+        const { error: e2 } = await sb.from('people').delete().eq('id', fichaAtual.id);
+        if (e2) throw e2;
+
+        cleanup();
+        closeModal();
+        await loadPeople();
+        invalidarCacheSimilares();
+        showToast(`✅ Ficha juntada com "${destino.name}".`);
+      } catch(err){
+        console.error(err);
+        showToast('Erro ao juntar: '+(err.message||''));
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = `Juntar em "${destino.name}"`;
+      }
+    });
+  }
 
   // Excluir ficha inteira (só admin, só ao editar)
   $('#deleteModalBtn').addEventListener('click', async () => {
@@ -6294,40 +6621,51 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Wizard de 3 passos para criar novo projeto (Nome+Status → Capa → Pronto)
   function openWizardProjeto(){
     if (!isAdmin) return;
-    const state = { passo: 1, nome: '', inProd: true, capaFile: null, capaPreview: null };
+    const state = {
+      passo: 1,
+      nome: '',
+      tipo: null,
+      capaFile: null,
+      capaPreview: null,
+      dataProjeto: '',
+      pessoasMarcadas: new Map(), // id -> {personId, personName, hasPhoto, voice, _nova}
+      inProd: true,
+    };
     const ov = ensureColOverlay();
 
     function render(){
       ov.innerHTML = `
-        <div class="modal wizard-modal">
+        <div class="modal wizard-modal" style="max-width:720px;">
           <div class="wizard-steps">
             <div class="ws-step ${state.passo>=1?'on':''} ${state.passo===1?'cur':''}"><span>1</span> Nome</div>
             <div class="ws-line"></div>
-            <div class="ws-step ${state.passo>=2?'on':''} ${state.passo===2?'cur':''}"><span>2</span> Capa</div>
+            <div class="ws-step ${state.passo>=2?'on':''} ${state.passo===2?'cur':''}"><span>2</span> Tipo</div>
             <div class="ws-line"></div>
-            <div class="ws-step ${state.passo>=3?'on':''} ${state.passo===3?'cur':''}"><span>3</span> Pronto</div>
+            <div class="ws-step ${state.passo>=3?'on':''} ${state.passo===3?'cur':''}"><span>3</span> Capa</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=4?'on':''} ${state.passo===4?'cur':''}"><span>4</span> Pessoas</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=5?'on':''} ${state.passo===5?'cur':''}"><span>5</span> Status</div>
           </div>
 
           ${state.passo === 1 ? `
-            <h2 style="margin-top:8px;">Novo projeto</h2>
-            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Comece dando um nome ao projeto. Você pode adicionar as pessoas depois de criar.</p>
+            <h2 style="margin-top:8px;">Nome do projeto</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Dê um nome ao projeto que está iniciando.</p>
             <div class="field">
-              <label>Nome do projeto</label>
+              <label>Nome</label>
               <input type="text" id="wpNome" placeholder="Ex: Documentário Avivamento T2" autocomplete="off" value="${escapeHtml(state.nome)}">
-            </div>
-            <div class="field">
-              <label>Onde alocar</label>
-              <div class="seg-radio">
-                <button type="button" class="${state.inProd?'on':''}" data-alocar="prod">🎬 Em produção</button>
-                <button type="button" class="${!state.inProd?'on':''}" data-alocar="conc">✅ Concluídos</button>
-              </div>
-              <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Aparece na aba <b>Projetos</b> e no destaque da <b>Home</b> quando estiver em produção.</p>
             </div>
           ` : ''}
 
           ${state.passo === 2 ? `
+            <h2 style="margin-top:8px;">Tipo do projeto</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Escolha a categoria que melhor representa este projeto.</p>
+            <div class="tipo-grid" id="wpTipoGrid"></div>
+          ` : ''}
+
+          ${state.passo === 3 ? `
             <h2 style="margin-top:8px;">Capa do projeto</h2>
-            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Suba uma imagem representativa. Você pode pular e adicionar depois.</p>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Suba uma imagem representativa. Você pode pular se preferir.</p>
             <div class="wizard-capa" id="wpCapaDrop">
               ${state.capaPreview
                 ? `<img src="${state.capaPreview}" alt="prévia">`
@@ -6339,29 +6677,62 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               <input type="file" id="wpCapaInput" accept="image/*" style="display:none;">
             </div>
             ${state.capaPreview ? `<button class="btn-ghost" id="wpCapaRemover" style="margin-top:10px;font-size:12.5px;">Remover imagem</button>` : ''}
+            <div class="field" style="margin-top:16px;">
+              <label>Data de início do projeto (opcional)</label>
+              <input type="date" id="wpData" value="${escapeHtml(state.dataProjeto)}" style="max-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">
+              <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Usado como data padrão pras primeiras entradas de dublagem.</p>
+            </div>
           ` : ''}
 
-          ${state.passo === 3 ? `
-            <h2 style="margin-top:8px;text-align:center;">Pronto para criar</h2>
-            <p style="font-size:13px;color:var(--muted);margin:-6px 0 20px;text-align:center;">Revise as informações antes de confirmar.</p>
-            <div class="wizard-resumo">
-              ${state.capaPreview
-                ? `<img src="${state.capaPreview}" alt="">`
-                : `<div class="wizard-resumo-nocapa">🎬</div>`}
+          ${state.passo === 4 ? `
+            <h2 style="margin-top:8px;">Quem participa?</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Busque pessoas já cadastradas ou crie novas. A voz de cada uma virá da ficha dela.</p>
+            <div class="field">
+              <label>Buscar ou criar pessoa</label>
+              <div class="ac-wrap">
+                <input type="text" id="wpBuscarPessoa" placeholder="Digite o nome (ou nome de uma pessoa nova)..." autocomplete="off">
+                <div class="ac-dropdown" id="wpBuscarDrop"></div>
+              </div>
+            </div>
+            <div id="wpMarcadas"></div>
+          ` : ''}
+
+          ${state.passo === 5 ? `
+            <h2 style="margin-top:8px;">Status do projeto</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Este projeto já está finalizado ou ainda em produção?</p>
+            <div class="destino-grid">
+              <label class="destino-card">
+                <input type="radio" name="wpDestino" value="prod" ${state.inProd?'checked':''}>
+                <div class="destino-ic">🎬</div>
+                <div class="destino-txt">
+                  <div class="destino-tit">Em produção</div>
+                  <div class="destino-sub">Aparece na Home</div>
+                </div>
+              </label>
+              <label class="destino-card">
+                <input type="radio" name="wpDestino" value="conc" ${!state.inProd?'checked':''}>
+                <div class="destino-ic">✅</div>
+                <div class="destino-txt">
+                  <div class="destino-tit">Concluídos</div>
+                  <div class="destino-sub">Vai pro arquivo</div>
+                </div>
+              </label>
+            </div>
+            <div class="wizard-resumo" style="margin-top:18px;">
+              ${state.capaPreview ? `<img src="${state.capaPreview}" alt="">` : `<div class="wizard-resumo-nocapa">${iconeDoTipo(state.tipo||'')}</div>`}
               <div>
                 <div class="wizard-resumo-nome">${escapeHtml(state.nome)}</div>
                 <div class="wizard-resumo-status">
-                  ${state.inProd?'🎬 Em produção':'✅ Concluído'} · ${state.capaFile?'com capa':'sem capa'}
+                  ${iconeDoTipo(state.tipo||'')} ${escapeHtml(state.tipo||'sem tipo')} · ${state.pessoasMarcadas.size} pessoa${state.pessoasMarcadas.size===1?'':'s'}${state.dataProjeto?` · 📅 ${state.dataProjeto}`:''}
                 </div>
               </div>
             </div>
-            <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;">Depois de criado, abra o projeto para adicionar as pessoas.</p>
           ` : ''}
 
           <div class="modal-actions" style="margin-top:20px;">
             <button class="btn-ghost" id="wpCancel">${state.passo===1?'Cancelar':'← Voltar'}</button>
             <button class="btn-primary" id="wpNext">
-              ${state.passo===1?'Próximo →':state.passo===2?(state.capaFile?'Próximo →':'Pular →'):'Criar projeto ✓'}
+              ${state.passo===5?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===4?'Próximo →':'Próximo →'}
             </button>
           </div>
         </div>`;
@@ -6375,17 +6746,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         else { state.passo--; render(); }
       });
 
+      // Passo 1: nome
       if (state.passo === 1){
         const inp = $('#wpNome');
         inp.focus();
         inp.addEventListener('input', e => state.nome = e.target.value);
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('#wpNext').click(); });
-        ov.querySelectorAll('[data-alocar]').forEach(b => b.addEventListener('click', () => {
-          state.inProd = b.dataset.alocar === 'prod'; render();
-        }));
       }
 
+      // Passo 2: tipo (grid visual)
       if (state.passo === 2){
+        renderTipoGridWizard();
+      }
+
+      // Passo 3: capa + data
+      if (state.passo === 3){
         const drop = $('#wpCapaDrop');
         const inp = $('#wpCapaInput');
         drop.addEventListener('click', () => inp.click());
@@ -6402,6 +6777,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         });
         const rem = $('#wpCapaRemover');
         if (rem) rem.addEventListener('click', () => { state.capaFile = null; state.capaPreview = null; render(); });
+        const dt = $('#wpData');
+        if (dt) dt.addEventListener('input', e => state.dataProjeto = e.target.value);
 
         function usarArquivo(f){
           state.capaFile = f;
@@ -6409,6 +6786,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           reader.onload = e => { state.capaPreview = e.target.result; render(); };
           reader.readAsDataURL(f);
         }
+      }
+
+      // Passo 4: pessoas
+      if (state.passo === 4){
+        renderPessoasMarcadas();
+        wireBuscaPessoasWizard();
+      }
+
+      // Passo 5: status
+      if (state.passo === 5){
+        ov.querySelectorAll('input[name="wpDestino"]').forEach(r => r.addEventListener('change', e => {
+          state.inProd = e.target.value === 'prod';
+        }));
       }
 
       $('#wpNext').addEventListener('click', async () => {
@@ -6422,10 +6812,186 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           state.passo = 2; render();
         }
         else if (state.passo === 2){
+          if (!state.tipo){ showToast('Escolha o tipo do projeto.'); return; }
           state.passo = 3; render();
         }
         else if (state.passo === 3){
+          state.passo = 4; render();
+        }
+        else if (state.passo === 4){
+          state.passo = 5; render();
+        }
+        else if (state.passo === 5){
           await criarProjeto();
+        }
+      });
+    }
+
+    // Grid de tipos no wizard (usa a mesma função existente adaptada)
+    function renderTipoGridWizard(){
+      const grid = $('#wpTipoGrid');
+      if (!grid) return;
+      const lista = tiposDisponiveis();
+      grid.innerHTML = lista.map(t => `
+        <div class="tipo-card ${state.tipo===t.nome?'on':''}" data-tipo="${escapeHtml(t.nome)}">
+          <div class="tipo-ic">${t.icone}</div>
+          <div class="tipo-nome">${escapeHtml(t.nome)}</div>
+        </div>
+      `).join('') + `
+        <div class="tipo-card tipo-card-add" id="wpTipoAdd">
+          <div class="tipo-ic">➕</div>
+          <div class="tipo-nome">Novo tipo</div>
+        </div>`;
+      grid.querySelectorAll('[data-tipo]').forEach(c => c.addEventListener('click', () => {
+        state.tipo = c.dataset.tipo;
+        renderTipoGridWizard();
+      }));
+      const addBtn = $('#wpTipoAdd');
+      if (addBtn) addBtn.addEventListener('click', async () => {
+        const nome = prompt('Nome do novo tipo:');
+        if (!nome || !nome.trim()) return;
+        const clean = nome.trim();
+        if (tiposDisponiveis().some(t => t.nome.toLowerCase()===clean.toLowerCase())){
+          showToast('Esse tipo já existe.'); return;
+        }
+        try {
+          const { data, error } = await sb.from('categories')
+            .insert({ name: clean, sort_order: (categories||[]).length })
+            .select().single();
+          if (!error && data){
+            categories = [...(categories||[]), data];
+            state.tipo = clean;
+            renderTipoGridWizard();
+            showToast('Tipo adicionado!');
+          } else {
+            showToast('Erro ao criar tipo.');
+          }
+        } catch(e){ showToast('Erro ao criar tipo.'); }
+      });
+    }
+
+    // Renderiza as pessoas marcadas pra entrar no projeto
+    function renderPessoasMarcadas(){
+      const box = $('#wpMarcadas');
+      if (!box) return;
+      if (state.pessoasMarcadas.size === 0){
+        box.innerHTML = `<div style="margin-top:12px;padding:16px;background:var(--surface-soft);border-radius:10px;text-align:center;color:var(--muted);font-size:13px;">Nenhuma pessoa selecionada ainda. Use a busca acima.</div>`;
+        return;
+      }
+      const arr = [...state.pessoasMarcadas.values()];
+      box.innerHTML = `
+        <div style="margin-top:14px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:600;">${arr.length} pessoa${arr.length===1?'':'s'} selecionada${arr.length===1?'':'s'}</div>
+          <div class="wp-marcadas-list">
+            ${arr.map(p => {
+              const iniciais = p.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+              return `
+                <div class="wp-marcada-item">
+                  <div class="wp-marcada-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.personId}" data-name="${escapeHtml(p.personName)}"`:''}>${iniciais}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}</div>
+                    <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎤 ${escapeHtml(p.voice || '(voz não definida)')}</div>
+                  </div>
+                  <button type="button" class="wp-remover" data-remover="${p.personId}" title="Remover">✕</button>
+                </div>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      // Handler remover
+      box.querySelectorAll('[data-remover]').forEach(btn => btn.addEventListener('click', () => {
+        state.pessoasMarcadas.delete(btn.dataset.remover);
+        renderPessoasMarcadas();
+      }));
+      hydratePhotos();
+    }
+
+    // Busca com autocomplete + criar nova
+    function wireBuscaPessoasWizard(){
+      const input = $('#wpBuscarPessoa');
+      const drop = $('#wpBuscarDrop');
+      if (!input || !drop) return;
+      let timer = null;
+
+      const renderDrop = () => {
+        const q = input.value.trim();
+        if (q.length < 1){ drop.classList.remove('open'); return; }
+        const ql = q.toLowerCase();
+        const matches = visiblePeople().filter(p => {
+          if (state.pessoasMarcadas.has(p.id)) return false;
+          return p.name.toLowerCase().includes(ql);
+        }).slice(0, 8);
+        const nenhumaExata = !visiblePeople().some(p => p.name.trim().toLowerCase() === ql);
+
+        let html = '';
+        if (matches.length){
+          html += matches.map(p => {
+            const iniciais = p.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            // Pega a voz da primeira entrada como voz padrão
+            const vozPadrao = (p.entries[0] && p.entries[0].voice) || '';
+            return `
+              <div class="ac-item" data-add-id="${p.id}" data-add-name="${escapeHtml(p.name)}" data-add-photo="${p.hasPhoto?1:0}" data-add-voice="${escapeHtml(vozPadrao)}">
+                <div style="display:flex;align-items:center;gap:10px;width:100%;">
+                  <div class="photo-fallback" ${p.hasPhoto?`data-photo-for="${p.id}" data-name="${escapeHtml(p.name)}"`:''} style="width:30px;height:30px;border-radius:7px;font-size:11px;">${iniciais}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div class="ac-name">${escapeHtml(p.name)}</div>
+                    <div class="ac-sub">${vozPadrao ? `voz: ${escapeHtml(vozPadrao)}` : 'sem voz definida'}</div>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+        }
+        if (q.length >= 2 && nenhumaExata){
+          html += `<div class="ac-item" data-nova-nome="${escapeHtml(q)}" style="color:var(--blue-deep);font-weight:600;">
+            ➕ Criar nova pessoa: "${escapeHtml(q)}"
+          </div>`;
+        }
+        if (!html){ drop.classList.remove('open'); return; }
+        drop.innerHTML = html;
+        drop.classList.add('open');
+        hydratePhotos();
+      };
+
+      input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(renderDrop, 100);
+      });
+      input.addEventListener('focus', () => { if (input.value.trim().length >= 1) renderDrop(); });
+      input.addEventListener('blur', () => setTimeout(() => drop.classList.remove('open'), 200));
+
+      drop.addEventListener('click', (e) => {
+        // Adicionar pessoa existente
+        const addItem = e.target.closest('[data-add-id]');
+        if (addItem){
+          const id = addItem.dataset.addId;
+          state.pessoasMarcadas.set(id, {
+            personId: id,
+            personName: addItem.dataset.addName,
+            hasPhoto: addItem.dataset.addPhoto === '1',
+            voice: addItem.dataset.addVoice || '',
+            _nova: false
+          });
+          input.value = '';
+          drop.classList.remove('open');
+          renderPessoasMarcadas();
+          return;
+        }
+        // Criar nova
+        const novaItem = e.target.closest('[data-nova-nome]');
+        if (novaItem){
+          const nome = novaItem.dataset.novaNome;
+          const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+          state.pessoasMarcadas.set(tempId, {
+            personId: tempId,
+            personName: nome,
+            hasPhoto: false,
+            voice: '',
+            _nova: true
+          });
+          input.value = '';
+          drop.classList.remove('open');
+          renderPessoasMarcadas();
+          return;
         }
       });
     }
@@ -6435,52 +7001,76 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       btn.disabled = true;
       btn.textContent = 'Criando…';
       try{
-        // 1. Se tem capa, sobe primeiro (para saber se realmente foi salva)
+        // 1. Sobe capa
         let capaOk = false;
         if (state.capaFile){
           try {
-            // Detecta a extensão do arquivo
             const ext = (state.capaFile.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
             const key = PROJ_COVER_PREFIX + projKey(state.nome) + '.' + ext;
             const { error: upErr } = await sb.storage.from('capas').upload(key, state.capaFile, {
               upsert: true,
               contentType: state.capaFile.type
             });
-            if (upErr) {
+            if (upErr){
               console.error('Upload capa falhou:', upErr);
               showToast('⚠ Não consegui salvar a capa: ' + upErr.message);
             } else {
-              const { data: pub } = sb.storage.from('capas').getPublicUrl(key);
-              const url = pub && pub.publicUrl ? pub.publicUrl : null;
-              if (url){
-                // limpa o cache pra próxima busca pegar a nova capa
-                delete coverCache[PROJ_COVER_PREFIX + projKey(state.nome)];
-                capaOk = true;
-              }
+              delete coverCache[PROJ_COVER_PREFIX + projKey(state.nome)];
+              capaOk = true;
             }
           } catch(e){
             console.error('Erro upload capa:', e);
-            showToast('⚠ Erro ao subir capa: ' + (e.message||''));
           }
         }
 
-        // 2. Grava o project_meta (só marca has_cover se realmente salvou)
+        // 2. project_meta
         await sb.from('project_meta').upsert({
           project: state.nome,
           in_production: state.inProd,
           archived: false,
           has_cover: capaOk
         }, { onConflict:'project' });
+        projectMeta[state.nome] = { in_production: state.inProd, archived: false, has_cover: capaOk };
 
-        // 3. Atualiza cache local
-        projectMeta[state.nome] = {
-          in_production: state.inProd, archived: false, has_cover: capaOk
-        };
+        // 3. Categoria (tipo) do projeto
+        if (state.tipo){
+          try {
+            await sb.from('project_categories').upsert(
+              { project: state.nome, category: state.tipo },
+              { onConflict: 'project' }
+            );
+            projectCats[state.nome] = state.tipo;
+          } catch(e){ console.warn('project_categories:', e); }
+        }
+
+        // 4. Cria as entradas das pessoas selecionadas
+        let criadas = 0;
+        for (const pessoa of state.pessoasMarcadas.values()){
+          try {
+            let personIdReal = pessoa.personId;
+            if (pessoa._nova){
+              const { data: nova, error: errN } = await sb.from('people')
+                .insert({ name: pessoa.personName, has_photo: false })
+                .select('id').single();
+              if (errN || !nova){ console.error(errN); continue; }
+              personIdReal = nova.id;
+            }
+            await sb.from('entries').insert({
+              person_id: personIdReal,
+              project: state.nome,
+              voice: pessoa.voice || '(voz não definida)',
+              date: state.dataProjeto || null
+            });
+            criadas++;
+          } catch(e){ console.error('Erro entrada pessoa:', e); }
+        }
 
         ov.classList.remove('open');
+        await loadPeople();
+        await loadProjectMeta();
         renderProjetos();
         if (currentView === 'home') renderHome();
-        showToast(`✅ Projeto "${state.nome}" criado! ${state.capaFile && !capaOk ? '(capa não salva)' : ''}`);
+        showToast(`✅ Projeto "${state.nome}" criado com ${criadas} pessoa${criadas===1?'':'s'}!${state.capaFile && !capaOk ? ' (capa não salva)' : ''}`);
       }catch(err){
         showToast('Erro ao criar: ' + (err.message||''));
         btn.disabled = false;
