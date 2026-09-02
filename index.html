@@ -914,6 +914,38 @@
   }
   .lightbox-close:hover{ background: rgba(255,255,255,.28); }
 
+  /* ---- Popup de duplicata ---- */
+  .dup-list{
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 340px; overflow-y: auto;
+    padding: 4px;
+  }
+  .dup-item{
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all .12s;
+    min-width: 0;
+  }
+  .dup-item:hover{
+    border-color: var(--blue);
+    background: rgba(37,99,235,.04);
+    transform: translateX(2px);
+  }
+  .dup-ph{
+    width: 44px; height: 44px; border-radius: 10px;
+    flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    background: linear-gradient(135deg, var(--blue), var(--green) 130%);
+    color: #fff; font-weight: 700;
+    overflow: hidden;
+  }
+  .dup-ph img{ width:100%; height:100%; object-fit:cover; }
+
   /* ---- Itens da busca de "juntar ficha" ---- */
   .merge-item{
     display: flex; align-items: center; gap: 10px;
@@ -2337,7 +2369,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2 id="modalTitle">Nova ficha</h2>
-    <button type="button" class="btn-buscar-pessoa" id="btnBuscarPessoa">🔍 Buscar pessoa já cadastrada</button>
     <div class="field">
       <label for="nameInput">Cadastrar personagem / pessoa</label>
       <div class="ac-wrap">
@@ -4148,6 +4179,124 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // === LIGHTBOX: amplia foto pra ver melhor o rosto ===
+  // Detecta fichas com nome similar (usando Levenshtein + match parcial)
+  // Retorna array de {id, name, hasPhoto, entries: [projetos]}
+  function detectarFichasSimilares(nomeAlvo){
+    const alvo = (nomeAlvo||'').trim();
+    if (!alvo || alvo.length < 2) return [];
+    const alvoLower = alvo.toLowerCase();
+
+    const resultados = [];
+    for (const p of visiblePeople()){
+      const pLower = p.name.trim().toLowerCase();
+      // Match exato (case insensitive) — provavelmente a mesma pessoa
+      if (pLower === alvoLower){
+        resultados.push({ id: p.id, name: p.name, hasPhoto: p.hasPhoto, entries: p.entries, score: 100 });
+        continue;
+      }
+      // Match parcial: um contém o outro (ex: "Toby" e "Toby Sumpter")
+      if (pLower.includes(alvoLower) || alvoLower.includes(pLower)){
+        resultados.push({ id: p.id, name: p.name, hasPhoto: p.hasPhoto, entries: p.entries, score: 80 });
+        continue;
+      }
+      // Distância Levenshtein pequena: só se as strings forem parecidas
+      const dist = levenshtein(alvoLower, pLower);
+      const maxLen = Math.max(alvoLower.length, pLower.length);
+      const tolerancia = maxLen <= 5 ? 1 : maxLen <= 10 ? 2 : 3;
+      if (dist <= tolerancia){
+        resultados.push({ id: p.id, name: p.name, hasPhoto: p.hasPhoto, entries: p.entries, score: 60 - dist });
+      }
+    }
+    // Ordena por score decrescente e limita a 6
+    return resultados.sort((a,b) => b.score - a.score).slice(0, 6);
+  }
+
+  // Popup pra decidir: adicionar ficha existente ao projeto, ou continuar cadastro novo
+  // Retorna Promise<'adicionou_existente' | 'continuar' | 'cancelou'>
+  function confirmarDuplicataFicha(nomeDigitado, similares, projeto, voz, data){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10001';
+
+      const cards = similares.map(s => {
+        const iniciais = s.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        const nProjs = (s.entries||[]).length;
+        const projs = [...new Set((s.entries||[]).map(e => e.project))].slice(0, 2).join(', ');
+        return `
+          <div class="dup-item" data-usar="${s.id}" data-name="${escapeHtml(s.name)}">
+            <div class="dup-ph photo-fallback" ${s.hasPhoto?`data-photo-for="${s.id}" data-name="${escapeHtml(s.name)}"`:''}>${iniciais}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(s.name)}</div>
+              <div style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nProjs} projeto${nProjs===1?'':'s'}${projs?` · ${escapeHtml(projs)}`:''}</div>
+            </div>
+            <button class="btn-primary" style="padding:6px 12px;font-size:12.5px;flex:0 0 auto;">Usar este</button>
+          </div>
+        `;
+      }).join('');
+
+      ov.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:560px;overflow:visible;">
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);">⚠️</div>
+          <h2 style="text-align:center;margin:8px 0 4px;">Já existe uma ficha parecida</h2>
+          <p style="text-align:center;font-size:13px;color:var(--muted);margin:0 0 14px;">
+            Você digitou <b style="color:var(--ink);">"${escapeHtml(nomeDigitado)}"</b>.<br>
+            Encontrei ${similares.length} ficha${similares.length===1?'':'s'} parecida${similares.length===1?'':'s'}. Alguma é a mesma pessoa?
+          </p>
+          <div class="dup-list">${cards}</div>
+          <div class="confirm-actions" style="margin-top:16px;justify-content:space-between;">
+            <button class="btn-ghost" data-acao="cancelou">Cancelar</button>
+            <button class="btn-primary" data-acao="continuar" style="background:var(--muted);">Não, é outra pessoa (continuar)</button>
+          </div>
+        </div>`;
+
+      document.body.appendChild(ov);
+      hydratePhotos();
+
+      const cleanup = (result) => {
+        ov.classList.remove('open');
+        setTimeout(() => ov.remove(), 200);
+        document.removeEventListener('keydown', escHandler);
+        resolve(result);
+      };
+      const escHandler = (e) => { if (e.key === 'Escape') cleanup('cancelou'); };
+      document.addEventListener('keydown', escHandler);
+      ov.addEventListener('click', (e) => { if (e.target === ov) cleanup('cancelou'); });
+
+      // Clique em "usar este" → adiciona ficha existente ao projeto
+      ov.querySelectorAll('[data-usar]').forEach(card => card.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const pid = card.dataset.usar;
+        const pname = card.dataset.name;
+        // Insere entry pra essa pessoa no projeto atual
+        try {
+          const { error } = await sb.from('entries').insert({
+            person_id: pid,
+            project,
+            voice: voz,
+            date: data || null
+          });
+          if (error) throw error;
+          await loadPeople();
+          invalidarCacheSimilares();
+          showToast(`✅ "${pname}" adicionado(a) ao projeto "${projeto}".`);
+          cleanup('adicionou_existente');
+          // Reabre o modal do projeto após um instante
+          setTimeout(() => {
+            if (typeof openProjetoModal === 'function') openProjetoModal(projeto);
+          }, 300);
+        } catch(err){
+          showToast('Erro: '+(err.message||''));
+        }
+      }));
+
+      // Botões de ação: continuar (cadastrar como novo) ou cancelar
+      ov.querySelectorAll('[data-acao]').forEach(btn => btn.addEventListener('click', () => {
+        cleanup(btn.dataset.acao);
+      }));
+    });
+  }
+
   function abrirLightbox(url, legenda){
     if (!url) return;
     const ov = document.createElement('div');
@@ -4585,6 +4734,34 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     // Usa o nome canônico (caso o admin tenha digitado com case diferente)
     const projetoCanonico = todosProjs.find(p => p.toLowerCase() === projLower);
+
+    // === DETECÇÃO DE FICHAS SIMILARES ===
+    // Se o nome digitado é parecido com fichas existentes, mostra popup pra evitar duplicata
+    const similares = detectarFichasSimilares(name);
+    if (similares.length > 0){
+      // Filtra as que NÃO estão no projeto atual (elas seriam candidatas a "adicionar aqui")
+      // e as que já estão (só pra aviso "ele já está aqui")
+      const naoNoProjeto = similares.filter(s => {
+        const pessoa = mainPeople().find(p => p.id === s.id);
+        if (!pessoa) return false;
+        return !pessoa.entries.some(e =>
+          (e.project||'').trim().toLowerCase() === projetoCanonico.toLowerCase()
+        );
+      });
+      if (naoNoProjeto.length > 0){
+        // Mostra popup e para o fluxo. Só continua se admin confirmar "é outra pessoa"
+        const escolha = await confirmarDuplicataFicha(name, naoNoProjeto, projetoCanonico, voz, data);
+        if (escolha === 'adicionou_existente'){
+          // Já adicionou uma existente via popup — fecha o modal
+          closeModal();
+          return;
+        } else if (escolha === 'cancelou'){
+          // Admin cancelou - não faz nada
+          return;
+        }
+        // 'continuar' → segue com o cadastro normal abaixo
+      }
+    }
 
     const cleanEntries = [{ project: projetoCanonico, voice: voz, date: data }];
 
