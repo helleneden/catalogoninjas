@@ -481,6 +481,90 @@
   }
   .col-card:hover{ transform: translateY(-3px); box-shadow: var(--shadow-hover); }
   /* ---- Modal: seleção de tipo do projeto ---- */
+  /* ---- Status da voz (nova vs existente) ---- */
+  .voice-status-new{
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(37,99,235,.04));
+    border: 1px solid rgba(37,99,235,.25);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--blue-deep);
+    font-weight: 600;
+  }
+  .voice-status-exist{
+    margin-top: 8px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, rgba(22,163,74,.10), rgba(22,163,74,.04));
+    border: 1px solid rgba(22,163,74,.30);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #15803D;
+  }
+
+  /* ---- Bloco de sugestões (trazer outros personagens) ---- */
+  .suges-block{
+    margin: 12px 0 20px;
+    padding: 14px 16px 16px;
+    background: linear-gradient(180deg, rgba(37,99,235,.06), rgba(22,163,74,.03) 100%);
+    border: 1.5px solid rgba(37,99,235,.20);
+    border-radius: 14px;
+  }
+  .suges-head{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    gap: 12px; margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(37,99,235,.20);
+    flex-wrap: wrap;
+  }
+  .suges-title{
+    font-family: var(--font-head); font-weight:700; font-size:14px;
+    color: var(--blue-deep); margin-bottom: 3px;
+  }
+  .suges-sub{ font-size:12px; color: var(--muted); }
+  .suges-controls{ flex: 0 0 auto; }
+  .suges-mini-btn{ font-size:12px; padding:6px 12px; }
+  .suges-list{
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+  }
+  .suges-item{
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 12px; background: var(--surface); border: 1.5px solid var(--line);
+    border-radius: 10px; cursor: pointer; transition: all .15s ease;
+    user-select: none;
+  }
+  .suges-item:hover{ border-color: var(--blue); background: rgba(37,99,235,.04); }
+  .suges-item.on{
+    border-color: var(--blue);
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(22,163,74,.05));
+    box-shadow: 0 2px 8px rgba(37,99,235,.12);
+  }
+  .suges-item input[type="checkbox"]{
+    width: 16px; height: 16px; flex: 0 0 auto; accent-color: var(--blue);
+    cursor: pointer;
+  }
+  .suges-photo{
+    width: 36px; height: 36px; border-radius: 8px;
+    flex: 0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 12px;
+    background: linear-gradient(135deg, var(--blue), var(--green) 130%);
+    color: #fff;
+    font-weight: 700;
+    overflow: hidden;
+  }
+  .suges-photo img{ width:100%; height:100%; object-fit:cover; }
+  .suges-info{ flex: 1; min-width: 0; }
+  .suges-name{
+    font-weight: 700; font-size: 13px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .suges-proj{
+    font-size: 11.5px; color: var(--muted); margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---- Tipo do projeto (grid) ---- */
   .tipo-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
     gap:8px;
@@ -1934,7 +2018,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>
     </div>
     <div class="field">
-      <label>Foto (opcional)</label>
+      <label>Foto do personagem (opcional)</label>
       <div class="photo-upload-row">
         <div class="photo-drop" id="photoDrop">
           <img id="photoPreviewImg" src="" alt="" style="display:none;">
@@ -1949,13 +2033,35 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>
     </div>
 
-    <!-- SEÇÃO NOVA: Tipo do projeto -->
+    <!-- Voz utilizada com autocomplete e detecção -->
+    <div class="field">
+      <label for="voiceMainInput">Voz utilizada <span style="color:#DC2626;">*</span></label>
+      <div class="ac-wrap">
+        <input type="text" id="voiceMainInput" placeholder="Ex: Marcus Jr, Kelly Souza" autocomplete="off">
+        <div class="ac-dropdown" id="voiceMainAcDropdown"></div>
+      </div>
+      <div id="voiceExistingBox" style="display:none;"></div>
+    </div>
+
+    <!-- Bloco de sugestões (aparece quando voz existente) -->
+    <div id="sugestoesBloco" style="display:none;"></div>
+
+    <!-- SEÇÃO: Tipo do projeto -->
     <div class="field">
       <label>Tipo do projeto <span style="color:#DC2626;">*</span></label>
       <div class="tipo-grid" id="tipoGrid"></div>
     </div>
 
-    <!-- SEÇÃO NOVA: Capa do projeto -->
+    <!-- SEÇÃO: Projeto (nome) -->
+    <div class="field">
+      <label for="projMainInput">Nome do projeto <span style="color:#DC2626;">*</span></label>
+      <div class="ac-wrap">
+        <input type="text" id="projMainInput" placeholder="Ex: Documentário Avivamento T2" autocomplete="off">
+        <div class="ac-dropdown" id="projMainAcDropdown"></div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO: Capa do projeto -->
     <div class="field">
       <label>Capa do projeto (opcional)</label>
       <div class="capa-drop-mini" id="capaFichaDrop">
@@ -1969,7 +2075,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Se o projeto já existe, a capa atual é mantida.</p>
     </div>
 
-    <!-- SEÇÃO NOVA: Destino -->
+    <!-- SEÇÃO: Destino -->
     <div class="field">
       <label>Alocar em</label>
       <div class="destino-grid">
@@ -1992,11 +2098,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>
     </div>
 
-    <div class="entries-title">
-      <span>Projetos e vozes</span>
-      <button class="add-row-btn" id="addRowBtn">+ Adicionar projeto</button>
+    <!-- Data(s) opcional(is) -->
+    <div class="field">
+      <label>Data de uso (opcional)</label>
+      <input type="date" id="dateMainInput" style="max-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">
     </div>
-    <div id="entriesContainer"></div>
 
     <div class="modal-actions">
       <button class="btn-danger" id="deleteModalBtn" style="display:none; margin-right:auto;">🗑️ Excluir ficha</button>
@@ -2869,13 +2975,33 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#nameInput').value = person ? person.name : '';
     pendingPhoto = undefined;
 
-    // Reseta e prepara os novos campos
+    // Reseta os campos únicos (voz, projeto, data)
+    const primeira = person && person.entries[0] ? person.entries[0] : {voice:'', project:'', date:''};
+    $('#voiceMainInput').value = primeira.voice || '';
+    $('#projMainInput').value = primeira.project || '';
+    $('#dateMainInput').value = primeira.date || '';
+    $('#voiceExistingBox').style.display = 'none';
+    $('#voiceExistingBox').innerHTML = '';
+    $('#sugestoesBloco').style.display = 'none';
+    $('#sugestoesBloco').innerHTML = '';
+    sugestoesMarcadas = new Set();
+
+    // Reseta e prepara os campos existentes
     tipoSelecionado = null;
     resetCapaFicha();
     const radioProd = document.querySelector('input[name="destino"][value="prod"]');
     if (radioProd) radioProd.checked = true;
     renderTipoGrid();
     wireCapaFicha();
+
+    // Se for edição, pré-seleciona o tipo do projeto
+    if (person && primeira.project){
+      const cat = projectCats[primeira.project];
+      if (cat){
+        tipoSelecionado = cat;
+        renderTipoGrid();
+      }
+    }
 
     // Botão buscar pessoa: só aparece ao criar nova ficha
     const btnBuscar = $('#btnBuscarPessoa');
@@ -2888,8 +3014,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // Fecha autocomplete ao abrir
     closeAcDropdown();
 
-    modalEntries = person ? person.entries.map(e => ({...e})) : [{project:'', voice:''}];
-    renderModalEntries();
+    // Mantém compatibilidade: modalEntries usada em outros lugares
+    modalEntries = person ? person.entries.map(e => ({...e})) : [{project:'', voice:'', date:''}];
+
     modalOverlay.classList.add('open');
     $('#nameInput').focus();
 
@@ -2898,6 +3025,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (person && person.hasPhoto){
       const dataUrl = await fetchPhoto(person.id);
       if (dataUrl && editingId === person.id) setPhotoPreview(dataUrl);
+    }
+
+    // Se está editando e tem voz, dispara detecção da voz
+    if (person && primeira.voice){
+      detectarVozExistente(primeira.voice);
     }
   }
 
@@ -3012,12 +3144,228 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       ov.classList.remove('open');
       // Abre a ficha existente pra adicionar nova entrada
       openModal(item.dataset.bid);
-      // Garante que o "+ Adicionar projeto" fica visível
-      setTimeout(() => {
-        const addBtn = $('#addRowBtn');
-        if (addBtn) addBtn.scrollIntoView({behavior:'smooth', block:'center'});
-      }, 400);
     });
+  }
+
+  // ============================================================
+  //  AUTOCOMPLETE DE VOZ E PROJETO (no modal principal)
+  // ============================================================
+  let sugestoesMarcadas = new Set(); // ids de sugestões marcadas pra criar
+  let sugestoesDisponiveis = []; // pool de sugestões (personagens já dublados pela voz)
+
+  // Autocomplete pro campo Voz
+  const voiceMainInput = $('#voiceMainInput');
+  const voiceMainAc = $('#voiceMainAcDropdown');
+  let voiceAcTimer = null;
+  if (voiceMainInput) voiceMainInput.addEventListener('input', (e) => {
+    clearTimeout(voiceAcTimer);
+    const q = e.target.value.trim().toLowerCase();
+    if (q.length < 2){ voiceMainAc.classList.remove('open'); return; }
+    voiceAcTimer = setTimeout(() => {
+      const vozes = todasAsVozes();
+      const matches = vozes.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+      if (!matches.length){ voiceMainAc.classList.remove('open'); return; }
+      voiceMainAc.innerHTML = matches.map(v => {
+        const usos = mainPeople().filter(p => p.entries.some(e => (e.voice||'').trim().toLowerCase() === v.toLowerCase())).length;
+        return `<div class="ac-item" data-ac-voice="${escapeHtml(v)}">
+          <div>
+            <div class="ac-name">${escapeHtml(v)}</div>
+            <div class="ac-sub">dubla ${usos} personagem${usos===1?'':'s'}</div>
+          </div>
+        </div>`;
+      }).join('');
+      voiceMainAc.classList.add('open');
+    }, 120);
+  });
+  if (voiceMainAc) voiceMainAc.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-ac-voice]');
+    if (!item) return;
+    voiceMainInput.value = item.dataset.acVoice;
+    voiceMainAc.classList.remove('open');
+    detectarVozExistente(item.dataset.acVoice);
+  });
+  // Detecta ao sair do campo também (blur)
+  if (voiceMainInput) voiceMainInput.addEventListener('blur', () => {
+    setTimeout(() => {
+      voiceMainAc.classList.remove('open');
+      detectarVozExistente(voiceMainInput.value.trim());
+    }, 200);
+  });
+
+  // Autocomplete pro campo Projeto
+  const projMainInput = $('#projMainInput');
+  const projMainAc = $('#projMainAcDropdown');
+  let projAcTimer = null;
+  if (projMainInput) projMainInput.addEventListener('input', (e) => {
+    clearTimeout(projAcTimer);
+    const q = e.target.value.trim().toLowerCase();
+    if (q.length < 2){ projMainAc.classList.remove('open'); return; }
+    projAcTimer = setTimeout(() => {
+      const projs = todosOsProjetos();
+      const matches = projs.filter(p => p.toLowerCase().includes(q)).slice(0, 8);
+      if (!matches.length){ projMainAc.classList.remove('open'); return; }
+      projMainAc.innerHTML = matches.map(p => {
+        const n = peopleCountForProject(p);
+        return `<div class="ac-item" data-ac-proj="${escapeHtml(p)}">
+          <div>
+            <div class="ac-name">${escapeHtml(p)}</div>
+            <div class="ac-sub">${n} personagem${n===1?'':'s'}</div>
+          </div>
+        </div>`;
+      }).join('');
+      projMainAc.classList.add('open');
+    }, 120);
+  });
+  if (projMainAc) projMainAc.addEventListener('click', (e) => {
+    const item = e.target.closest('[data-ac-proj]');
+    if (!item) return;
+    projMainInput.value = item.dataset.acProj;
+    projMainAc.classList.remove('open');
+    // Se projeto existe, pré-seleciona tipo dele
+    const cat = projectCats[item.dataset.acProj];
+    if (cat){
+      tipoSelecionado = cat;
+      renderTipoGrid();
+    }
+  });
+  if (projMainInput) projMainInput.addEventListener('blur', () => {
+    setTimeout(() => projMainAc.classList.remove('open'), 200);
+  });
+
+  // Detecta se a voz digitada já existe no catálogo e mostra bloco de sugestões
+  function detectarVozExistente(voz){
+    const box = $('#voiceExistingBox');
+    const suges = $('#sugestoesBloco');
+    if (!box || !suges) return;
+    const vozClean = (voz||'').trim();
+    if (!vozClean){
+      box.style.display = 'none';
+      box.innerHTML = '';
+      suges.style.display = 'none';
+      suges.innerHTML = '';
+      sugestoesDisponiveis = [];
+      sugestoesMarcadas = new Set();
+      return;
+    }
+    // Busca personagens já dublados por essa voz (case insensitive)
+    const vLower = vozClean.toLowerCase();
+    const personagensDublados = [];
+    mainPeople().forEach(p => {
+      p.entries.forEach(e => {
+        if ((e.voice||'').trim().toLowerCase() === vLower){
+          personagensDublados.push({
+            personId: p.id,
+            personName: p.name,
+            project: e.project,
+            hasPhoto: p.hasPhoto,
+            date: e.date || ''
+          });
+        }
+      });
+    });
+
+    if (personagensDublados.length === 0){
+      // Voz nova
+      box.style.display = 'block';
+      box.innerHTML = `<div class="voice-status-new">✨ Voz nova — será cadastrada</div>`;
+      suges.style.display = 'none';
+      suges.innerHTML = '';
+      sugestoesDisponiveis = [];
+      sugestoesMarcadas = new Set();
+      return;
+    }
+
+    // Voz existente
+    box.style.display = 'block';
+    box.innerHTML = `<div class="voice-status-exist">
+      ✓ Voz existente — dubla <b>${personagensDublados.length}</b> personagem${personagensDublados.length===1?'':'s'} no catálogo
+    </div>`;
+
+    // Filtra os que NÃO estão no personagem atual sendo cadastrado
+    const nomeAtual = ($('#nameInput').value||'').trim().toLowerCase();
+    const projAtual = ($('#projMainInput').value||'').trim().toLowerCase();
+    const disponiveis = personagensDublados.filter(pd => {
+      // Não sugere o próprio (mesmo personagem e mesmo projeto)
+      const mesmoDado = pd.personName.toLowerCase() === nomeAtual &&
+                       (pd.project||'').toLowerCase() === projAtual;
+      return !mesmoDado;
+    });
+
+    if (disponiveis.length === 0){
+      suges.style.display = 'none';
+      suges.innerHTML = '';
+      sugestoesDisponiveis = [];
+      return;
+    }
+
+    sugestoesDisponiveis = disponiveis;
+    renderSugestoesBloco();
+  }
+
+  function renderSugestoesBloco(){
+    const suges = $('#sugestoesBloco');
+    if (!suges) return;
+    const total = sugestoesDisponiveis.length;
+    const marcadas = sugestoesMarcadas.size;
+    suges.style.display = 'block';
+    suges.innerHTML = `
+      <div class="suges-block">
+        <div class="suges-head">
+          <div>
+            <div class="suges-title">🎯 Trazer também estes trabalhos desta voz?</div>
+            <div class="suges-sub">${total} personagem${total===1?'':'s'} desta voz em outros projetos. Marque quais quer criar de uma vez.</div>
+          </div>
+          <div class="suges-controls">
+            <button type="button" class="btn-ghost suges-mini-btn" id="sugesToggleAll">${marcadas === total ? 'Desmarcar tudo' : 'Marcar tudo'}</button>
+          </div>
+        </div>
+        <div class="suges-list">
+          ${sugestoesDisponiveis.map((s, i) => {
+            const chave = `${s.personId}||${s.project}`;
+            const marcada = sugestoesMarcadas.has(chave);
+            const iniciais = s.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            return `
+              <label class="suges-item ${marcada?'on':''}" data-suges-chave="${escapeHtml(chave)}">
+                <input type="checkbox" ${marcada?'checked':''} data-suges-check="${escapeHtml(chave)}">
+                <div class="suges-photo photo-fallback" ${s.hasPhoto?`data-photo-for="${s.personId}" data-name="${escapeHtml(s.personName)}"`:''}>${iniciais}</div>
+                <div class="suges-info">
+                  <div class="suges-name">${escapeHtml(s.personName)}</div>
+                  <div class="suges-proj">🎬 ${escapeHtml(s.project)}</div>
+                </div>
+              </label>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
+    // Handlers dos checkboxes
+    suges.querySelectorAll('[data-suges-check]').forEach(cb => cb.addEventListener('change', (e) => {
+      const chave = cb.dataset.sugesCheck;
+      if (cb.checked) sugestoesMarcadas.add(chave);
+      else sugestoesMarcadas.delete(chave);
+      // Atualiza classe visual sem re-render (mais responsivo)
+      const label = cb.closest('.suges-item');
+      if (label) label.classList.toggle('on', cb.checked);
+      // Atualiza botão marcar tudo
+      const btn = $('#sugesToggleAll');
+      if (btn) btn.textContent = sugestoesMarcadas.size === total ? 'Desmarcar tudo' : 'Marcar tudo';
+    }));
+
+    // Marcar/desmarcar tudo
+    const toggleBtn = $('#sugesToggleAll');
+    if (toggleBtn) toggleBtn.addEventListener('click', () => {
+      if (sugestoesMarcadas.size === total){
+        sugestoesMarcadas = new Set();
+      } else {
+        sugestoesDisponiveis.forEach(s => {
+          sugestoesMarcadas.add(`${s.personId}||${s.project}`);
+        });
+      }
+      renderSugestoesBloco();
+    });
+
+    // hidrata fotos das sugestões
+    hydratePhotos();
   }
 
   function setPhotoPreview(dataUrl){
@@ -3190,6 +3538,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   function renderModalEntries(){
+    if (!entriesContainer) return; // modal novo não tem essa área
     entriesContainer.innerHTML = modalEntries.map((entry, i) => `
       <div class="modal-entry-row" data-index="${i}">
         <div class="entry-input-wrap">
@@ -3285,50 +3634,55 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     el.style.display = 'block';
   }
 
-  entriesContainer.addEventListener('input', (e) => {
-    const row = e.target.closest('.modal-entry-row');
-    if (!row) return;
-    const idx = Number(row.dataset.index);
-    const field = e.target.dataset.field;
-    if (modalEntries[idx]) modalEntries[idx][field] = e.target.value;
+  // Listeners antigos de entriesContainer - só se ainda existir (código legado)
+  if (entriesContainer){
+    entriesContainer.addEventListener('input', (e) => {
+      const row = e.target.closest('.modal-entry-row');
+      if (!row) return;
+      const idx = Number(row.dataset.index);
+      const field = e.target.dataset.field;
+      if (modalEntries[idx]) modalEntries[idx][field] = e.target.value;
 
-    // Sugestões (fuzzy) apenas para voice e project
-    if (field === 'voice' || field === 'project'){
-      const wrap = e.target.closest('.entry-input-wrap');
-      const sugBox = wrap ? wrap.querySelector('.entry-suggest') : null;
-      if (sugBox){
-        const lista = field === 'voice' ? todasAsVozes() : todosOsProjetos();
-        const sugs = sugestoesPara(e.target.value, lista);
-        renderSugestoes(sugBox, sugs, field);
+      // Sugestões (fuzzy) apenas para voice e project
+      if (field === 'voice' || field === 'project'){
+        const wrap = e.target.closest('.entry-input-wrap');
+        const sugBox = wrap ? wrap.querySelector('.entry-suggest') : null;
+        if (sugBox){
+          const lista = field === 'voice' ? todasAsVozes() : todosOsProjetos();
+          const sugs = sugestoesPara(e.target.value, lista);
+          renderSugestoes(sugBox, sugs, field);
+        }
       }
-    }
-  });
+    });
 
-  // Clique numa sugestão preenche o campo
-  entriesContainer.addEventListener('click', (e) => {
-    const pick = e.target.closest('[data-pick]');
-    if (!pick) return;
-    const row = pick.closest('.modal-entry-row');
-    const idx = Number(row.dataset.index);
-    const inputWrap = pick.closest('.entry-input-wrap');
-    const input = inputWrap.querySelector('input');
-    const field = input.dataset.field;
-    input.value = pick.dataset.pick;
-    if (modalEntries[idx]) modalEntries[idx][field] = pick.dataset.pick;
-    const sugBox = inputWrap.querySelector('.entry-suggest');
-    if (sugBox){ sugBox.innerHTML=''; sugBox.style.display='none'; }
-    showToast('✓ Voz vinculada à existente');
-  });
+    // Clique numa sugestão preenche o campo
+    entriesContainer.addEventListener('click', (e) => {
+      const pick = e.target.closest('[data-pick]');
+      if (!pick) return;
+      const row = pick.closest('.modal-entry-row');
+      const idx = Number(row.dataset.index);
+      const inputWrap = pick.closest('.entry-input-wrap');
+      const input = inputWrap.querySelector('input');
+      const field = input.dataset.field;
+      input.value = pick.dataset.pick;
+      if (modalEntries[idx]) modalEntries[idx][field] = pick.dataset.pick;
+      const sugBox = inputWrap.querySelector('.entry-suggest');
+      if (sugBox){ sugBox.innerHTML=''; sugBox.style.display='none'; }
+      showToast('✓ Voz vinculada à existente');
+    });
 
-  entriesContainer.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-action="remove-row"]');
-    if (!btn) return;
-    const idx = Number(btn.dataset.index);
-    modalEntries.splice(idx, 1);
-    renderModalEntries();
-  });
+    entriesContainer.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="remove-row"]');
+      if (!btn) return;
+      const idx = Number(btn.dataset.index);
+      modalEntries.splice(idx, 1);
+      renderModalEntries();
+    });
+  }
 
-  $('#addRowBtn').addEventListener('click', () => {
+  // Botão "adicionar linha" — só se ainda existir (código legado do modal antigo)
+  const _addRowBtn = $('#addRowBtn');
+  if (_addRowBtn) _addRowBtn.addEventListener('click', () => {
     modalEntries.push({project:'', voice:''});
     renderModalEntries();
   });
@@ -3369,16 +3723,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    const cleanEntries = modalEntries
-      .map(e => ({ project: e.project.trim(), voice: e.voice.trim(), date: (e.date || '').trim() }))
-      .filter(e => e.project && e.voice);
+    // Pega os campos únicos
+    const voz = $('#voiceMainInput').value.trim();
+    const projeto = $('#projMainInput').value.trim();
+    const data = $('#dateMainInput').value.trim();
 
-    if (!cleanEntries.length){
-      showToast('Adicione ao menos um projeto e voz.');
-      return;
-    }
+    if (!voz){ showToast('Digite a voz utilizada.'); $('#voiceMainInput').focus(); return; }
+    if (!projeto){ showToast('Digite o nome do projeto.'); $('#projMainInput').focus(); return; }
+
+    // Monta a entrada principal
+    const cleanEntries = [{ project: projeto, voice: voz, date: data }];
 
     $('#saveModalBtn').disabled = true;
+    $('#saveModalBtn').textContent = 'Salvando…';
 
     // Monta o objeto da pessoa e grava no banco (gera o id real, se novo).
     const existing = editingId ? people.find(p => p.id === editingId) : null;
@@ -3390,7 +3747,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       _existsInDb: !!editingId
     };
     const savedId = await savePerson(person);
-    if (!savedId){ $('#saveModalBtn').disabled = false; return; }
+    if (!savedId){
+      $('#saveModalBtn').disabled = false;
+      $('#saveModalBtn').textContent = 'Salvar ficha';
+      return;
+    }
 
     // Aplica a mudança de foto da pessoa
     if (pendingPhoto === null){
@@ -3401,56 +3762,77 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       await sb.from('people').update({ has_photo: ok }).eq('id', savedId);
     }
 
-    // Para cada projeto único novo/existente: aplica tipo, destino e capa
+    // 1. project_meta pro projeto principal
     const destino = getDestinoSelecionado();
     const inProd = destino === 'prod';
-    const projetosUnicos = [...new Set(cleanEntries.map(e => e.project))];
+    const jaTemCapa = (projectMeta[projeto] && projectMeta[projeto].has_cover) || false;
+    const teraCapa = !!pendingCapaFicha || jaTemCapa;
+    try {
+      await sb.from('project_meta').upsert({
+        project: projeto,
+        in_production: inProd,
+        archived: false,
+        has_cover: teraCapa,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'project' });
+      projectMeta[projeto] = { in_production: inProd, archived: false, has_cover: teraCapa };
+    } catch(e){}
 
-    for (const proj of projetosUnicos){
-      // 1. project_meta: define destino (produção/concluído) e marca capa se houver
-      const jaTemCapa = (projectMeta[proj] && projectMeta[proj].has_cover) || false;
-      const teraCapa = !!pendingCapaFicha || jaTemCapa;
+    // 2. Salva capa nova se o usuário escolheu uma
+    if (pendingCapaFicha){
       try {
-        await sb.from('project_meta').upsert({
-          project: proj,
-          in_production: inProd,
-          archived: false,
-          has_cover: teraCapa,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'project' });
-        projectMeta[proj] = { in_production: inProd, archived: false, has_cover: teraCapa };
-      } catch(e){}
-
-      // 2. Salva capa nova se o usuário escolheu uma
-      if (pendingCapaFicha){
-        try {
-          const key = PROJ_COVER_PREFIX + projKey(proj);
-          const blob = dataUrlToBlob(pendingCapaFicha);
-          let { error } = await sb.storage.from(COVER_BUCKET)
-            .upload(key + '.jpg', blob, { upsert:true, contentType:'image/jpeg' });
-          if (error){
-            const r2 = await sb.storage.from(COVER_BUCKET)
-              .update(key + '.jpg', blob, { contentType:'image/jpeg' });
-            error = r2.error;
-          }
-          if (!error) delete coverCache[key];
-        } catch(e){}
-      }
-
-      // 3. Vincula o projeto à categoria (tipo) na tabela project_categories
-      try {
-        await sb.from('project_categories').upsert(
-          { project: proj, category: tipoSelecionado },
-          { onConflict: 'project' }
-        );
+        const key = PROJ_COVER_PREFIX + projKey(projeto);
+        const blob = dataUrlToBlob(pendingCapaFicha);
+        let { error } = await sb.storage.from(COVER_BUCKET)
+          .upload(key + '.jpg', blob, { upsert:true, contentType:'image/jpeg' });
+        if (error){
+          const r2 = await sb.storage.from(COVER_BUCKET)
+            .update(key + '.jpg', blob, { contentType:'image/jpeg' });
+          error = r2.error;
+        }
+        if (!error) delete coverCache[key];
       } catch(e){}
     }
 
+    // 3. Vincula o projeto à categoria (tipo)
+    try {
+      await sb.from('project_categories').upsert(
+        { project: projeto, category: tipoSelecionado },
+        { onConflict: 'project' }
+      );
+      projectCats[projeto] = tipoSelecionado;
+    } catch(e){}
+
+    // 4. Cria as SUGESTÕES marcadas (traz vozes/personagens em massa)
+    let criadasSugestoes = 0;
+    if (sugestoesMarcadas.size > 0){
+      for (const chave of sugestoesMarcadas){
+        const sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.project}` === chave);
+        if (!sug) continue;
+        // Cria uma nova entry vinculando este personagem ao projeto atual COM a voz digitada
+        // Ou seja: se o admin digitou "Marcus Jr" no personagem "Homer", e escolheu a sugestão
+        // "Bart (dublado por Marcus Jr em Simpsons)", cria "Bart dublado por Marcus Jr no projeto atual"
+        try {
+          await sb.from('entries').insert({
+            person_id: sug.personId,
+            project: projeto, // vai pro MESMO projeto que estamos criando
+            voice: voz,
+            date: data || null
+          });
+        } catch(e){}
+        criadasSugestoes++;
+      }
+    }
+
     $('#saveModalBtn').disabled = false;
+    $('#saveModalBtn').textContent = 'Salvar ficha';
     closeModal();
     await loadPeople();
     await loadProjectMeta();
-    showToast('Ficha salva!');
+    invalidarCacheSimilares();
+    showToast(criadasSugestoes > 0
+      ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
+      : '✅ Ficha salva!');
   });
 
   $('#cancelModalBtn').addEventListener('click', closeModal);
