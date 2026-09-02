@@ -524,14 +524,19 @@
   .suges-controls{ flex: 0 0 auto; }
   .suges-mini-btn{ font-size:12px; padding:6px 12px; }
   .suges-list{
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 520px){
+    .suges-list{ grid-template-columns: 1fr; }
   }
   .suges-item{
-    display:flex; align-items:center; gap:10px;
-    padding: 10px 12px; background: var(--surface); border: 1.5px solid var(--line);
-    border-radius: 10px; cursor: pointer; transition: all .15s ease;
+    display:flex; align-items:center; gap:12px;
+    padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--line);
+    border-radius: 12px; cursor: pointer; transition: all .15s ease;
     user-select: none;
+    min-height: 62px;
   }
   .suges-item:hover{ border-color: var(--blue); background: rgba(37,99,235,.04); }
   .suges-item.on{
@@ -540,14 +545,14 @@
     box-shadow: 0 2px 8px rgba(37,99,235,.12);
   }
   .suges-item input[type="checkbox"]{
-    width: 16px; height: 16px; flex: 0 0 auto; accent-color: var(--blue);
+    width: 17px; height: 17px; flex: 0 0 auto; accent-color: var(--blue);
     cursor: pointer;
   }
   .suges-photo{
-    width: 36px; height: 36px; border-radius: 8px;
+    width: 42px; height: 42px; border-radius: 10px;
     flex: 0 0 auto;
     display:flex; align-items:center; justify-content:center;
-    font-size: 12px;
+    font-size: 13px;
     background: linear-gradient(135deg, var(--blue), var(--green) 130%);
     color: #fff;
     font-weight: 700;
@@ -556,12 +561,87 @@
   .suges-photo img{ width:100%; height:100%; object-fit:cover; }
   .suges-info{ flex: 1; min-width: 0; }
   .suges-name{
-    font-weight: 700; font-size: 13px; color: var(--ink);
+    font-weight: 700; font-size: 13.5px; color: var(--ink);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .suges-proj{
-    font-size: 11.5px; color: var(--muted); margin-top: 1px;
+    font-size: 12px; color: var(--muted); margin-top: 2px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* ---- Busca "Encontrar mais pessoas" ---- */
+  .suges-buscar{
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px dashed rgba(37,99,235,.20);
+  }
+  .suges-buscar-label{
+    font-size:12px; font-weight:600; color:var(--muted);
+    margin-bottom: 6px;
+  }
+  .suges-buscar-input-wrap{
+    position: relative;
+  }
+  .suges-buscar-input{
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    font-size: 13.5px;
+    background: var(--surface);
+    transition: border-color .12s;
+  }
+  .suges-buscar-input:focus{
+    outline: none; border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+  }
+  .suges-buscar-drop{
+    position: absolute; top: calc(100% + 4px); left:0; right:0;
+    background: var(--surface); border: 1.5px solid var(--line);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(15,23,42,.12);
+    z-index: 20; max-height: 300px; overflow-y: auto;
+    display: none; padding: 4px;
+  }
+  .suges-buscar-drop.open{ display: block; }
+  .suges-buscar-item{
+    display:flex; align-items:center; gap:10px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    transition: background .12s;
+  }
+  .suges-buscar-item:hover{
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(22,163,74,.04));
+  }
+  .suges-buscar-item .ph{
+    width: 32px; height: 32px; border-radius: 8px;
+    flex: 0 0 auto;
+    display:flex; align-items:center; justify-content:center;
+    font-size: 11px;
+    background: linear-gradient(135deg, var(--blue), var(--green) 130%);
+    color: #fff; font-weight: 700;
+    overflow: hidden;
+  }
+  .suges-buscar-item .ph img{ width:100%; height:100%; object-fit:cover; }
+  .suges-buscar-item-info{ flex: 1; min-width: 0; }
+  .suges-buscar-item-name{
+    font-weight: 700; font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .suges-buscar-item-sub{
+    font-size: 11.5px; color: var(--muted);
+  }
+  .suges-buscar-item-add{
+    background: var(--blue); color:#fff;
+    border: none; padding: 5px 10px; border-radius: 6px;
+    font-size: 11.5px; font-weight: 600; cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .suges-buscar-nova{
+    padding: 12px 10px; border-radius: 8px; cursor: pointer;
+    text-align: center; color: var(--blue-deep);
+    font-weight: 600; font-size: 13px;
+    background: rgba(37,99,235,.06);
+    border-top: 1px dashed rgba(37,99,235,.20);
+    margin-top: 4px;
+  }
+  .suges-buscar-nova:hover{
+    background: rgba(37,99,235,.12);
   }
 
   /* ---- Tipo do projeto (grid) ---- */
@@ -1668,7 +1748,7 @@
     color: var(--ink);
     border-radius: 20px;
     width: 100%;
-    max-width: 560px;
+    max-width: 720px;
     padding: 24px 24px 20px;
     box-shadow: 0 24px 60px rgba(15,23,42,0.25);
   }
@@ -3009,6 +3089,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#sugestoesBloco').style.display = 'none';
     $('#sugestoesBloco').innerHTML = '';
     sugestoesMarcadas = new Set();
+    pessoasExtras = [];
 
     // Reseta e prepara os campos existentes
     tipoSelecionado = null;
@@ -3335,12 +3416,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const nomeAtual = ($('#nameInput').value||'').trim();
     const projAtual = ($('#projMainInput').value||'').trim();
 
-    // Sem nome ou sem projeto, não há como sugerir colegas úteis
+    // Sem nome ou sem projeto, não há colegas automáticos.
+    // Mas se admin já adicionou pessoas manualmente, mantém o bloco visível.
     if (!nomeAtual || !projAtual){
-      suges.style.display = 'none';
-      suges.innerHTML = '';
       sugestoesDisponiveis = [];
-      sugestoesMarcadas = new Set();
+      if (pessoasExtras.length > 0){
+        // Ainda tem pessoas manualmente adicionadas — mostra elas
+        renderSugestoesBloco();
+      } else {
+        suges.style.display = 'none';
+        suges.innerHTML = '';
+        sugestoesMarcadas = new Set();
+      }
       return;
     }
 
@@ -3361,10 +3448,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
 
     if (projetosDoPersonagem.size === 0){
-      suges.style.display = 'none';
-      suges.innerHTML = '';
       sugestoesDisponiveis = [];
-      sugestoesMarcadas = new Set();
+      renderSugestoesBloco(); // ainda mostra área de busca "encontrar mais"
       return;
     }
 
@@ -3403,10 +3488,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     const disponiveis = [...colegasMap.values()];
     if (disponiveis.length === 0){
-      suges.style.display = 'none';
-      suges.innerHTML = '';
       sugestoesDisponiveis = [];
-      sugestoesMarcadas = new Set();
+      renderSugestoesBloco(); // ainda mostra a área de busca
       return;
     }
 
@@ -3415,38 +3498,64 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     renderSugestoesBloco();
   }
 
+  // Guarda pessoas adicionadas via busca "encontrar mais" (fora da sugestão automática)
+  let pessoasExtras = []; // items {personId, personName, hasPhoto, voice}
+
   function renderSugestoesBloco(){
     const suges = $('#sugestoesBloco');
     if (!suges) return;
-    const total = sugestoesDisponiveis.length;
-    const marcadas = sugestoesMarcadas.size;
+
+    // Combina sugestões automáticas + extras adicionadas via busca
+    // Deduplica por personId (mesmo se veio de fontes diferentes)
+    const idsExtras = new Set(pessoasExtras.map(x => x.personId));
+    const sugestoesAuto = sugestoesDisponiveis.filter(s => !idsExtras.has(s.personId));
+    const LIMITE = 10;
+    const visiveis = sugestoesAuto.slice(0, LIMITE);
+    const escondidas = Math.max(0, sugestoesAuto.length - LIMITE);
+
+    // Todas as pessoas selecionáveis (auto visíveis + extras)
+    const todasParaMarcar = [...visiveis, ...pessoasExtras];
+    const total = todasParaMarcar.length;
+    const marcadasVisiveis = todasParaMarcar.filter(s => sugestoesMarcadas.has(`${s.personId}||${s.projetoOrigem||'__extra__'}`)).length;
+
     suges.style.display = 'block';
     suges.innerHTML = `
       <div class="suges-block">
         <div class="suges-head">
           <div>
             <div class="suges-title">🎯 Colegas de cena — adicionar também?</div>
-            <div class="suges-sub">${total} personagem${total===1?'':'s'} do mesmo projeto. Marque quais quer trazer com esta voz.</div>
+            <div class="suges-sub">${sugestoesAuto.length} sugestão${sugestoesAuto.length===1?'':'ões'} do mesmo projeto${pessoasExtras.length?` · +${pessoasExtras.length} adicionada${pessoasExtras.length===1?'':'s'} manualmente`:''}. Marque quais quer trazer.</div>
           </div>
           <div class="suges-controls">
-            <button type="button" class="btn-ghost suges-mini-btn" id="sugesToggleAll">${marcadas === total ? 'Desmarcar tudo' : 'Marcar tudo'}</button>
+            <button type="button" class="btn-ghost suges-mini-btn" id="sugesToggleAll">${marcadasVisiveis === total && total>0 ? 'Desmarcar tudo' : 'Marcar tudo'}</button>
           </div>
         </div>
+        ${total===0 ? '' : `
         <div class="suges-list">
-          ${sugestoesDisponiveis.map((s, i) => {
-            const chave = `${s.personId}||${s.projetoOrigem}`;
+          ${todasParaMarcar.map((s, i) => {
+            const chave = `${s.personId}||${s.projetoOrigem||'__extra__'}`;
             const marcada = sugestoesMarcadas.has(chave);
             const iniciais = s.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            const isExtra = idsExtras.has(s.personId);
             return `
               <label class="suges-item ${marcada?'on':''}" data-suges-chave="${escapeHtml(chave)}">
                 <input type="checkbox" ${marcada?'checked':''} data-suges-check="${escapeHtml(chave)}">
                 <div class="suges-photo photo-fallback" ${s.hasPhoto?`data-photo-for="${s.personId}" data-name="${escapeHtml(s.personName)}"`:''}>${iniciais}</div>
                 <div class="suges-info">
-                  <div class="suges-name">${escapeHtml(s.personName)}</div>
-                  <div class="suges-proj">🎬 vem de: ${escapeHtml(s.projetoOrigem)}${s.voice?` · 🎤 ${escapeHtml(s.voice)}`:''}</div>
+                  <div class="suges-name">${escapeHtml(s.personName)}${isExtra?' <span style="font-size:10px;color:var(--blue);font-weight:600;">+ adicionado</span>':''}</div>
+                  <div class="suges-proj">${isExtra ? '🔍 busca manual' : `🎬 vem de: ${escapeHtml(s.projetoOrigem)}${s.voice?` · 🎤 ${escapeHtml(s.voice)}`:''}`}</div>
                 </div>
               </label>`;
           }).join('')}
+        </div>
+        ${escondidas>0 ? `<div style="text-align:center;font-size:11.5px;color:var(--muted);margin-top:8px;">... mais ${escondidas} sugestão${escondidas===1?'':'ões'} disponível${escondidas===1?'':'is'} — use a busca abaixo</div>` : ''}
+        `}
+        <div class="suges-buscar">
+          <div class="suges-buscar-label">🔍 Encontrar mais pessoas pelo nome (ou criar nova)</div>
+          <div class="suges-buscar-input-wrap">
+            <input type="text" class="suges-buscar-input" id="sugesBuscarInput" placeholder="Digite o nome de uma pessoa..." autocomplete="off">
+            <div class="suges-buscar-drop" id="sugesBuscarDrop"></div>
+          </div>
         </div>
       </div>
     `;
@@ -3456,29 +3565,146 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const chave = cb.dataset.sugesCheck;
       if (cb.checked) sugestoesMarcadas.add(chave);
       else sugestoesMarcadas.delete(chave);
-      // Atualiza classe visual sem re-render (mais responsivo)
       const label = cb.closest('.suges-item');
       if (label) label.classList.toggle('on', cb.checked);
-      // Atualiza botão marcar tudo
       const btn = $('#sugesToggleAll');
-      if (btn) btn.textContent = sugestoesMarcadas.size === total ? 'Desmarcar tudo' : 'Marcar tudo';
+      if (btn){
+        const nMarcadas = todasParaMarcar.filter(s => sugestoesMarcadas.has(`${s.personId}||${s.projetoOrigem||'__extra__'}`)).length;
+        btn.textContent = nMarcadas === total && total>0 ? 'Desmarcar tudo' : 'Marcar tudo';
+      }
     }));
 
     // Marcar/desmarcar tudo
     const toggleBtn = $('#sugesToggleAll');
     if (toggleBtn) toggleBtn.addEventListener('click', () => {
-      if (sugestoesMarcadas.size === total){
-        sugestoesMarcadas = new Set();
+      const nMarcadas = todasParaMarcar.filter(s => sugestoesMarcadas.has(`${s.personId}||${s.projetoOrigem||'__extra__'}`)).length;
+      if (nMarcadas === total){
+        todasParaMarcar.forEach(s => {
+          sugestoesMarcadas.delete(`${s.personId}||${s.projetoOrigem||'__extra__'}`);
+        });
       } else {
-        sugestoesDisponiveis.forEach(s => {
-          sugestoesMarcadas.add(`${s.personId}||${s.projetoOrigem}`);
+        todasParaMarcar.forEach(s => {
+          sugestoesMarcadas.add(`${s.personId}||${s.projetoOrigem||'__extra__'}`);
         });
       }
       renderSugestoesBloco();
     });
 
+    // Busca "encontrar mais"
+    wireBuscaMaisPessoas();
+
     // hidrata fotos das sugestões
     hydratePhotos();
+  }
+
+  // Autocomplete + criar nova pessoa dentro do bloco de sugestões
+  function wireBuscaMaisPessoas(){
+    const input = $('#sugesBuscarInput');
+    const drop = $('#sugesBuscarDrop');
+    if (!input || !drop) return;
+    let timer = null;
+
+    const nomeAtual = ($('#nameInput').value||'').trim().toLowerCase();
+
+    const render = () => {
+      const q = input.value.trim();
+      if (q.length < 1){ drop.classList.remove('open'); return; }
+      const ql = q.toLowerCase();
+      // Pessoas existentes que não estão nas sugestões visíveis nem no personagem atual
+      const idsNaLista = new Set([
+        ...sugestoesDisponiveis.map(s => s.personId),
+        ...pessoasExtras.map(s => s.personId),
+      ]);
+      const matches = mainPeople().filter(p => {
+        if (p.name.trim().toLowerCase() === nomeAtual) return false; // exclui o próprio
+        if (idsNaLista.has(p.id)) return false; // já está na lista
+        return p.name.toLowerCase().includes(ql);
+      }).slice(0, 8);
+
+      // Verifica se o nome digitado é totalmente novo (não bate com nenhuma pessoa existente)
+      const nenhumaExata = !mainPeople().some(p => p.name.trim().toLowerCase() === ql);
+
+      let html = '';
+      if (matches.length){
+        html += matches.map(p => {
+          const iniciais = p.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+          const totalProjs = p.entries.length;
+          return `
+            <div class="suges-buscar-item" data-add-id="${p.id}" data-add-name="${escapeHtml(p.name)}" data-add-has-photo="${p.hasPhoto?1:0}">
+              <div class="ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.id}" data-name="${escapeHtml(p.name)}"`:''}>${iniciais}</div>
+              <div class="suges-buscar-item-info">
+                <div class="suges-buscar-item-name">${escapeHtml(p.name)}</div>
+                <div class="suges-buscar-item-sub">${totalProjs} projeto${totalProjs===1?'':'s'}</div>
+              </div>
+              <button type="button" class="suges-buscar-item-add">+ adicionar</button>
+            </div>`;
+        }).join('');
+      }
+      // Sempre oferece opção de "criar nova pessoa com este nome" se digitou algo específico
+      if (q.length >= 2 && nenhumaExata){
+        html += `<div class="suges-buscar-nova" data-nova-nome="${escapeHtml(q)}">
+          ➕ Criar nova pessoa: "<b>${escapeHtml(q)}</b>"
+        </div>`;
+      }
+      if (!html){
+        drop.classList.remove('open');
+        return;
+      }
+      drop.innerHTML = html;
+      drop.classList.add('open');
+      hydratePhotos();
+    };
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(render, 120);
+    });
+    input.addEventListener('focus', () => {
+      if (input.value.trim().length >= 1) render();
+    });
+    input.addEventListener('blur', () => {
+      setTimeout(() => drop.classList.remove('open'), 200);
+    });
+
+    // Handlers dos itens
+    drop.addEventListener('click', (e) => {
+      // Adicionar pessoa existente
+      const addBtn = e.target.closest('[data-add-id]');
+      if (addBtn){
+        const personId = addBtn.dataset.addId;
+        const personName = addBtn.dataset.addName;
+        const hasPhoto = addBtn.dataset.addHasPhoto === '1';
+        if (!pessoasExtras.some(x => x.personId === personId)){
+          pessoasExtras.push({ personId, personName, hasPhoto, voice: '' });
+          // Marca automaticamente
+          sugestoesMarcadas.add(`${personId}||__extra__`);
+        }
+        input.value = '';
+        drop.classList.remove('open');
+        renderSugestoesBloco();
+        return;
+      }
+      // Criar nova pessoa
+      const novaBtn = e.target.closest('[data-nova-nome]');
+      if (novaBtn){
+        const nome = novaBtn.dataset.novaNome;
+        // ID temporário; será resolvido no save (savePersonExtra)
+        const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+        pessoasExtras.push({
+          personId: tempId,
+          personName: nome,
+          hasPhoto: false,
+          voice: '',
+          _nova: true // marca como pessoa nova a criar
+        });
+        sugestoesMarcadas.add(`${tempId}||__extra__`);
+        input.value = '';
+        drop.classList.remove('open');
+        renderSugestoesBloco();
+        showToast(`"${nome}" será criada ao salvar.`);
+        return;
+      }
+    });
   }
 
   function setPhotoPreview(dataUrl){
@@ -3916,23 +4142,48 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       projectCats[projeto] = tipoSelecionado;
     } catch(e){}
 
-    // 4. Cria as SUGESTÕES marcadas (traz vozes/personagens em massa)
+    // 4. Cria as SUGESTÕES marcadas — inclui:
+    //    (a) colegas do mesmo projeto (sugestoesDisponiveis)
+    //    (b) pessoas adicionadas via busca "encontrar mais" (pessoasExtras)
+    //    (c) pessoas NOVAS criadas via "Criar nova pessoa"
     let criadasSugestoes = 0;
     if (sugestoesMarcadas.size > 0){
       for (const chave of sugestoesMarcadas){
-        const sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave);
+        // Tenta achar em sugestoesDisponiveis primeiro (colegas de cena)
+        let sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave);
+        // Se não achou, procura nas pessoasExtras (busca manual)
+        if (!sug){
+          sug = pessoasExtras.find(s => `${s.personId}||__extra__` === chave);
+        }
         if (!sug) continue;
-        // Cria uma nova entry vinculando esse colega ao projeto atual.
-        // Preserva a voz que o colega já tinha no projeto anterior (não força a mesma voz do admin)
+
         try {
+          let personIdReal = sug.personId;
+
+          // Se é pessoa NOVA (não existe no banco ainda), cria primeiro
+          if (sug._nova){
+            const { data: novaPessoa, error: errNova } = await sb.from('people')
+              .insert({ name: sug.personName, has_photo: false })
+              .select('id')
+              .single();
+            if (errNova || !novaPessoa){
+              console.error('Erro ao criar pessoa nova:', errNova);
+              continue;
+            }
+            personIdReal = novaPessoa.id;
+          }
+
+          // Vincula a pessoa ao projeto atual
           await sb.from('entries').insert({
-            person_id: sug.personId,
+            person_id: personIdReal,
             project: projeto,
-            voice: sug.voice || voz, // usa a voz original do colega; se não tiver, usa a atual
+            voice: sug.voice || voz, // preserva voz original ou usa atual
             date: data || null
           });
-        } catch(e){}
-        criadasSugestoes++;
+          criadasSugestoes++;
+        } catch(e){
+          console.error('Erro criando sugestão:', e);
+        }
       }
     }
 
