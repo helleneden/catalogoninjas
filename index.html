@@ -2339,7 +2339,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <h2 id="modalTitle">Nova ficha</h2>
     <button type="button" class="btn-buscar-pessoa" id="btnBuscarPessoa">🔍 Buscar pessoa já cadastrada</button>
     <div class="field">
-      <label for="nameInput">Nome do personagem / pessoa</label>
+      <label for="nameInput">Cadastrar personagem / pessoa</label>
       <div class="ac-wrap">
         <input type="text" id="nameInput" placeholder="Ex: Michael Scott" autocomplete="off">
         <div class="ac-dropdown" id="nameAcDropdown"></div>
@@ -6629,6 +6629,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       capaPreview: null,
       dataProjeto: '',
       pessoasMarcadas: new Map(), // id -> {personId, personName, hasPhoto, voice, _nova}
+      colecaoId: null,      // categoria (coleção)
+      franquiaId: null,     // franquia dentro da coleção
+      franquiaNova: '',     // nome se admin quiser criar franquia nova
       inProd: true,
     };
     const ov = ensureColOverlay();
@@ -6645,7 +6648,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="ws-line"></div>
             <div class="ws-step ${state.passo>=4?'on':''} ${state.passo===4?'cur':''}"><span>4</span> Pessoas</div>
             <div class="ws-line"></div>
-            <div class="ws-step ${state.passo>=5?'on':''} ${state.passo===5?'cur':''}"><span>5</span> Status</div>
+            <div class="ws-step ${state.passo>=5?'on':''} ${state.passo===5?'cur':''}"><span>5</span> Coleção</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=6?'on':''} ${state.passo===6?'cur':''}"><span>6</span> Status</div>
           </div>
 
           ${state.passo === 1 ? `
@@ -6698,6 +6703,34 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           ` : ''}
 
           ${state.passo === 5 ? `
+            <h2 style="margin-top:8px;">Coleção / Franquia (opcional)</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Vincule este projeto a uma coleção ou franquia. Você pode pular se preferir.</p>
+            <div class="field">
+              <label>Coleção</label>
+              <select id="wpColecao" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);">
+                <option value="">— Nenhuma coleção —</option>
+                ${(categories||[]).map(c => `<option value="${c.id}" ${state.colecaoId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+              </select>
+            </div>
+            <div id="wpFranquiaBox" style="${state.colecaoId ? '' : 'display:none;'}">
+              <div class="field">
+                <label>Franquia dentro de "${state.colecaoId ? escapeHtml((categories.find(c=>c.id===state.colecaoId)||{}).name||'') : ''}"</label>
+                <select id="wpFranquia" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);">
+                  <option value="">— Nenhuma franquia —</option>
+                  ${state.colecaoId ? (franchises||[]).filter(f => f.category_id === state.colecaoId).map(f => `<option value="${f.id}" ${state.franquiaId===f.id?'selected':''}>${escapeHtml(f.name)}</option>`).join('') : ''}
+                  <option value="__nova__" ${state.franquiaId==='__nova__'?'selected':''}>➕ Criar nova franquia…</option>
+                </select>
+              </div>
+              ${state.franquiaId === '__nova__' ? `
+                <div class="field">
+                  <label>Nome da nova franquia</label>
+                  <input type="text" id="wpFranquiaNova" placeholder="Ex: Trilogia XYZ" value="${escapeHtml(state.franquiaNova||'')}" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          ${state.passo === 6 ? `
             <h2 style="margin-top:8px;">Status do projeto</h2>
             <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Este projeto já está finalizado ou ainda em produção?</p>
             <div class="destino-grid">
@@ -6724,6 +6757,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
                 <div class="wizard-resumo-nome">${escapeHtml(state.nome)}</div>
                 <div class="wizard-resumo-status">
                   ${iconeDoTipo(state.tipo||'')} ${escapeHtml(state.tipo||'sem tipo')} · ${state.pessoasMarcadas.size} pessoa${state.pessoasMarcadas.size===1?'':'s'}${state.dataProjeto?` · 📅 ${state.dataProjeto}`:''}
+                  ${state.colecaoId ? ` · 🗂 ${escapeHtml((categories.find(c=>c.id===state.colecaoId)||{}).name||'')}` : ''}
                 </div>
               </div>
             </div>
@@ -6732,7 +6766,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="modal-actions" style="margin-top:20px;">
             <button class="btn-ghost" id="wpCancel">${state.passo===1?'Cancelar':'← Voltar'}</button>
             <button class="btn-primary" id="wpNext">
-              ${state.passo===5?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===4?'Próximo →':'Próximo →'}
+              ${state.passo===6?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===5?(state.colecaoId?'Próximo →':'Pular →'):'Próximo →'}
             </button>
           </div>
         </div>`;
@@ -6794,8 +6828,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         wireBuscaPessoasWizard();
       }
 
-      // Passo 5: status
+      // Passo 5: coleção/franquia
       if (state.passo === 5){
+        const colSel = $('#wpColecao');
+        if (colSel) colSel.addEventListener('change', () => {
+          state.colecaoId = colSel.value || null;
+          state.franquiaId = null;
+          state.franquiaNova = '';
+          render();
+        });
+        const frSel = $('#wpFranquia');
+        if (frSel) frSel.addEventListener('change', () => {
+          state.franquiaId = frSel.value || null;
+          if (state.franquiaId !== '__nova__') state.franquiaNova = '';
+          render();
+        });
+        const frNovaInp = $('#wpFranquiaNova');
+        if (frNovaInp) frNovaInp.addEventListener('input', e => state.franquiaNova = e.target.value);
+      }
+
+      // Passo 6: status
+      if (state.passo === 6){
         ov.querySelectorAll('input[name="wpDestino"]').forEach(r => r.addEventListener('change', e => {
           state.inProd = e.target.value === 'prod';
         }));
@@ -6822,6 +6875,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           state.passo = 5; render();
         }
         else if (state.passo === 5){
+          // Valida nome de nova franquia se aplicável
+          if (state.franquiaId === '__nova__' && !(state.franquiaNova||'').trim()){
+            showToast('Digite o nome da nova franquia.'); return;
+          }
+          state.passo = 6; render();
+        }
+        else if (state.passo === 6){
           await criarProjeto();
         }
       });
@@ -7063,6 +7123,36 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             });
             criadas++;
           } catch(e){ console.error('Erro entrada pessoa:', e); }
+        }
+
+        // 5. Vincula projeto a franquia (se admin escolheu)
+        let franquiaFinalId = null;
+        if (state.franquiaId === '__nova__' && (state.franquiaNova||'').trim()){
+          // Cria nova franquia dentro da coleção
+          try {
+            const { data: novaFr, error: errFr } = await sb.from('franchises')
+              .insert({
+                category_id: state.colecaoId,
+                name: state.franquiaNova.trim(),
+                sort_order: (franchises||[]).filter(f => f.category_id === state.colecaoId).length
+              })
+              .select().single();
+            if (!errFr && novaFr){
+              franchises = [...(franchises||[]), novaFr];
+              franquiaFinalId = novaFr.id;
+            }
+          } catch(e){ console.warn('Criar franquia:', e); }
+        } else if (state.franquiaId){
+          franquiaFinalId = state.franquiaId;
+        }
+        if (franquiaFinalId){
+          try {
+            await sb.from('project_franchise').upsert(
+              { project: state.nome, franchise_id: franquiaFinalId },
+              { onConflict: 'project' }
+            );
+            projectFranchise[state.nome] = franquiaFinalId;
+          } catch(e){ console.warn('Vincular franquia:', e); }
         }
 
         ov.classList.remove('open');
