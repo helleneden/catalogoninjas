@@ -2873,18 +2873,42 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     { nome:'Estudo Bíblico', icone:'📖' },
   ];
   function iconeDoTipo(nome){
-    const p = TIPOS_PADRAO.find(t => t.nome.toLowerCase() === (nome||'').toLowerCase());
-    return p ? p.icone : '📁';
+    const n = (nome||'').toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    // Match exato com tipos padrão (com plural/singular)
+    const p = TIPOS_PADRAO.find(t => {
+      const tn = t.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return tn === n || tn === n.replace(/s$/,'') || tn.replace(/s$/,'') === n;
+    });
+    if (p) return p.icone;
+    // Heurísticas por palavra-chave
+    if (n.includes('documentari')) return '🎥';
+    if (n.includes('filme')) return '🎬';
+    if (n.includes('desenho') || n.includes('animac')) return '🎨';
+    if (n.includes('serie')) return '📺';
+    if (n.includes('audiobook') || n.includes('audio')) return '🎧';
+    if (n.includes('biblic') || n.includes('estudo') || n.includes('aconselh')) return '📖';
+    if (n.includes('infanti') || n.includes('crianc')) return '🧸';
+    if (n.includes('curso') || n.includes('aula')) return '🎓';
+    if (n.includes('podcast')) return '🎙️';
+    if (n.includes('musica') || n.includes('cancao')) return '🎵';
+    if (n.includes('trailer') || n.includes('vinheta')) return '🎞️';
+    return '📁';
   }
   let tipoSelecionado = null;   // nome do tipo escolhido
   let pendingCapaFicha = null;  // dataURL da capa nova
 
   function tiposDisponiveis(){
-    // combina padrão + categorias existentes (sem duplicar)
-    const usadas = new Set((categories||[]).map(c => (c.name||'').toLowerCase()));
-    const extras = (categories||[]).filter(c =>
-      !TIPOS_PADRAO.some(t => t.nome.toLowerCase() === (c.name||'').toLowerCase())
-    ).map(c => ({ nome:c.name, icone:iconeDoTipo(c.name), custom:true }));
+    // Normaliza para comparação: minúscula, sem acento, sem 's' final (unifica plural/singular)
+    // Ex: "Filmes" e "Filme" viram "filme"; "Documentários" e "Documentário" viram "documentario"
+    function norm(s){
+      return (s||'').toString().toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // sem acento
+        .replace(/s$/,''); // remove 's' final (plural)
+    }
+    const chavesPadrao = new Set(TIPOS_PADRAO.map(t => norm(t.nome)));
+    const extras = (categories||[]).filter(c => !chavesPadrao.has(norm(c.name)))
+      .map(c => ({ nome:c.name, icone:iconeDoTipo(c.name), custom:true }));
     return [...TIPOS_PADRAO, ...extras];
   }
 
@@ -3073,8 +3097,38 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     clearTimeout(acTimer);
     // só mostra autocomplete ao criar (não editar)
     if (editingId){ closeAcDropdown(); return; }
-    acTimer = setTimeout(() => renderAcDropdown(e.target.value.trim()), 200);
+    acTimer = setTimeout(() => {
+      renderAcDropdown(e.target.value.trim());
+      // Também atualiza sugestões de colegas quando digita o nome
+      renderSugestoesColegas();
+      // Se o nome digitado corresponde a um personagem existente, carrega a foto dele
+      carregarFotoPersonagemExistente();
+    }, 200);
   });
+
+  // Se o nome digitado bate com um personagem já cadastrado (case insensitive),
+  // carrega a foto dele automaticamente. Assim o admin não precisa subir foto de novo.
+  async function carregarFotoPersonagemExistente(){
+    if (editingId) return; // se está editando, foto já é a atual
+    if (pendingPhoto !== undefined) return; // se admin já escolheu/removeu foto, não sobrescreve
+    const nome = ($('#nameInput').value||'').trim();
+    if (!nome) return;
+    const nomeLower = nome.toLowerCase();
+    // Acha a primeira pessoa com esse nome que tem foto
+    const existente = mainPeople().find(p =>
+      p.name.trim().toLowerCase() === nomeLower && p.hasPhoto
+    );
+    if (existente){
+      const dataUrl = await fetchPhoto(existente.id);
+      // Verifica que o nome ainda é o mesmo (o admin pode ter mudado enquanto carregava)
+      if (dataUrl && ($('#nameInput').value||'').trim().toLowerCase() === nomeLower && pendingPhoto === undefined){
+        setPhotoPreview(dataUrl);
+      }
+    } else {
+      // Se digitou um nome NOVO, limpa preview
+      setPhotoPreview(null);
+    }
+  }
 
   nameInput.addEventListener('blur', () => {
     // delay pra permitir o clique no item antes de fechar
@@ -3227,47 +3281,128 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       tipoSelecionado = cat;
       renderTipoGrid();
     }
+    // Atualiza colegas de cena com o novo projeto
+    renderSugestoesColegas();
   });
   if (projMainInput) projMainInput.addEventListener('blur', () => {
-    setTimeout(() => projMainAc.classList.remove('open'), 200);
+    setTimeout(() => {
+      projMainAc.classList.remove('open');
+      renderSugestoesColegas();
+    }, 200);
   });
 
   // Detecta se a voz digitada já existe no catálogo e mostra bloco de sugestões
+  // Detecta status da voz E mostra sugestões de colegas de cena.
+  // Sugestões = outros personagens que estão no mesmo projeto do personagem digitado.
+  // Ex: digitei "Toby" que está em "Guerra Civil" → sugere Alice, Bob e outros de "Guerra Civil".
   function detectarVozExistente(voz){
     const box = $('#voiceExistingBox');
     const suges = $('#sugestoesBloco');
     if (!box || !suges) return;
     const vozClean = (voz||'').trim();
+
+    // === 1. Status da voz (nova / existente) ===
     if (!vozClean){
       box.style.display = 'none';
       box.innerHTML = '';
+    } else {
+      const vLower = vozClean.toLowerCase();
+      const usos = mainPeople().filter(p =>
+        p.entries.some(e => (e.voice||'').trim().toLowerCase() === vLower)
+      ).length;
+      box.style.display = 'block';
+      if (usos === 0){
+        box.innerHTML = `<div class="voice-status-new">✨ Voz nova — será cadastrada</div>`;
+      } else {
+        box.innerHTML = `<div class="voice-status-exist">
+          ✓ Voz existente — dubla <b>${usos}</b> personagem${usos===1?'':'s'} no catálogo
+        </div>`;
+      }
+    }
+
+    // === 2. Sugestões: colegas de cena do personagem digitado ===
+    renderSugestoesColegas();
+  }
+
+  // Busca os "colegas de cena" — outros personagens que estão no mesmo projeto
+  // do personagem digitado, mas que AINDA não estão no projeto atual sendo criado.
+  // Ex: Toby está em "Guerra Civil". Digito Toby + projeto novo "Guerra Civil T2".
+  // Sugere Alice e Bob (que estavam em "Guerra Civil"), pra copiar pro novo projeto.
+  function renderSugestoesColegas(){
+    const suges = $('#sugestoesBloco');
+    if (!suges) return;
+
+    const nomeAtual = ($('#nameInput').value||'').trim();
+    const projAtual = ($('#projMainInput').value||'').trim();
+
+    // Sem nome ou sem projeto, não há como sugerir colegas úteis
+    if (!nomeAtual || !projAtual){
       suges.style.display = 'none';
       suges.innerHTML = '';
       sugestoesDisponiveis = [];
       sugestoesMarcadas = new Set();
       return;
     }
-    // Busca personagens já dublados por essa voz (case insensitive)
-    const vLower = vozClean.toLowerCase();
-    const personagensDublados = [];
+
+    const nomeLower = nomeAtual.toLowerCase();
+    const projAtualLower = projAtual.toLowerCase();
+
+    // Projetos onde o personagem digitado JÁ APARECEU (excluindo o atual)
+    const projetosDoPersonagem = new Set();
+    mainPeople().forEach(p => {
+      if (p.name.trim().toLowerCase() === nomeLower){
+        p.entries.forEach(e => {
+          const pr = (e.project||'').trim();
+          if (pr && pr.toLowerCase() !== projAtualLower){
+            projetosDoPersonagem.add(pr);
+          }
+        });
+      }
+    });
+
+    if (projetosDoPersonagem.size === 0){
+      suges.style.display = 'none';
+      suges.innerHTML = '';
+      sugestoesDisponiveis = [];
+      sugestoesMarcadas = new Set();
+      return;
+    }
+
+    // Quem JÁ ESTÁ no projeto atual? (pra não sugerir eles de novo)
+    const jaNoProjetoAtual = new Set();
     mainPeople().forEach(p => {
       p.entries.forEach(e => {
-        if ((e.voice||'').trim().toLowerCase() === vLower){
-          personagensDublados.push({
-            personId: p.id,
-            personName: p.name,
-            project: e.project,
-            hasPhoto: p.hasPhoto,
-            date: e.date || ''
-          });
+        if ((e.project||'').trim().toLowerCase() === projAtualLower){
+          jaNoProjetoAtual.add(p.name.trim().toLowerCase());
         }
       });
     });
 
-    if (personagensDublados.length === 0){
-      // Voz nova
-      box.style.display = 'block';
-      box.innerHTML = `<div class="voice-status-new">✨ Voz nova — será cadastrada</div>`;
+    // Junta todos os personagens dos projetos anteriores, excluindo:
+    // (1) o próprio personagem, (2) quem já está no projeto atual
+    // Deduplica por nome (não repete a mesma pessoa em vários projetos)
+    const colegasMap = new Map();
+    mainPeople().forEach(p => {
+      const nomeP = p.name.trim().toLowerCase();
+      if (nomeP === nomeLower) return; // não sugere o próprio
+      if (jaNoProjetoAtual.has(nomeP)) return; // já está no projeto atual
+      p.entries.forEach(e => {
+        if (projetosDoPersonagem.has(e.project)){
+          if (!colegasMap.has(nomeP)){
+            colegasMap.set(nomeP, {
+              personId: p.id,
+              personName: p.name,
+              projetoOrigem: e.project, // de onde vem a sugestão
+              hasPhoto: p.hasPhoto,
+              voice: e.voice || ''
+            });
+          }
+        }
+      });
+    });
+
+    const disponiveis = [...colegasMap.values()];
+    if (disponiveis.length === 0){
       suges.style.display = 'none';
       suges.innerHTML = '';
       sugestoesDisponiveis = [];
@@ -3275,29 +3410,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    // Voz existente
-    box.style.display = 'block';
-    box.innerHTML = `<div class="voice-status-exist">
-      ✓ Voz existente — dubla <b>${personagensDublados.length}</b> personagem${personagensDublados.length===1?'':'s'} no catálogo
-    </div>`;
-
-    // Filtra os que NÃO estão no personagem atual sendo cadastrado
-    const nomeAtual = ($('#nameInput').value||'').trim().toLowerCase();
-    const projAtual = ($('#projMainInput').value||'').trim().toLowerCase();
-    const disponiveis = personagensDublados.filter(pd => {
-      // Não sugere o próprio (mesmo personagem e mesmo projeto)
-      const mesmoDado = pd.personName.toLowerCase() === nomeAtual &&
-                       (pd.project||'').toLowerCase() === projAtual;
-      return !mesmoDado;
-    });
-
-    if (disponiveis.length === 0){
-      suges.style.display = 'none';
-      suges.innerHTML = '';
-      sugestoesDisponiveis = [];
-      return;
-    }
-
+    disponiveis.sort((a,b) => a.personName.localeCompare(b.personName, 'pt-BR'));
     sugestoesDisponiveis = disponiveis;
     renderSugestoesBloco();
   }
@@ -3312,8 +3425,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <div class="suges-block">
         <div class="suges-head">
           <div>
-            <div class="suges-title">🎯 Trazer também estes trabalhos desta voz?</div>
-            <div class="suges-sub">${total} personagem${total===1?'':'s'} desta voz em outros projetos. Marque quais quer criar de uma vez.</div>
+            <div class="suges-title">🎯 Colegas de cena — adicionar também?</div>
+            <div class="suges-sub">${total} personagem${total===1?'':'s'} do mesmo projeto. Marque quais quer trazer com esta voz.</div>
           </div>
           <div class="suges-controls">
             <button type="button" class="btn-ghost suges-mini-btn" id="sugesToggleAll">${marcadas === total ? 'Desmarcar tudo' : 'Marcar tudo'}</button>
@@ -3321,7 +3434,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
         <div class="suges-list">
           ${sugestoesDisponiveis.map((s, i) => {
-            const chave = `${s.personId}||${s.project}`;
+            const chave = `${s.personId}||${s.projetoOrigem}`;
             const marcada = sugestoesMarcadas.has(chave);
             const iniciais = s.personName.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
             return `
@@ -3330,7 +3443,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
                 <div class="suges-photo photo-fallback" ${s.hasPhoto?`data-photo-for="${s.personId}" data-name="${escapeHtml(s.personName)}"`:''}>${iniciais}</div>
                 <div class="suges-info">
                   <div class="suges-name">${escapeHtml(s.personName)}</div>
-                  <div class="suges-proj">🎬 ${escapeHtml(s.project)}</div>
+                  <div class="suges-proj">🎬 vem de: ${escapeHtml(s.projetoOrigem)}${s.voice?` · 🎤 ${escapeHtml(s.voice)}`:''}</div>
                 </div>
               </label>`;
           }).join('')}
@@ -3358,7 +3471,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         sugestoesMarcadas = new Set();
       } else {
         sugestoesDisponiveis.forEach(s => {
-          sugestoesMarcadas.add(`${s.personId}||${s.project}`);
+          sugestoesMarcadas.add(`${s.personId}||${s.projetoOrigem}`);
         });
       }
       renderSugestoesBloco();
@@ -3807,16 +3920,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     let criadasSugestoes = 0;
     if (sugestoesMarcadas.size > 0){
       for (const chave of sugestoesMarcadas){
-        const sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.project}` === chave);
+        const sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave);
         if (!sug) continue;
-        // Cria uma nova entry vinculando este personagem ao projeto atual COM a voz digitada
-        // Ou seja: se o admin digitou "Marcus Jr" no personagem "Homer", e escolheu a sugestão
-        // "Bart (dublado por Marcus Jr em Simpsons)", cria "Bart dublado por Marcus Jr no projeto atual"
+        // Cria uma nova entry vinculando esse colega ao projeto atual.
+        // Preserva a voz que o colega já tinha no projeto anterior (não força a mesma voz do admin)
         try {
           await sb.from('entries').insert({
             person_id: sug.personId,
-            project: projeto, // vai pro MESMO projeto que estamos criando
-            voice: voz,
+            project: projeto,
+            voice: sug.voice || voz, // usa a voz original do colega; se não tiver, usa a atual
             date: data || null
           });
         } catch(e){}
