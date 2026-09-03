@@ -1365,6 +1365,48 @@
     background: rgba(220,38,38,.10);
     color: #DC2626;
   }
+
+  /* ---- Menu de contexto (botão direito) num card de projeto ---- */
+  .proj-ctx-menu{
+    position: fixed;
+    z-index: 10060;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 14px 36px rgba(15,23,42,0.20);
+    padding: 6px;
+    min-width: 200px;
+    font-family: inherit;
+    animation: ctxPop .12s ease;
+  }
+  @keyframes ctxPop{
+    from{ opacity:0; transform:scale(.96); }
+    to{ opacity:1; transform:scale(1); }
+  }
+  .proj-ctx-nome{
+    padding: 8px 12px 6px;
+    font-size: 11.5px; font-weight: 700;
+    color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-bottom: 1px dashed var(--line);
+    margin-bottom: 4px;
+  }
+  .proj-ctx-menu button{
+    display: flex; align-items: center; gap: 8px;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    border: none; background: none;
+    border-radius: 8px;
+    font-size: 13.5px; font-weight: 600;
+    cursor: pointer;
+    color: var(--ink);
+    transition: background .12s;
+    font-family: inherit;
+  }
+  .proj-ctx-menu button:hover{ background: var(--surface-soft); }
+  .proj-ctx-menu button.danger{ color: #DC2626; }
+  .proj-ctx-menu button.danger:hover{ background: rgba(220,38,38,.08); }
   .wp-marcada-item{
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
@@ -5892,25 +5934,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // Handler: excluir um projeto direto da lista
     colecoesContent.querySelectorAll('[data-delproj]').forEach(btn => btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const projeto = btn.dataset.delproj;
-      const ok = await confirmarBonito({
-        titulo: 'Excluir este projeto?',
-        mensagem: `<b style="color:var(--ink);">"${escapeHtml(projeto)}"</b><br><span style="font-size:12px;">Fichas, entradas, capa e vínculo com esta franquia — tudo será removido.</span>`,
-        destaque: 'Esta ação não pode ser desfeita.',
-        textoBotao: '🗑️ Sim, excluir projeto',
-        corBotao: '#DC2626',
-        icone: '⚠️'
-      });
-      if (!ok) return;
-      const res = await excluirProjetoCompleto(projeto);
-      if (res.ok){
-        renderColecoes();
-        renderProjetos();
-        if (currentView==='home') renderHome();
-        showToast(`✅ Projeto "${projeto}" excluído.`);
-      } else {
-        showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
-      }
+      await confirmarEExcluirProjeto(btn.dataset.delproj);
     }));
   }
 
@@ -5980,19 +6004,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
       if (projsDaFr.length === 1){
         // Essa franquia é uma "espelho" de 1 projeto só — excluir aqui apaga o projeto inteiro
-        const projeto = projsDaFr[0];
-        const ok = await confirmarBonito({
-          titulo: 'Excluir este projeto?',
-          mensagem: `<b style="color:var(--ink);">"${escapeHtml(projeto)}"</b><br><span style="font-size:12px;">Fichas, entradas, capa e vínculo com esta coleção — tudo será removido.</span>`,
-          destaque: 'Esta ação não pode ser desfeita.',
-          textoBotao: '🗑️ Sim, excluir projeto',
-          corBotao: '#DC2626',
-          icone: '⚠️'
-        });
-        if (!ok) return;
-        const res = await excluirProjetoCompleto(projeto);
-        if (res.ok){ renderColecoes(); renderProjetos(); if (currentView==='home') renderHome(); showToast(`✅ Projeto "${projeto}" excluído.`); }
-        else showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
+        await confirmarEExcluirProjeto(projsDaFr[0]);
         return;
       }
 
@@ -6067,6 +6079,26 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // clique numa pessoa abre a ficha para edição
     const person = e.target.closest('.voice-card[data-id]');
     if (person){ openModal(person.dataset.id); return; }
+  });
+
+  // botão direito: menu de contexto pra excluir o projeto direto
+  colecoesContent.addEventListener('contextmenu', (e) => {
+    if (!isAdmin) return;
+    // Card de franquia (dentro de uma coleção) — só ativa se representar 1 projeto só
+    const frCard = e.target.closest('.col-card[data-fr]');
+    if (frCard && colNav.level === 'franquias'){
+      const fr = franchises.find(f => f.id === frCard.dataset.fr);
+      if (fr){
+        const projs = projectsOfFranchise(fr.id);
+        if (projs.length === 1){ showProjectContextMenu(e, projs[0]); return; }
+      }
+    }
+    // Linha de projeto dentro da lista "Projetos desta franquia"
+    const projRow = e.target.closest('.fr-projeto-item');
+    if (projRow){
+      const btnDel = projRow.querySelector('[data-delproj]');
+      if (btnDel) showProjectContextMenu(e, btnDel.dataset.delproj);
+    }
   });
 
   // ---------- Modais de categoria e franquia ----------
@@ -7051,6 +7083,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const card = e.target.closest('.prod-card[data-proj]');
     if (card) openProjetoModal(card.dataset.proj);
   });
+  // botão direito: menu de contexto pra excluir o projeto direto
+  homeContent.addEventListener('contextmenu', (e) => {
+    if (!isAdmin) return;
+    const card = e.target.closest('.prod-card[data-proj]');
+    if (card) showProjectContextMenu(e, card.dataset.proj);
+  });
 
   // ---- Modal: gerenciar quais projetos estão em produção (admin) ----
   async function openGerenciarProducao(){
@@ -7181,6 +7219,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (delBtn){ e.stopPropagation(); openExcluirProjeto(delBtn.dataset.del); return; }
     const card = e.target.closest('.prod-card[data-proj]');
     if (card) openProjetoModal(card.dataset.proj);
+  });
+  // botão direito: menu de contexto pra excluir o projeto direto
+  projetosContent.addEventListener('contextmenu', (e) => {
+    if (!isAdmin) return;
+    const card = e.target.closest('.prod-card[data-proj]');
+    if (card) showProjectContextMenu(e, card.dataset.proj);
   });
 
   // Wizard de 3 passos para criar novo projeto (Nome+Status → Capa → Pronto)
@@ -7888,40 +7932,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       btn.disabled = true;
       btn.textContent = 'Excluindo…';
 
-      try {
-        const pl = project.toLowerCase();
-        const afetadas = visiblePeople().filter(p => p.entries.some(e => (e.project||'').toLowerCase()===pl));
-        for (const p of afetadas){
-          const { error: e1 } = await sb.from('entries').delete().eq('person_id', p.id).eq('project', project);
-          if (e1) throw e1;
-          const { data: rest } = await sb.from('entries').select('id').eq('person_id', p.id);
-          if (!rest || rest.length===0){
-            const { error: e2 } = await sb.from('people').delete().eq('id', p.id);
-            if (e2) throw e2;
-          }
-        }
-        // Apaga metadados do projeto
-        const { error: e3 } = await sb.from('project_meta').delete().eq('project', project);
-        if (e3) throw e3;
-        await sb.from('dub_order').delete().eq('project', project);
-        // Apaga também categoria e participantes se existirem
-        try { await sb.from('project_categories').delete().eq('project', project); } catch(e){}
-        try { await sb.from('project_participants').delete().eq('project', project); } catch(e){}
-
-        // IMPORTANTE: limpa o cache local (senão o projeto continua aparecendo)
-        delete projectMeta[project];
-        delete projectCats[project];
-        delete projectParticipants[project];
-
+      const res = await excluirProjetoCompleto(project);
+      if (res.ok){
         ov.classList.remove('open');
-        await loadPeople();
-        await loadProjectMeta();
         renderProjetos();
         if (currentView === 'home') renderHome();
+        if (currentView === 'colecoes') renderColecoes();
         showToast('✅ Projeto "'+project+'" excluído.');
-      } catch(err){
-        console.error('Erro ao excluir projeto:', err);
-        showToast('❌ Erro ao excluir: '+(err.message||err.details||'tente de novo'));
+      } else {
+        showToast('❌ Erro ao excluir: '+((res.error&&(res.error.message||res.error.details))||'tente de novo'));
         btn.disabled = false;
         btn.textContent = '🗑️ Excluir permanentemente';
       }
@@ -8866,6 +8885,99 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // capa e todos os caches locais. Usado tanto pelo modal do projeto quanto
   // pelos botões de excluir dentro de Coleções/Franquias.
   // Retorna {ok, fichasApagadas, franquiaApagada, error}
+  // Confirma (popup bonito com detalhes) + exclui + atualiza as telas.
+  // Usado pelo botão direito (menu de contexto) e por qualquer botão de excluir
+  // que precise do fluxo completo com resumo do que será apagado.
+  async function confirmarEExcluirProjeto(project){
+    const pl = project.trim().toLowerCase();
+    const pessoasNoProjeto = mainPeople().filter(p =>
+      p.entries.some(e => (e.project||'').trim().toLowerCase() === pl)
+    );
+    const totalEntradas = mainPeople().reduce((sum, p) =>
+      sum + p.entries.filter(e => (e.project||'').trim().toLowerCase() === pl).length, 0
+    );
+    const fichasOrfas = pessoasNoProjeto.filter(p =>
+      p.entries.every(e => (e.project||'').trim().toLowerCase() === pl)
+    );
+
+    const detalhes = `
+      <b style="color:var(--ink);">"${escapeHtml(project)}"</b><br>
+      <span style="font-size:12px;">
+        • ${totalEntradas} entrada${totalEntradas===1?'':'s'} de dublagem<br>
+        • ${fichasOrfas.length > 0 ? `<span style="color:#DC2626;font-weight:600;">${fichasOrfas.length} ficha${fichasOrfas.length===1?'':'s'} será${fichasOrfas.length===1?'':'ão'} apagada${fichasOrfas.length===1?'':'s'}</span> (só ${fichasOrfas.length===1?'existe':'existem'} aqui)` : 'Nenhuma ficha vai ser perdida (todas têm outros projetos)'}<br>
+        • Capa, tipo, coleção/franquia — tudo será removido
+      </span>
+    `;
+    const ok = await confirmarBonito({
+      titulo: 'Excluir este projeto?',
+      mensagem: detalhes,
+      destaque: 'Esta ação não pode ser desfeita.',
+      textoBotao: '🗑️ Sim, excluir projeto',
+      corBotao: '#DC2626',
+      icone: '⚠️'
+    });
+    if (!ok) return false;
+
+    const res = await excluirProjetoCompleto(project);
+    if (res.ok){
+      renderProjetos();
+      if (currentView === 'home') renderHome();
+      if (currentView === 'colecoes') renderColecoes();
+      showToast(`✅ Projeto "${project}" excluído.`);
+      return true;
+    } else {
+      showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
+      return false;
+    }
+  }
+
+  // Menu de contexto (botão direito) genérico pra ações rápidas num projeto.
+  // Aparece em cards da Home, Projetos e Coleções/Franquias.
+  function showProjectContextMenu(e, project){
+    if (!isAdmin) return;
+    e.preventDefault();
+    e.stopPropagation();
+    document.querySelectorAll('.proj-ctx-menu').forEach(el => el.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'proj-ctx-menu';
+    menu.innerHTML = `
+      <div class="proj-ctx-nome">${escapeHtml(project)}</div>
+      <button type="button" data-ctx="abrir">👁️ Abrir projeto</button>
+      <button type="button" data-ctx="excluir" class="danger">🗑️ Excluir projeto</button>
+    `;
+    document.body.appendChild(menu);
+
+    // Posiciona e garante que não passa da tela
+    const menuW = menu.offsetWidth, menuH = menu.offsetHeight;
+    let x = e.clientX, y = e.clientY;
+    if (x + menuW > window.innerWidth - 8) x = window.innerWidth - menuW - 8;
+    if (y + menuH > window.innerHeight - 8) y = window.innerHeight - menuH - 8;
+    menu.style.left = Math.max(8,x) + 'px';
+    menu.style.top = Math.max(8,y) + 'px';
+
+    const fechar = () => {
+      menu.remove();
+      document.removeEventListener('mousedown', onDocClick);
+      window.removeEventListener('scroll', fechar, true);
+      document.removeEventListener('keydown', onEsc);
+    };
+    const onDocClick = (ev) => { if (!menu.contains(ev.target)) fechar(); };
+    const onEsc = (ev) => { if (ev.key === 'Escape') fechar(); };
+    setTimeout(() => document.addEventListener('mousedown', onDocClick), 0);
+    window.addEventListener('scroll', fechar, true);
+    document.addEventListener('keydown', onEsc);
+
+    menu.querySelector('[data-ctx="abrir"]').addEventListener('click', () => {
+      fechar();
+      openProjetoModal(project);
+    });
+    menu.querySelector('[data-ctx="excluir"]').addEventListener('click', async () => {
+      fechar();
+      await confirmarEExcluirProjeto(project);
+    });
+  }
+
   async function excluirProjetoCompleto(project){
     try {
       const projLower = project.trim().toLowerCase();
