@@ -296,6 +296,7 @@
   .seg-filter button{ border:none; background:none; cursor:pointer; font-size:13px; font-weight:600; color:var(--muted); padding:6px 16px; border-radius:999px; transition:.15s; }
   .seg-filter button.on{ background:var(--surface); color:var(--blue-deep); box-shadow:0 1px 4px rgba(30,58,138,.12); }
   .proj-card .prod-badge.done{ background:var(--muted); }
+  .proj-card .prod-badge.archived{ background:#78716C; }
   .card-actions-bar{ position:absolute; top:8px; right:8px; display:flex; gap:5px; }
   .card-ic-btn{ width:28px; height:28px; border-radius:8px; background:rgba(15,23,42,.55); color:#fff; border:none; display:flex; align-items:center; justify-content:center; font-size:13px; cursor:pointer; opacity:0; transition:opacity .15s; }
   .prod-card:hover .card-ic-btn{ opacity:1; }
@@ -2822,7 +2823,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let currentUserEmail = null;
   let projectMeta = {};       // project -> {in_production, has_cover, archived}
   let dubOrder = {};          // project -> [voice, voice, ...] (ordem)
-  let projetosFilter = 'producao'; // 'producao' | 'concluidos'
+  let projetosFilter = 'producao'; // 'producao' | 'concluidos' | 'arquivados'
   let audiobooks = [];        // [{id,title,author,in_production,archived,has_cover,voices:[...]}]
   let audiobooksFilter = 'producao';
   let projectParticipants = {}; // project -> [{user_id, display_name, ninja_color}]
@@ -2891,25 +2892,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return loadPeople();
     }
 
-    // Carrega o mapa de categorias.
-    const catRes = await sb.from('project_categories').select('project, category');
+    // Carrega o mapa de categorias + todo o resto em paralelo (não sequencial).
+    // Isso é o que fazia cada ação demorar vários segundos: eram ~9 idas-e-voltas
+    // ao banco uma esperando a outra, quando na verdade são todas independentes.
+    const [catRes] = await Promise.all([
+      sb.from('project_categories').select('project, category'),
+      loadColecoes(),
+      loadRatings(),
+      loadComments(),
+      loadProjectMeta(),
+      loadAudiobooks(),
+      loadParticipants(),
+      loadAgenda(),
+      loadChat(),
+    ]);
     projectCats = {};
     (catRes.data || []).forEach(r => { projectCats[r.project] = r.category; });
     if (Object.keys(projectCats).length === 0){
       projectCats = { ...DEFAULT_CATS };
       await persistCats();
     }
-    // Carrega as coleções (categorias/franquias)
-    await loadColecoes();
-    await loadRatings();
-    await loadComments();
-    await loadProjectMeta();
-    await loadAudiobooks();
-    await loadParticipants();
-    await loadAgenda();
-    await loadChat();
-    // Limpeza automática de franquias/vínculos órfãos (projetos que não existem mais).
-    // Roda aqui pq nesse ponto tanto `people` quanto `projectMeta` já carregaram.
+    // Esta roda por último pois depende dos dados acima (people/projectMeta/franchises)
     await limparFranquiasOrfas();
     invalidarCacheSimilares();
     render();
@@ -3304,6 +3307,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       renderRanking();
     }
     renderStats();
+
+    // A grade de fichas (até 531+ cards) só precisa ser montada quando essa aba
+    // está de fato visível — montar ela em toda ação (mesmo na Home/Coleções/Projetos)
+    // era trabalho jogado fora e deixava tudo mais lento sem motivo.
+    if (currentView !== 'fichas') return;
+
     populateFilterOptions();
     const filtered = getFiltered();
     renderAzRail(filtered);
@@ -3331,8 +3340,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         `;
         const rBtn = $('#restaurarIgnorados2');
-        if (rBtn) rBtn.addEventListener('click', () => {
-          if (!confirm(`Restaurar ${qtdIgnorados} grupo${qtdIgnorados===1?'':'s'} que você marcou como "pessoas diferentes"?`)) return;
+        if (rBtn) rBtn.addEventListener('click', async () => {
+          const ok = await confirmarBonito({
+            titulo: 'Restaurar grupos ignorados?',
+            mensagem: `${qtdIgnorados} grupo${qtdIgnorados===1?'':'s'} que você marcou como "pessoas diferentes" vão voltar a aparecer como possíveis duplicatas.`,
+            textoBotao: '↻ Sim, restaurar',
+            corBotao: '#2563EB',
+            icone: '↻'
+          });
+          if (!ok) return;
           restaurarTodosOsGruposIgnorados();
           invalidarCacheSimilares();
           render();
@@ -3392,10 +3408,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       hydratePhotos();
 
       // Handler: ignorar grupo permanentemente
-      mainContent.querySelectorAll('[data-ignore-group]').forEach(b => b.addEventListener('click', () => {
+      mainContent.querySelectorAll('[data-ignore-group]').forEach(b => b.addEventListener('click', async () => {
         const chave = b.dataset.ignoreGroup;
         const ids = chave.split('|');
-        if (!confirm(`Confirmar: essas ${ids.length} pessoas são realmente diferentes?\n\nO alerta não aparecerá mais para este grupo. Se depois surgir uma nova pessoa parecida com uma delas, o alerta volta.`)) return;
+        const ok = await confirmarBonito({
+          titulo: 'São pessoas diferentes?',
+          mensagem: `Confirmar que essas ${ids.length} pessoas são realmente diferentes.`,
+          destaque: 'O alerta não aparece mais pra este grupo (mas volta se surgir alguém novo parecido).',
+          textoBotao: '✓ Sim, são diferentes',
+          corBotao: '#16A34A',
+          icone: '✓'
+        });
+        if (!ok) return;
         ignorarGrupoPermanentemente(ids);
         invalidarCacheSimilares();
         render();
@@ -3410,8 +3434,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           restaurarBtn.style.display = 'none';
         } else {
           restaurarBtn.textContent = `↻ Ver os ${qtd} grupo${qtd===1?'':'s'} que ignorei antes`;
-          restaurarBtn.addEventListener('click', () => {
-            if (!confirm(`Restaurar ${qtd} grupo${qtd===1?'':'s'} que você marcou como "pessoas diferentes"?\n\nEles voltarão a aparecer aqui como possíveis duplicatas.`)) return;
+          restaurarBtn.addEventListener('click', async () => {
+            const ok = await confirmarBonito({
+              titulo: 'Restaurar grupos ignorados?',
+              mensagem: `${qtd} grupo${qtd===1?'':'s'} que você marcou como "pessoas diferentes" vão voltar a aparecer como possíveis duplicatas.`,
+              textoBotao: '↻ Sim, restaurar',
+              corBotao: '#2563EB',
+              icone: '↻'
+            });
+            if (!ok) return;
             restaurarTodosOsGruposIgnorados();
             invalidarCacheSimilares();
             render();
@@ -5244,28 +5275,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!editingId || !isAdmin) return;
     const person = people.find(p => p.id === editingId);
     if (!person) return;
-    const nome = person.name;
-    if (!confirm(`Tem certeza que quer excluir a ficha de "${nome}"?\n\nTudo será removido: foto, entradas de projeto e vozes. Esta ação não pode ser desfeita.`)) return;
-
     const btn = $('#deleteModalBtn');
-    btn.disabled = true;
-    btn.textContent = 'Excluindo…';
-    try {
-      // apaga entradas
-      await sb.from('entries').delete().eq('person_id', editingId);
-      // apaga foto do storage se tiver
-      try { await deletePhoto(editingId); } catch(e){}
-      // apaga o registro da pessoa
-      const { error } = await sb.from('people').delete().eq('id', editingId);
-      if (error) throw error;
-      closeModal();
-      await loadPeople();
-      showToast(`Ficha de "${nome}" excluída.`);
-    } catch(e){
-      showToast('Erro ao excluir: '+(e.message||''));
-      btn.disabled = false;
-      btn.textContent = '🗑️ Excluir ficha';
-    }
+    const ok = await confirmarEExcluirFicha(person, { fecharModalDepois: true, btnParaDesabilitar: btn });
+    if (ok) closeModal();
   });
   modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
@@ -5311,16 +5323,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     const askBtn = e.target.closest('[data-action="delete-ask"]');
     if (askBtn){
-      const actions = askBtn.closest('[data-role="actions"]');
-      actions.innerHTML = `
-        <div class="confirm-bar">
-          Excluir esta ficha?
-          <span>
-            <button class="no" data-action="delete-cancel">Cancelar</button>
-            <button class="yes" data-action="delete-yes" data-id="${askBtn.dataset.id}">Excluir</button>
-          </span>
-        </div>
-      `;
+      const person = people.find(p => p.id === askBtn.dataset.id);
+      if (person) await confirmarEExcluirFicha(person);
       return;
     }
 
@@ -5330,7 +5334,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const id = coadjBtn.dataset.id;
       const person = people.find(p => p.id === id);
       if (!person) return;
-      if (!confirm(`Marcar "${person.name}" como coadjuvante?\n\nSuas entradas serão movidas para a subpasta "⟫ Coadjuvantes" de cada projeto. A pessoa deixará de aparecer na lista principal.`)) return;
+      const ok = await confirmarBonito({
+        titulo: 'Marcar como coadjuvante?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(person.name)}"</b><br><span style="font-size:12px;">As entradas serão movidas para a subpasta "⟫ Coadjuvantes" de cada projeto. A pessoa deixa de aparecer na lista principal.</span>`,
+        textoBotao: '☾ Sim, marcar como coadjuvante',
+        corBotao: '#7C3AED',
+        icone: '☾'
+      });
+      if (!ok) return;
 
       // Move cada entrada para a pasta de coadjuvantes do respectivo projeto
       for (const e of person.entries){
@@ -5344,17 +5355,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       showToast(`"${person.name}" agora é coadjuvante.`);
       return;
     }
+  });
 
-    const cancelBtn = e.target.closest('[data-action="delete-cancel"]');
-    if (cancelBtn){ render(); return; }
-
-    const yesBtn = e.target.closest('[data-action="delete-yes"]');
-    if (yesBtn){
-      await deletePersonDb(yesBtn.dataset.id);
-      await loadPeople();
-      showToast('Ficha excluída.');
-      return;
-    }
+  // botão direito: menu de contexto pra excluir a ficha direto
+  mainContent.addEventListener('contextmenu', (e) => {
+    if (!isAdmin) return;
+    const card = e.target.closest('.voice-card[data-id]');
+    if (card) showFichaContextMenu(e, card.dataset.id);
   });
 
   // ---------- Toolbar events ----------
@@ -6050,7 +6057,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (delS){ e.stopPropagation();
       const s = seasons.find(x=>x.id===delS.dataset.dels);
       if (!s) return;
-      if (!confirm(`Excluir a temporada "${s.name}"?\nOs projetos dela ficam sem temporada (mas não são apagados).`)) return;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta temporada?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(s.name)}"</b><br><span style="font-size:12px;">Os projetos dela ficam sem temporada, mas não são apagados.</span>`,
+        textoBotao: '🗑️ Sim, excluir temporada',
+        corBotao: '#DC2626',
+        icone: '📅'
+      });
+      if (!ok) return;
       await sb.from('seasons').delete().eq('id', s.id);
       seasons = seasons.filter(x=>x.id!==s.id);
       Object.keys(projectSeason).forEach(p=>{ if(projectSeason[p]===s.id) delete projectSeason[p]; });
@@ -6098,7 +6112,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (projRow){
       const btnDel = projRow.querySelector('[data-delproj]');
       if (btnDel) showProjectContextMenu(e, btnDel.dataset.delproj);
+      return;
     }
+    // Ficha (pessoa) dentro de uma franquia
+    const fichaCard = e.target.closest('.voice-card[data-id]');
+    if (fichaCard) showFichaContextMenu(e, fichaCard.dataset.id);
   });
 
   // ---------- Modais de categoria e franquia ----------
@@ -6183,7 +6201,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#colCancel').addEventListener('click', ()=>ov.classList.remove('open'));
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
     if (cat) $('#colDelete').addEventListener('click', async ()=>{
-      if (!confirm('Excluir a categoria "'+cat.name+'"? As franquias dela ficam sem categoria.')) return;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta coleção?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(cat.name)}"</b><br><span style="font-size:12px;">As franquias dela ficam sem coleção, mas não são apagadas.</span>`,
+        textoBotao: '🗑️ Sim, excluir coleção',
+        corBotao: '#DC2626',
+        icone: '🗂'
+      });
+      if (!ok) return;
       await sb.from('categories').delete().eq('id', cat.id);
       ov.classList.remove('open'); await reloadColecoes(); showToast('Categoria excluída.');
     });
@@ -6302,7 +6327,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.querySelectorAll('[data-edit-s]').forEach(b=>b.addEventListener('click',()=>{ ov.classList.remove('open'); openSeasonModal(b.dataset.editS, null); }));
     ov.querySelectorAll('[data-del-s]').forEach(b=>b.addEventListener('click', async ()=>{
       const s = seasons.find(x=>x.id===b.dataset.delS); if (!s) return;
-      if (!confirm(`Excluir "${s.name}"?`)) return;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta temporada?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(s.name)}"</b><br><span style="font-size:12px;">Os projetos dela ficam sem temporada, mas não são apagados.</span>`,
+        textoBotao: '🗑️ Sim, excluir temporada',
+        corBotao: '#DC2626',
+        icone: '📅'
+      });
+      if (!ok) return;
       await sb.from('seasons').delete().eq('id', s.id);
       seasons = seasons.filter(x=>x.id!==s.id);
       Object.keys(projectSeason).forEach(p=>{ if(projectSeason[p]===s.id) delete projectSeason[p]; });
@@ -6377,7 +6409,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#colCancel').addEventListener('click', ()=>ov.classList.remove('open'));
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
     if (fr) $('#colDelete').addEventListener('click', async ()=>{
-      if (!confirm('Excluir a franquia "'+fr.name+'"? Os projetos dela ficam sem franquia.')) return;
+      const projsDaFr = projectsOfFranchise(fr.id);
+      if (projsDaFr.length === 1){
+        ov.classList.remove('open');
+        await confirmarEExcluirProjeto(projsDaFr[0]);
+        return;
+      }
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta franquia?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(fr.name)}"</b><br><span style="font-size:12px;">Os ${projsDaFr.length} projetos dela ficam sem franquia, mas não são apagados.</span>`,
+        textoBotao: '🗑️ Sim, excluir franquia',
+        corBotao: '#DC2626',
+        icone: '📁'
+      });
+      if (!ok) return;
       await sb.from('franchises').delete().eq('id', fr.id);
       ov.classList.remove('open'); await reloadColecoes(); showToast('Franquia excluída.');
     });
@@ -6497,8 +6542,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
   }
 
+  let jaLimpouChatAntigo = false;
   async function loadChat(){
-    try{ await sb.rpc('purge_old_chat'); }catch(e){}
+    // O purge (apagar mensagens antigas) só precisa rodar 1x por sessão,
+    // não em toda recarga — cada chamada extra era uma ida-e-volta ao banco à toa.
+    if (!jaLimpouChatAntigo){
+      jaLimpouChatAntigo = true;
+      try{ await sb.rpc('purge_old_chat'); }catch(e){}
+    }
     try{
       const { data } = await sb.from('chat_messages').select('*').order('created_at', {ascending:true});
       chatCache = data || [];
@@ -6506,12 +6557,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ chatCache = []; }
   }
 
+  let jaLimpouComentariosAntigos = false;
   async function loadRatings(){
     try{
       // garante o id do usuário logado (pra separar 'minhas notas')
       if (!myUserId){ const { data: sess } = await sb.auth.getSession(); myUserId = sess&&sess.session&&sess.session.user ? sess.session.user.id : null; }
-      // limpa comentários antigos (best-effort)
-      try{ await sb.rpc('purge_old_comments'); }catch(e){}
+      // limpa comentários antigos (best-effort) — só 1x por sessão, não em toda recarga
+      if (!jaLimpouComentariosAntigos){
+        jaLimpouComentariosAntigos = true;
+        try{ await sb.rpc('purge_old_comments'); }catch(e){}
+      }
       const { data } = await sb.from('voice_user_ratings').select('voice, user_id, ratings');
       myRatings = {}; ratingAgg = {};
       (data||[]).forEach(r => {
@@ -6900,7 +6955,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const del = e.target.closest('.cmt-del');
     if (del){
       const id = del.dataset.del, voice = del.dataset.delvoice;
-      if (!confirm('Apagar este comentário?')) return;
+      const ok = await confirmarBonito({
+        titulo: 'Apagar este comentário?',
+        mensagem: '',
+        textoBotao: '🗑️ Sim, apagar',
+        corBotao: '#DC2626',
+        icone: '💬'
+      });
+      if (!ok) return;
       const { error } = await sb.from('voice_comments').delete().eq('id', id);
       if (error){ showToast('Erro ao apagar: '+error.message); return; }
       commentsByVoice[voice] = (commentsByVoice[voice]||[]).filter(c=>c.id!==id);
@@ -7134,16 +7196,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let projetosSearch = '';
 
   function renderProjetos(){
+    const arquivados = allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].archived);
     const todos = allProjectsList().filter(pr => !(projectMeta[pr] && projectMeta[pr].archived));
-    let lista = projetosFilter==='producao'
-      ? todos.filter(pr => projectMeta[pr] && projectMeta[pr].in_production)
-      : todos.filter(pr => !(projectMeta[pr] && projectMeta[pr].in_production));
+    let lista = projetosFilter==='producao' ? todos.filter(pr => projectMeta[pr] && projectMeta[pr].in_production)
+      : projetosFilter==='concluidos' ? todos.filter(pr => !(projectMeta[pr] && projectMeta[pr].in_production))
+      : arquivados; // 'arquivados'
 
     // Aplica busca por nome (case/acento insensitive)
     const q = projetosSearch.trim().toLowerCase();
     if (q){
       lista = lista.filter(pr => pr.toLowerCase().includes(q));
     }
+
+    const rotuloFiltro = projetosFilter==='producao' ? 'em produção' : projetosFilter==='concluidos' ? 'concluído' : 'arquivado';
+    const ehArquivados = projetosFilter === 'arquivados';
 
     const cards = lista.map(pr => {
       const url = projCoverUrl(pr);
@@ -7154,9 +7220,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const emProducao = projectMeta[pr] && projectMeta[pr].in_production;
       return `
         <div class="prod-card proj-card" data-proj="${escapeHtml(pr)}">
-          <span class="prod-badge ${emProducao?'':'done'}">${emProducao?'em produção':'concluído'}</span>
+          <span class="prod-badge ${ehArquivados?'archived':(emProducao?'':'done')}">${ehArquivados?'📦 arquivado':(emProducao?'em produção':'concluído')}</span>
           ${isAdmin?`<div class="card-actions-bar admin-only">
-            <button class="card-ic-btn" title="Mover" data-move="${escapeHtml(pr)}">⇄</button>
+            ${ehArquivados
+              ? `<button class="card-ic-btn" title="Restaurar" data-restore="${escapeHtml(pr)}">↻</button>`
+              : `<button class="card-ic-btn" title="Mover" data-move="${escapeHtml(pr)}">⇄</button>`}
             <button class="card-ic-btn" title="Excluir" data-del="${escapeHtml(pr)}">🗑️</button>
           </div>`:''}
           ${cover}
@@ -7177,15 +7245,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <div class="seg-filter">
         <button class="${projetosFilter==='producao'?'on':''}" data-filter="producao">Em produção</button>
         <button class="${projetosFilter==='concluidos'?'on':''}" data-filter="concluidos">Concluídos</button>
+        <button class="${projetosFilter==='arquivados'?'on':''}" data-filter="arquivados">📦 Arquivados${arquivados.length?` (${arquivados.length})`:''}</button>
       </div>
       <div class="proj-search-wrap">
         <div class="search-box" style="flex:1;">
-          <input type="text" id="projSearchInput" placeholder="Buscar projeto${projetosFilter==='concluidos'?' concluído':''}…" autocomplete="off" value="${escapeHtml(projetosSearch)}">
+          <input type="text" id="projSearchInput" placeholder="Buscar projeto ${rotuloFiltro}…" autocomplete="off" value="${escapeHtml(projetosSearch)}">
         </div>
         ${projetosSearch ? `<button class="btn-ghost" id="projSearchClear" style="padding:8px 14px;font-size:13px;">Limpar</button>` : ''}
       </div>
       ${lista.length? `<div class="prod-grid">${cards}</div>`
-        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>${projetosSearch ? `Nenhum projeto ${projetosFilter==='producao'?'em produção':'concluído'} com "${escapeHtml(projetosSearch)}".` : `Nenhum projeto ${projetosFilter==='producao'?'em produção':'concluído'}. ${isAdmin?'Use o botão acima para criar.':''}`}</p></div>`}`;
+        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>${projetosSearch ? `Nenhum projeto ${rotuloFiltro} com "${escapeHtml(projetosSearch)}".` : `Nenhum projeto ${rotuloFiltro}. ${isAdmin && !ehArquivados ?'Use o botão acima para criar.':''}`}</p></div>`}`;
 
     projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{
       projetosFilter = b.dataset.filter;
@@ -7210,6 +7279,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // Botão: novo projeto (wizard de 3 passos)
     const btnNovo = $('#btnNovoProjeto');
     if (btnNovo) btnNovo.addEventListener('click', ()=> openWizardProjeto());
+
+    // Botão: restaurar projeto arquivado
+    projetosContent.querySelectorAll('[data-restore]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const pr = btn.dataset.restore;
+      try {
+        await sb.from('project_meta').upsert({ project: pr, archived:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
+        projectMeta[pr] = { ...(projectMeta[pr]||{}), archived:false };
+        renderProjetos();
+        showToast(`✅ Projeto "${pr}" restaurado.`);
+      } catch(err){ showToast('Erro ao restaurar: '+(err.message||'')); }
+    }));
   }
 
   projetosContent.addEventListener('click', async (e) => {
@@ -8098,7 +8180,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
     $('#abArquivar').addEventListener('click', async ()=>{ await sb.from('audiobooks').update({archived:true, in_production:false}).eq('id',id); a.archived=true; a.in_production=false; ov.classList.remove('open'); renderAudiobooks(); showToast('Arquivado.'); });
     $('#abExcluir').addEventListener('click', async ()=>{
-      if(!confirm('Excluir permanentemente este audiobook?')) return;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir este audiobook?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(a.title)}"</b><br><span style="font-size:12px;">Todas as vozes vinculadas serão removidas.</span>`,
+        destaque: 'Esta ação não pode ser desfeita.',
+        textoBotao: '🗑️ Sim, excluir permanentemente',
+        corBotao: '#DC2626',
+        icone: '🎧'
+      });
+      if (!ok) return;
       await sb.from('audiobooks').delete().eq('id', id);
       audiobooks = audiobooks.filter(x=>x.id!==id);
       ov.classList.remove('open'); renderAudiobooks(); showToast('Excluído.');
@@ -8888,6 +8978,98 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Confirma (popup bonito com detalhes) + exclui + atualiza as telas.
   // Usado pelo botão direito (menu de contexto) e por qualquer botão de excluir
   // que precise do fluxo completo com resumo do que será apagado.
+  // Exclui uma ficha (pessoa) por completo: entradas, foto e o registro dela.
+  // Retorna {ok, error}
+  async function excluirFichaCompleta(personId){
+    try {
+      await sb.from('entries').delete().eq('person_id', personId);
+      try { await deletePhoto(personId); } catch(e){}
+      const { error } = await sb.from('people').delete().eq('id', personId);
+      if (error) throw error;
+      return { ok:true };
+    } catch(err){
+      console.error('excluirFichaCompleta:', err);
+      return { ok:false, error: err };
+    }
+  }
+
+  // Confirma (popup bonito) + exclui a ficha + atualiza as telas.
+  // opts.fecharModalDepois: se true, quem chamou cuida de fechar o modal (retorna ok pro caller decidir)
+  // opts.btnParaDesabilitar: botão pra desabilitar/mudar texto durante a exclusão
+  async function confirmarEExcluirFicha(person, opts={}){
+    const nProjetos = new Set((person.entries||[]).map(e=>e.project)).size;
+    const ok = await confirmarBonito({
+      titulo: 'Excluir esta ficha?',
+      mensagem: `<b style="color:var(--ink);">"${escapeHtml(person.name)}"</b><br><span style="font-size:12px;">Foto, ${(person.entries||[]).length} entrada${(person.entries||[]).length===1?'':'s'} de voz em ${nProjetos} projeto${nProjetos===1?'':'s'} — tudo será removido.</span>`,
+      destaque: 'Esta ação não pode ser desfeita.',
+      textoBotao: '🗑️ Sim, excluir ficha',
+      corBotao: '#DC2626',
+      icone: '⚠️'
+    });
+    if (!ok) return false;
+
+    const btn = opts.btnParaDesabilitar;
+    if (btn){ btn.disabled = true; btn.textContent = 'Excluindo…'; }
+
+    const res = await excluirFichaCompleta(person.id);
+    if (res.ok){
+      await loadPeople();
+      showToast(`✅ Ficha de "${person.name}" excluída.`);
+      return true;
+    } else {
+      showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
+      if (btn){ btn.disabled = false; btn.textContent = '🗑️ Excluir ficha'; }
+      return false;
+    }
+  }
+
+  // Menu de contexto (botão direito) numa ficha (pessoa/personagem).
+  function showFichaContextMenu(e, personId){
+    if (!isAdmin) return;
+    e.preventDefault();
+    e.stopPropagation();
+    document.querySelectorAll('.proj-ctx-menu').forEach(el => el.remove());
+    const person = people.find(p => p.id === personId);
+    if (!person) return;
+
+    const menu = document.createElement('div');
+    menu.className = 'proj-ctx-menu';
+    menu.innerHTML = `
+      <div class="proj-ctx-nome">${escapeHtml(person.name)}</div>
+      <button type="button" data-ctx="abrir">✎ Editar ficha</button>
+      <button type="button" data-ctx="excluir" class="danger">🗑️ Excluir ficha</button>
+    `;
+    document.body.appendChild(menu);
+
+    const menuW = menu.offsetWidth, menuH = menu.offsetHeight;
+    let x = e.clientX, y = e.clientY;
+    if (x + menuW > window.innerWidth - 8) x = window.innerWidth - menuW - 8;
+    if (y + menuH > window.innerHeight - 8) y = window.innerHeight - menuH - 8;
+    menu.style.left = Math.max(8,x) + 'px';
+    menu.style.top = Math.max(8,y) + 'px';
+
+    const fechar = () => {
+      menu.remove();
+      document.removeEventListener('mousedown', onDocClick);
+      window.removeEventListener('scroll', fechar, true);
+      document.removeEventListener('keydown', onEsc);
+    };
+    const onDocClick = (ev) => { if (!menu.contains(ev.target)) fechar(); };
+    const onEsc = (ev) => { if (ev.key === 'Escape') fechar(); };
+    setTimeout(() => document.addEventListener('mousedown', onDocClick), 0);
+    window.addEventListener('scroll', fechar, true);
+    document.addEventListener('keydown', onEsc);
+
+    menu.querySelector('[data-ctx="abrir"]').addEventListener('click', () => {
+      fechar();
+      openModal(personId);
+    });
+    menu.querySelector('[data-ctx="excluir"]').addEventListener('click', async () => {
+      fechar();
+      await confirmarEExcluirFicha(person);
+    });
+  }
+
   async function confirmarEExcluirProjeto(project){
     const pl = project.trim().toLowerCase();
     const pessoasNoProjeto = mainPeople().filter(p =>
@@ -10057,7 +10239,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       // chat: apagar mensagem
       const delMsg = e.target.closest('[data-del-msg]');
       if (delMsg){
-        if (!confirm('Apagar esta mensagem?')) return;
+        const ok = await confirmarBonito({
+          titulo: 'Apagar esta mensagem?',
+          mensagem: '',
+          textoBotao: '🗑️ Sim, apagar',
+          corBotao: '#DC2626',
+          icone: '💬'
+        });
+        if (!ok) return;
         const id = delMsg.dataset.delMsg;
         await sb.from('chat_messages').delete().eq('id', id);
         await reloadChatFromDB(true);
