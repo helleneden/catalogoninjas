@@ -1324,6 +1324,47 @@
     color: var(--ink);
     word-break: break-word;
   }
+
+  /* ---- Lista "Projetos desta franquia" (dentro da tela de franquia) ---- */
+  .fr-projetos-box{
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .fr-projetos-titulo{
+    font-family: var(--font-head);
+    font-weight: 700; font-size: 13.5px;
+    margin-bottom: 10px;
+  }
+  .fr-projetos-lista{
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .fr-projeto-item{
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 9px 12px;
+    background: var(--surface-soft);
+    border-radius: 9px;
+    min-width: 0;
+  }
+  .fr-projeto-nome{
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; min-width: 0;
+  }
+  .fr-projeto-del{
+    background: none; border: none;
+    width: 28px; height: 28px; border-radius: 7px;
+    color: var(--muted); cursor: pointer;
+    font-size: 13px; flex: 0 0 auto;
+    transition: all .12s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fr-projeto-del:hover{
+    background: rgba(220,38,38,.10);
+    color: #DC2626;
+  }
   .wp-marcada-item{
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
@@ -2825,6 +2866,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     await loadParticipants();
     await loadAgenda();
     await loadChat();
+    // Limpeza automática de franquias/vínculos órfãos (projetos que não existem mais).
+    // Roda aqui pq nesse ponto tanto `people` quanto `projectMeta` já carregaram.
+    await limparFranquiasOrfas();
     invalidarCacheSimilares();
     render();
     checaNotificacaoSimilares();
@@ -5712,12 +5756,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const cards = frs.map((f, i) => {
       const projs = projectsOfFranchise(f.id);
       const n = peopleCountForProjects(projs);
+      const tituloDel = projs.length === 1 ? 'Excluir projeto' : 'Excluir franquia';
       return `
         <div class="col-card" data-fr="${f.id}">
           ${isAdmin?`<div class="card-actions-bar admin-only" style="top:6px; right:6px;">
             <button class="card-ic-btn" data-editfr="${f.id}" title="Editar">✎</button>
             <button class="card-ic-btn" data-movefr="${f.id}" title="Mover para outra coleção">⇄</button>
-            <button class="card-ic-btn" data-delfr="${f.id}" title="Excluir">🗑️</button>
+            <button class="card-ic-btn" data-delfr="${f.id}" title="${tituloDel}">🗑️</button>
           </div>`:''}
           ${coverBlock('fr', f.id, i, '📁')}
           <div class="col-body">
@@ -5799,7 +5844,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
 
     // Sem temporadas → mostra pessoas direto (comportamento original)
-    const projs = projectsOfFranchise(frId).map(x=>x.toLowerCase());
+    const projsOriginais = projectsOfFranchise(frId); // case original, pra excluir certo
+    const projs = projsOriginais.map(x=>x.toLowerCase());
     const pessoas = mainPeople()
       .filter(p => p.entries.some(e => projs.includes((e.project||'').toLowerCase())))
       .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
@@ -5821,10 +5867,51 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="voice-summary"><b>${escapeHtml(voz)}</b></div>
         </div>`;
     }).join('');
+
+    // Lista "Projetos desta franquia" com botão excluir por projeto — útil quando
+    // a franquia agrupa vários projetos (senão o card da franquia já resolve).
+    const listaProjetos = (isAdmin && projsOriginais.length > 0) ? `
+      <div class="fr-projetos-box">
+        <div class="fr-projetos-titulo">🎬 Projetos desta franquia (${projsOriginais.length})</div>
+        <div class="fr-projetos-lista">
+          ${projsOriginais.map(p => `
+            <div class="fr-projeto-item">
+              <span class="fr-projeto-nome">${escapeHtml(p)}</span>
+              <button type="button" class="fr-projeto-del" data-delproj="${escapeHtml(p)}" title="Excluir projeto">🗑️</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : '';
+
     colecoesContent.innerHTML = `${breadcrumb}
+      ${listaProjetos}
       ${pessoas.length? `<div class="card-grid">${cards2}</div>`
         : `<div class="empty-state"><h2>Sem pessoas ainda</h2><p>Vincule projetos a esta franquia no botão ✎ da franquia.</p></div>`}`;
     hydratePhotos();
+
+    // Handler: excluir um projeto direto da lista
+    colecoesContent.querySelectorAll('[data-delproj]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const projeto = btn.dataset.delproj;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir este projeto?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(projeto)}"</b><br><span style="font-size:12px;">Fichas, entradas, capa e vínculo com esta franquia — tudo será removido.</span>`,
+        destaque: 'Esta ação não pode ser desfeita.',
+        textoBotao: '🗑️ Sim, excluir projeto',
+        corBotao: '#DC2626',
+        icone: '⚠️'
+      });
+      if (!ok) return;
+      const res = await excluirProjetoCompleto(projeto);
+      if (res.ok){
+        renderColecoes();
+        renderProjetos();
+        if (currentView==='home') renderHome();
+        showToast(`✅ Projeto "${projeto}" excluído.`);
+      } else {
+        showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
+      }
+    }));
   }
 
   // Pessoas de uma temporada específica
@@ -5884,12 +5971,40 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // mover franquia para outra categoria
     const moveFr = e.target.closest('[data-movefr]');
     if (moveFr){ e.stopPropagation(); openMoverFranquia(moveFr.dataset.movefr); return; }
-    // excluir franquia direto do card
+    // excluir franquia direto do card (ou o projeto inteiro, se a franquia representa 1 só)
     const delFr = e.target.closest('[data-delfr]');
     if (delFr){ e.stopPropagation();
       const fr = franchises.find(f=>f.id===delFr.dataset.delfr);
       if(!fr) return;
-      if(!confirm(`Excluir a franquia "${fr.name}"?\nOs projetos dela ficam sem franquia (mas não são apagados).`)) return;
+      const projsDaFr = projectsOfFranchise(fr.id);
+
+      if (projsDaFr.length === 1){
+        // Essa franquia é uma "espelho" de 1 projeto só — excluir aqui apaga o projeto inteiro
+        const projeto = projsDaFr[0];
+        const ok = await confirmarBonito({
+          titulo: 'Excluir este projeto?',
+          mensagem: `<b style="color:var(--ink);">"${escapeHtml(projeto)}"</b><br><span style="font-size:12px;">Fichas, entradas, capa e vínculo com esta coleção — tudo será removido.</span>`,
+          destaque: 'Esta ação não pode ser desfeita.',
+          textoBotao: '🗑️ Sim, excluir projeto',
+          corBotao: '#DC2626',
+          icone: '⚠️'
+        });
+        if (!ok) return;
+        const res = await excluirProjetoCompleto(projeto);
+        if (res.ok){ renderColecoes(); renderProjetos(); if (currentView==='home') renderHome(); showToast(`✅ Projeto "${projeto}" excluído.`); }
+        else showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
+        return;
+      }
+
+      // Franquia com múltiplos projetos (ou nenhum) — só desvincula, não apaga os projetos
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta franquia?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(fr.name)}"</b><br><span style="font-size:12px;">Os ${projsDaFr.length} projetos dela ficam sem franquia, mas não são apagados.</span>`,
+        textoBotao: '🗑️ Sim, excluir franquia',
+        corBotao: '#DC2626',
+        icone: '📁'
+      });
+      if (!ok) return;
       await sb.from('franchises').delete().eq('id', fr.id);
       await reloadColecoes(); showToast('Franquia excluída.'); return;
     }
@@ -5898,7 +6013,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (delCat){ e.stopPropagation();
       const cat = categories.find(c=>c.id===delCat.dataset.delcat);
       if(!cat) return;
-      if(!confirm(`Excluir a categoria "${cat.name}"?\nAs franquias dela ficam sem categoria.`)) return;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta coleção?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(cat.name)}"</b><br><span style="font-size:12px;">As franquias dela ficam sem coleção, mas não são apagadas.</span>`,
+        textoBotao: '🗑️ Sim, excluir coleção',
+        corBotao: '#DC2626',
+        icone: '🗂'
+      });
+      if (!ok) return;
       await sb.from('categories').delete().eq('id', cat.id);
       await reloadColecoes(); showToast('Categoria excluída.'); return;
     }
@@ -6287,6 +6409,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   async function reloadColecoes(){
     await loadColecoes();
+    await limparFranquiasOrfas();
     if (currentView==='colecoes') renderColecoes();
   }
 
@@ -8738,6 +8861,134 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     render();
   }
 
+  // Exclui um projeto por completo: entradas, fichas órfãs, metadados,
+  // vínculo de franquia (apagando a franquia se ela ficar sem projetos),
+  // capa e todos os caches locais. Usado tanto pelo modal do projeto quanto
+  // pelos botões de excluir dentro de Coleções/Franquias.
+  // Retorna {ok, fichasApagadas, franquiaApagada, error}
+  async function excluirProjetoCompleto(project){
+    try {
+      const projLower = project.trim().toLowerCase();
+
+      // Calcula fichas que ficariam órfãs (só existem neste projeto) ANTES de apagar
+      const pessoasNoProjeto = mainPeople().filter(p =>
+        p.entries.some(e => (e.project||'').trim().toLowerCase() === projLower)
+      );
+      const fichasOrfas = pessoasNoProjeto.filter(p =>
+        p.entries.every(e => (e.project||'').trim().toLowerCase() === projLower)
+      );
+
+      // Descobre a franquia vinculada direto do banco (não confia só no cache local,
+      // que pode estar desatualizado e causar órfãs que não somem)
+      let frIdVinculada = null;
+      try {
+        const { data: pfRow } = await sb.from('project_franchise')
+          .select('franchise_id').eq('project', project).maybeSingle();
+        frIdVinculada = pfRow ? pfRow.franchise_id : null;
+      } catch(e){ frIdVinculada = projectFranchise[project] || null; }
+
+      // 1. Remove todas as entradas do projeto
+      await sb.from('entries').delete().eq('project', project);
+
+      // 2. Remove fichas órfãs (pessoas que só existiam nesse projeto)
+      for (const p of fichasOrfas){
+        try {
+          await deletePhoto(p.id);
+          await sb.from('people').delete().eq('id', p.id);
+        } catch(e){ console.warn('Deletar órfã:', e); }
+      }
+
+      // 3. Remove metadados do projeto
+      try { await sb.from('project_meta').delete().eq('project', project); } catch(e){}
+      try { await sb.from('project_categories').delete().eq('project', project); } catch(e){}
+      try { await sb.from('project_franchise').delete().eq('project', project); } catch(e){}
+      try { await sb.from('project_season').delete().eq('project', project); } catch(e){}
+      try { await sb.from('dub_order').delete().eq('project', project); } catch(e){}
+      try { await sb.from('project_participants').delete().eq('project', project); } catch(e){}
+
+      // 4. Remove capa do storage
+      try {
+        const key = PROJ_COVER_PREFIX + projKey(project);
+        await sb.storage.from(COVER_BUCKET).remove([key + '.jpg']);
+        delete coverCache[key];
+      } catch(e){}
+
+      // 5. Se estava vinculado a uma franquia, verifica DIRETO NO BANCO (não no cache)
+      // se restam outros projetos nela. Se não restar nenhum, apaga a franquia também.
+      let franquiaApagada = false;
+      if (frIdVinculada){
+        try {
+          const { data: outros } = await sb.from('project_franchise')
+            .select('project').eq('franchise_id', frIdVinculada);
+          if (!outros || outros.length === 0){
+            await sb.storage.from(COVER_BUCKET).remove(['fr_'+frIdVinculada+'.jpg']);
+            await sb.from('franchises').delete().eq('id', frIdVinculada);
+            franchises = franchises.filter(f => f.id !== frIdVinculada);
+            delete coverCache['fr_'+frIdVinculada];
+            franquiaApagada = true;
+          }
+        } catch(e){ console.warn('Apagar franquia:', e); }
+      }
+
+      // Limpa caches locais (cobre qualquer variação de case que possa existir)
+      [projectMeta, projectCats, projectFranchise, projectSeason, dubOrder, projectParticipants].forEach(obj => {
+        Object.keys(obj).forEach(k => { if (k.trim().toLowerCase() === projLower) delete obj[k]; });
+      });
+
+      await loadPeople();
+      await loadProjectMeta();
+      await loadColecoes();
+      invalidarCacheSimilares();
+
+      return { ok:true, fichasApagadas: fichasOrfas.length, franquiaApagada };
+    } catch(err){
+      console.error('excluirProjetoCompleto:', err);
+      return { ok:false, error: err };
+    }
+  }
+
+  // Limpeza automática de franquias órfãs: roda toda vez que as coleções carregam.
+  // Se um projeto foi apagado (por qualquer via) e deixou um vínculo perdido em
+  // project_franchise, remove esse vínculo. Se a franquia ficar sem NENHUM projeto
+  // real e o nome dela bater com o do projeto apagado (padrão das franquias-espelho
+  // criadas automaticamente), apaga a franquia também.
+  async function limparFranquiasOrfas(){
+    try {
+      const projetosReais = new Set(todosOsProjetos().map(p => p.trim().toLowerCase()));
+      const linksOrfaos = Object.keys(projectFranchise).filter(p => !projetosReais.has(p.trim().toLowerCase()));
+      if (linksOrfaos.length === 0) return;
+
+      const porFranquia = {};
+      linksOrfaos.forEach(p => {
+        const frId = projectFranchise[p];
+        (porFranquia[frId] = porFranquia[frId] || []).push(p);
+      });
+
+      for (const p of linksOrfaos){
+        try { await sb.from('project_franchise').delete().eq('project', p); } catch(e){}
+        delete projectFranchise[p];
+      }
+
+      for (const frId of Object.keys(porFranquia)){
+        const restantes = Object.keys(projectFranchise).filter(p => projectFranchise[p] === frId);
+        if (restantes.length === 0){
+          const fr = franchises.find(f => f.id === frId);
+          if (!fr) continue;
+          const nomesOrfaos = porFranquia[frId].map(p => p.trim().toLowerCase());
+          const pareceMirror = nomesOrfaos.includes((fr.name||'').trim().toLowerCase());
+          if (pareceMirror){
+            try {
+              await sb.storage.from(COVER_BUCKET).remove(['fr_'+frId+'.jpg']);
+              await sb.from('franchises').delete().eq('id', frId);
+            } catch(e){}
+            franchises = franchises.filter(f => f.id !== frId);
+            delete coverCache['fr_'+frId];
+          }
+        }
+      }
+    } catch(e){ console.warn('Limpar franquias órfãs:', e); }
+  }
+
   async function openProjetoModal(project){    const ov = ensureColOverlay();
     const pairs = orderedVoicesForProject(project);
     const url = projCoverUrl(project);
@@ -8896,67 +9147,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
       btnDelProj.disabled = true;
       btnDelProj.textContent = 'Excluindo…';
-      try {
-        // 1. Remove todas as entradas do projeto
-        await sb.from('entries').delete().eq('project', project);
-
-        // 2. Remove fichas órfãs (pessoas que só existiam nesse projeto)
-        for (const p of fichasOrfas){
-          try {
-            await deletePhoto(p.id);
-            await sb.from('people').delete().eq('id', p.id);
-          } catch(e){ console.warn('Deletar órfã:', e); }
-        }
-
-        // 3. Remove project_meta, project_categories, project_franchise, project_season, dub_order, project_participants
-        try { await sb.from('project_meta').delete().eq('project', project); } catch(e){}
-        try { await sb.from('project_categories').delete().eq('project', project); } catch(e){}
-        try { await sb.from('project_franchise').delete().eq('project', project); } catch(e){}
-        try { await sb.from('project_season').delete().eq('project', project); } catch(e){}
-        try { await sb.from('dub_order').delete().eq('project', project); } catch(e){}
-        try { await sb.from('project_participants').delete().eq('project', project); } catch(e){}
-
-        // 4. Remove capa do storage
-        try {
-          const key = PROJ_COVER_PREFIX + projKey(project);
-          await sb.storage.from(COVER_BUCKET).remove([key + '.jpg']);
-          delete coverCache[key];
-        } catch(e){}
-
-        // 5. Se estava vinculado a franquia que só tinha esse projeto, apaga franquia também
-        const frIdVinculada = projectFranchise[project];
-        if (frIdVinculada){
-          const outrosProjs = Object.keys(projectFranchise).filter(p => p !== project && projectFranchise[p] === frIdVinculada);
-          if (outrosProjs.length === 0){
-            try {
-              await sb.storage.from(COVER_BUCKET).remove(['fr_'+frIdVinculada+'.jpg']);
-              await sb.from('franchises').delete().eq('id', frIdVinculada);
-              franchises = franchises.filter(f => f.id !== frIdVinculada);
-              delete coverCache['fr_'+frIdVinculada];
-            } catch(e){ console.warn('Apagar franquia:', e); }
-          }
-        }
-
-        // Limpa caches locais
-        delete projectMeta[project];
-        delete projectCats[project];
-        delete projectFranchise[project];
-        delete projectSeason[project];
-        delete dubOrder[project];
-        delete projectParticipants[project];
-
+      const res = await excluirProjetoCompleto(project);
+      if (res.ok){
         ov.classList.remove('open');
-        await loadPeople();
-        await loadProjectMeta();
-        await loadColecoes();
-        invalidarCacheSimilares();
         renderProjetos();
         if (currentView === 'home') renderHome();
         if (currentView === 'colecoes') renderColecoes();
         showToast(`✅ Projeto "${project}" excluído.`);
-      } catch(err){
-        console.error(err);
-        showToast('Erro ao excluir: '+(err.message||''));
+      } else {
+        showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
         btnDelProj.disabled = false;
         btnDelProj.textContent = '🗑️ Excluir projeto';
       }
