@@ -3597,8 +3597,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return r ? r.value : 'prod';
   }
 
-  async function openModal(personId){
+  // Quando true, o modal Nova ficha não mostra o bloco "Colegas de cena" —
+  // usado quando o modal é aberto de dentro de um projeto específico (via
+  // "✨ Criar nova ficha"), onde esse bloco não faz sentido: o admin já sabe
+  // exatamente qual pessoa quer cadastrar, não está montando o elenco do zero.
+  let modalSemSugestoesColegas = false;
+
+  async function openModal(personId, opts={}){
     editingId = personId || null;
+    modalSemSugestoesColegas = !!opts.suprimirSugestoesColegas;
     const person = editingId ? people.find(p => p.id === editingId) : null;
     const isEditing = !!person;
 
@@ -3878,13 +3885,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   function renderAcDropdown(query){
     if (!query || query.length < 2){ closeAcDropdown(); return; }
-    const q = query.toLowerCase();
-    const matches = visiblePeople()
-      .filter(p => p.name.toLowerCase().includes(q) && (!editingId || p.id !== editingId))
-      .slice(0, 8);
-    if (!matches.length){ closeAcDropdown(); return; }
-    acDropdown.innerHTML = matches.map(p => {
-      const projs = p.entries.length;
+    // Usa a mesma detecção inteligente do popup de duplicatas (exato + parcial +
+    // Levenshtein), assim já sugere nomes parecidos enquanto digita, não só
+    // quando o texto digitado é literalmente um pedaço do nome existente.
+    const similares = detectarFichasSimilares(query).filter(p => !editingId || p.id !== editingId);
+    if (!similares.length){ closeAcDropdown(); return; }
+    acDropdown.innerHTML = similares.map(p => {
+      const projs = (p.entries||[]).length;
       return `<div class="ac-item" data-ac-id="${p.id}">
         <div>
           <div class="ac-name">${escapeHtml(p.name)}</div>
@@ -4133,6 +4140,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function renderSugestoesColegas(){
     const suges = $('#sugestoesBloco');
     if (!suges) return;
+
+    // Bloco desativado (modal aberto de dentro de um projeto específico) — não mostra nada.
+    if (modalSemSugestoesColegas){
+      suges.style.display = 'none';
+      suges.innerHTML = '';
+      sugestoesDisponiveis = [];
+      sugestoesMarcadas = new Set();
+      return;
+    }
 
     const nomeAtual = ($('#nameInput').value||'').trim();
     const projAtual = ($('#projMainInput').value||'').trim();
@@ -9542,7 +9558,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const btnCriarNova = $('#btnCriarNovaFicha');
       if (btnCriarNova) btnCriarNova.addEventListener('click', ()=>{
         ov.classList.remove('open');
-        openModal(null);
+        // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
+        // cadastrar, não precisa de sugestões de elenco — isso já existe
+        // diretamente no modal do projeto (bloco de sugestões próprio).
+        openModal(null, { suprimirSugestoesColegas: true });
         // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
         setTimeout(()=>{
           const projInp = $('#projMainInput');
