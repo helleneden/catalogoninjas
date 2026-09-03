@@ -5506,6 +5506,29 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       seasons = sRes.data || [];
       projectSeason = {};
       (psRes.data || []).forEach(r => { projectSeason[r.project] = r.season_id; });
+
+      // MIGRAÇÃO AUTOMÁTICA (one-shot):
+      // Se existir franquia com nome "Geral" com apenas 1 projeto vinculado,
+      // renomeia ela pro nome do projeto (pra o projeto aparecer direto na coleção
+      // sem uma "pasta Geral" desnecessária).
+      try {
+        const projetosPorFranquia = {};
+        Object.entries(projectFranchise).forEach(([proj, frId]) => {
+          if (!projetosPorFranquia[frId]) projetosPorFranquia[frId] = [];
+          projetosPorFranquia[frId].push(proj);
+        });
+        for (const fr of franchises){
+          if ((fr.name||'').trim().toLowerCase() === 'geral'){
+            const projs = projetosPorFranquia[fr.id] || [];
+            if (projs.length === 1){
+              // Renomeia pra o nome do único projeto
+              const novoNome = projs[0];
+              await sb.from('franchises').update({ name: novoNome }).eq('id', fr.id);
+              fr.name = novoNome;
+            }
+          }
+        }
+      } catch(e){ console.warn('Migração franquia Geral:', e); }
     }catch(e){ categories=[]; franchises=[]; projectFranchise={}; seasons=[]; projectSeason={}; }
   }
 
@@ -7440,6 +7463,31 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           } catch(e){ console.warn('Criar franquia:', e); }
         } else if (state.franquiaId){
           franquiaFinalId = state.franquiaId;
+        } else if (state.colecaoId){
+          // Admin escolheu coleção mas nenhuma franquia → cria franquia com o nome do projeto
+          // (assim ele aparece direto na coleção sem uma "pasta Geral")
+          try {
+            const projLower = state.nome.trim().toLowerCase();
+            const jaExiste = (franchises||[]).find(f =>
+              f.category_id === state.colecaoId &&
+              (f.name||'').trim().toLowerCase() === projLower
+            );
+            if (jaExiste){
+              franquiaFinalId = jaExiste.id;
+            } else {
+              const { data: novaFr, error: errFr } = await sb.from('franchises')
+                .insert({
+                  category_id: state.colecaoId,
+                  name: state.nome,
+                  sort_order: (franchises||[]).filter(f => f.category_id === state.colecaoId).length
+                })
+                .select().single();
+              if (!errFr && novaFr){
+                franchises = [...(franchises||[]), novaFr];
+                franquiaFinalId = novaFr.id;
+              }
+            }
+          } catch(e){ console.warn('Criar franquia com nome do projeto:', e); }
         }
         if (franquiaFinalId){
           try {
@@ -8755,24 +8803,31 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           } catch(e){ showToast('Erro: '+e.message); }
           return;
         }
-        // Vincular projeto à coleção — mas project_franchise precisa de franquia
-        // Solução: criar/usar franquia "geral" com o nome da coleção
-        // Melhor: apenas atualizar o select de franquias e pedir pro admin selecionar/criar uma
+        // Vincular projeto à coleção.
+        // Como a estrutura do banco exige que projeto esteja dentro de uma franquia,
+        // e o usuário quer que o projeto apareça direto na coleção sem "pasta Geral",
+        // criamos uma franquia com o MESMO NOME DO PROJETO (uma franquia por projeto).
+        // Assim visualmente aparece direto o card do projeto na coleção.
         try {
-          // Se admin escolheu só a coleção sem franquia, cria/usa uma franquia default
-          const fransDaCol = (franchises||[]).filter(f => f.category_id === catId);
-          let franquiaId;
-          if (fransDaCol.length === 0){
-            // Cria franquia "Geral" pra vincular
+          // Já existe uma franquia com o nome do projeto nessa coleção?
+          const projLower = project.trim().toLowerCase();
+          let franquiaId = ((franchises||[]).find(f =>
+            f.category_id === catId &&
+            (f.name||'').trim().toLowerCase() === projLower
+          ) || {}).id;
+
+          if (!franquiaId){
+            // Cria franquia com o nome do projeto
             const { data: nf, error: efn } = await sb.from('franchises')
-              .insert({ category_id: catId, name: 'Geral', sort_order: 0 })
+              .insert({
+                category_id: catId,
+                name: project,
+                sort_order: (franchises||[]).filter(f => f.category_id === catId).length
+              })
               .select().single();
             if (efn || !nf) throw (efn || new Error('erro'));
             franchises = [...(franchises||[]), nf];
             franquiaId = nf.id;
-          } else {
-            // Usa a primeira franquia como fallback (admin pode ajustar depois)
-            franquiaId = fransDaCol[0].id;
           }
           await sb.from('project_franchise').upsert(
             { project, franchise_id: franquiaId },
