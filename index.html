@@ -308,6 +308,22 @@
   @media(max-width:640px){ .painel-grid{ grid-template-columns:1fr; } }
   .painel-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
   .painel-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
+  .backup-status{
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .backup-status.ok{
+    background: rgba(22,163,74,.08);
+    border: 1px solid rgba(22,163,74,.25);
+    color: #15803D;
+  }
+  .backup-status.warn{
+    background: rgba(245,158,11,.10);
+    border: 1px solid rgba(245,158,11,.35);
+    color: #92400E;
+  }
 
   /* Pódio */
   .podio-wrap{ display:flex; flex-direction:column; align-items:center; gap:6px; padding:6px 0 10px; }
@@ -2520,6 +2536,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   </div>
 
   <div id="similarNotice" style="display:none;"></div>
+  <div id="backupNotice" style="display:none;"></div>
   <div id="statPlates" class="stat-plates"></div>
 </header>
 
@@ -2827,6 +2844,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let audiobooks = [];        // [{id,title,author,in_production,archived,has_cover,voices:[...]}]
   let audiobooksFilter = 'producao';
   let projectParticipants = {}; // project -> [{user_id, display_name, ninja_color}]
+  let backupLog = { last_backup_at: null, last_backup_by: null }; // último backup registrado
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -2905,6 +2923,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadParticipants(),
       loadAgenda(),
       loadChat(),
+      loadBackupLog(),
     ]);
     projectCats = {};
     (catRes.data || []).forEach(r => { projectCats[r.project] = r.category; });
@@ -2917,6 +2936,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     invalidarCacheSimilares();
     render();
     checaNotificacaoSimilares();
+    checaNotificacaoBackup();
     if (currentView === 'home') renderHome();
     else if (currentView === 'colecoes') renderColecoes();
     else if (currentView === 'projetos') renderProjetos();
@@ -4797,6 +4817,49 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       notice.style.display = 'none';
     };
     document.getElementById('similarNoticeX').onclick = () => {
+      localStorage.setItem(LS_KEY, String(Date.now()));
+      notice.style.display = 'none';
+    };
+  }
+
+  // Avisa o admin (com um banner discreto) quando o backup está atrasado (30+ dias
+  // ou nunca foi feito). Reaparece a cada 7 dias mesmo se fechado, até que o admin
+  // realmente faça um backup nesta sessão ou noutra.
+  function checaNotificacaoBackup(){
+    const notice = document.getElementById('backupNotice');
+    if (!notice) return;
+    if (!isAdmin){ notice.style.display = 'none'; return; }
+
+    const dias = diasDesdeUltimoBackup();
+    if (dias < 30){ notice.style.display = 'none'; return; }
+
+    const LS_KEY = 'backup_notice_dismissed';
+    const dismissed = Number(localStorage.getItem(LS_KEY) || 0);
+    const DIAS_COOLDOWN = 7 * 24 * 60 * 60 * 1000; // reaparece a cada 7 dias
+    if (Date.now() - dismissed < DIAS_COOLDOWN){ notice.style.display = 'none'; return; }
+
+    const nuncaFez = dias === Infinity;
+    notice.innerHTML = `
+      <div class="similar-notice">
+        <span class="similar-notice-ic">📦</span>
+        <div class="similar-notice-body">
+          <b>${nuncaFez ? 'Nenhum backup foi feito ainda' : `Já se passaram ${dias} dias desde o último backup`}</b><br>
+          <span style="font-size:12px;color:var(--muted);">Recomendado baixar um backup completo pelo menos 1x a cada 30 dias.</span>
+        </div>
+        <button class="similar-notice-cta" id="backupNoticeCta">Fazer agora</button>
+        <button class="similar-notice-x" id="backupNoticeX" title="Fechar (7 dias)">✕</button>
+      </div>`;
+    notice.style.display = 'block';
+    document.getElementById('backupNoticeCta').onclick = () => {
+      switchView('painel');
+      setTimeout(() => {
+        const btn = document.getElementById('btnFazerBackup');
+        if (btn) btn.scrollIntoView({behavior:'smooth', block:'center'});
+      }, 150);
+      localStorage.setItem(LS_KEY, String(Date.now()));
+      notice.style.display = 'none';
+    };
+    document.getElementById('backupNoticeX').onclick = () => {
       localStorage.setItem(LS_KEY, String(Date.now()));
       notice.style.display = 'none';
     };
@@ -7054,6 +7117,114 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         (projectParticipants[r.project] = projectParticipants[r.project]||[]).push(r);
       });
     }catch(e){ projectParticipants = {}; }
+  }
+
+  // Carrega quando foi o último backup (pra avisar se está atrasado)
+  async function loadBackupLog(){
+    try{
+      const { data } = await sb.from('backup_log')
+        .select('*').order('last_backup_at', { ascending:false }).limit(1).maybeSingle();
+      backupLog = data || { last_backup_at:null, last_backup_by:null };
+    }catch(e){ backupLog = { last_backup_at:null, last_backup_by:null }; }
+  }
+
+  // Quantos dias desde o último backup (Infinity se nunca foi feito)
+  function diasDesdeUltimoBackup(){
+    if (!backupLog || !backupLog.last_backup_at) return Infinity;
+    const dif = Date.now() - new Date(backupLog.last_backup_at).getTime();
+    return Math.floor(dif / (1000*60*60*24));
+  }
+
+  // Exporta TODAS as tabelas do app num único arquivo JSON e baixa pro computador.
+  // Depois registra em backup_log que o backup foi feito agora.
+  async function exportarBackupCompleto(btn){
+    if (btn){ btn.disabled = true; btn.textContent = 'Gerando backup…'; }
+    try {
+      const [
+        peopleRes, catsRes, frsRes, pfRes, seasonsRes, psRes,
+        pmRes, pcRes, ppRes, doRes,
+        abRes, avRes, ratingsRes, commentsRes, adminsRes, profilesRes,
+        agendaRes, chatRes
+      ] = await Promise.all([
+        sb.from('people').select('id, name, has_photo, entries ( id, project, voice, date )'),
+        sb.from('categories').select('*'),
+        sb.from('franchises').select('*'),
+        sb.from('project_franchise').select('*'),
+        sb.from('seasons').select('*'),
+        sb.from('project_season').select('*'),
+        sb.from('project_meta').select('*'),
+        sb.from('project_categories').select('*'),
+        sb.from('project_participants').select('*'),
+        sb.from('dub_order').select('*'),
+        sb.from('audiobooks').select('*'),
+        sb.from('audiobook_voices').select('*'),
+        sb.from('voice_user_ratings').select('*'),
+        sb.from('voice_comments').select('*'),
+        sb.from('admins').select('*'),
+        sb.from('profiles').select('*'),
+        sb.from('agenda_notes').select('*'),
+        sb.from('chat_messages').select('*'),
+      ]);
+
+      const backup = {
+        gerado_em: new Date().toISOString(),
+        gerado_por: myEmail || 'desconhecido',
+        versao_app: 'ninjas-vozes-v2',
+        tabelas: {
+          people: peopleRes.data || [],
+          categories: catsRes.data || [],
+          franchises: frsRes.data || [],
+          project_franchise: pfRes.data || [],
+          seasons: seasonsRes.data || [],
+          project_season: psRes.data || [],
+          project_meta: pmRes.data || [],
+          project_categories: pcRes.data || [],
+          project_participants: ppRes.data || [],
+          dub_order: doRes.data || [],
+          audiobooks: abRes.data || [],
+          audiobook_voices: avRes.data || [],
+          voice_user_ratings: ratingsRes.data || [],
+          voice_comments: commentsRes.data || [],
+          admins: adminsRes.data || [],
+          profiles: profilesRes.data || [],
+          agenda_notes: agendaRes.data || [],
+          chat_messages: chatRes.data || [],
+        }
+      };
+
+      const totalLinhas = Object.values(backup.tabelas).reduce((s, arr) => s + (arr?.length||0), 0);
+
+      // Gera o arquivo e dispara o download
+      const json = JSON.stringify(backup, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const dataStr = new Date().toISOString().slice(0,10);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-catalogo-ninjas-${dataStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+      // Registra no banco que o backup foi feito agora
+      try {
+        await sb.from('backup_log').insert({
+          last_backup_at: new Date().toISOString(),
+          last_backup_by: myEmail || null,
+          rows_count: totalLinhas
+        });
+        await loadBackupLog();
+      } catch(e){ console.warn('Registrar backup_log:', e); }
+
+      showToast(`✅ Backup baixado! (${totalLinhas} linhas no total)`);
+      if (currentView === 'painel') renderPainel();
+    } catch(err){
+      console.error('exportarBackupCompleto:', err);
+      showToast('Erro ao gerar backup: '+(err.message||''));
+    } finally {
+      if (btn){ btn.disabled = false; btn.textContent = '⬇️ Baixar backup completo agora'; }
+    }
   }
 
   // Eu participei deste projeto?
@@ -10162,16 +10333,48 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
+    const backupPanel = isAdmin ? renderBackupPanel() : '';
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
         ${renderChat()}
       </div>
       ${renderAgenda()}
+      ${backupPanel}
       ${adminPanel}`;
     const msgs = $('#chatMsgs');
     if (msgs) msgs.scrollTop = msgs.scrollHeight;
     wirePainelEvents();
+    const btnBackup = $('#btnFazerBackup');
+    if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
+  }
+
+  // Painel de backup — visível pra qualquer admin, mostra há quantos dias foi
+  // o último backup e deixa baixar um novo a qualquer momento.
+  function renderBackupPanel(){
+    const dias = diasDesdeUltimoBackup();
+    const atrasado = dias >= 30;
+    const nuncaFez = dias === Infinity;
+    const dataFormatada = backupLog.last_backup_at
+      ? new Date(backupLog.last_backup_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })
+      : null;
+
+    const statusHtml = nuncaFez
+      ? `<div class="backup-status warn">⚠️ Nenhum backup foi feito ainda.</div>`
+      : atrasado
+        ? `<div class="backup-status warn">⚠️ Já se passaram <b>${dias} dias</b> desde o último backup (${escapeHtml(dataFormatada)}). Recomendamos fazer um agora.</div>`
+        : `<div class="backup-status ok">✓ Último backup há ${dias} dia${dias===1?'':'s'} (${escapeHtml(dataFormatada)})${backupLog.last_backup_by?` · por ${escapeHtml(backupLog.last_backup_by)}`:''}.</div>`;
+
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">📦 Backup dos dados</div>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;">
+          Baixa um arquivo com TODOS os dados do catálogo (fichas, projetos, coleções, avaliações, comentários...).
+          Recomendado pelo menos <b>1x a cada 30 dias</b>, e guardar em algum lugar seguro (Google Drive, computador, etc).
+        </p>
+        ${statusHtml}
+        <button class="btn-primary" id="btnFazerBackup" style="margin-top:12px;width:100%;justify-content:center;">⬇️ Baixar backup completo agora</button>
+      </div>`;
   }
 
   function renderAdminPanel(){
