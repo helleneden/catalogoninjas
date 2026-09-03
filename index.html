@@ -5579,7 +5579,37 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function swatchClass(i){ return 'cover-swatch-' + SWATCHES[i % SWATCHES.length]; }
 
   function coverBlock(kind, id, idx, icon){
-    const url = coverUrl(kind, id);
+    let url = coverUrl(kind, id);
+
+    // Fallback inteligente para FRANQUIAS: se a franquia representa apenas 1 projeto
+    // (comportamento novo do sistema), reutiliza a capa desse projeto.
+    // Assim a capa fica unificada em: projeto ↔ franquia (única capa, única imagem).
+    if (!url && kind === 'fr'){
+      const projs = projectsOfFranchise(id);
+      if (projs.length === 1){
+        const projUrl = coverUrl('proj', projKey(projs[0]));
+        if (projUrl) url = projUrl;
+      }
+    }
+
+    // Fallback inteligente para COLEÇÕES: se a categoria tem apenas 1 franquia,
+    // usa a capa dessa franquia (que pode ser a do projeto, com o fallback acima)
+    if (!url && kind === 'cat'){
+      const frs = franchises.filter(f => f.category_id === id);
+      if (frs.length === 1){
+        // Tenta capa da franquia primeiro
+        let frUrl = coverUrl('fr', frs[0].id);
+        if (!frUrl){
+          // Fallback pro projeto da franquia
+          const projs = projectsOfFranchise(frs[0].id);
+          if (projs.length === 1){
+            frUrl = coverUrl('proj', projKey(projs[0]));
+          }
+        }
+        if (frUrl) url = frUrl;
+      }
+    }
+
     if (url){
       return `<div class="col-cover"><img src="${escapeHtml(url)}" alt="" onerror="this.parentNode.classList.add('${swatchClass(idx)}'); this.remove();"></div>`;
     }
@@ -6146,8 +6176,42 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (fr){ await sb.from('franchises').update({name, category_id:catSel}).eq('id',fr.id); }
       else { const {data}=await sb.from('franchises').insert({name, category_id:catSel, sort_order:franchises.length}).select('id').single(); id=data?data.id:null; }
       // capa
-      if (id && pendingCover===null){ await sb.storage.from(COVER_BUCKET).remove(['fr_'+id+'.jpg']); await sb.from('franchises').update({has_cover:false}).eq('id',id); }
-      else if (id && typeof pendingCover==='string'){ const ok=await saveCover('fr',id,pendingCover); await sb.from('franchises').update({has_cover:ok}).eq('id',id); }
+      if (id && pendingCover===null){
+        await sb.storage.from(COVER_BUCKET).remove(['fr_'+id+'.jpg']);
+        await sb.from('franchises').update({has_cover:false}).eq('id',id);
+        // Se a franquia representa 1 projeto, remove capa do projeto também (mantém unificado)
+        const projs = projectsOfFranchise(id);
+        if (projs.length === 1){
+          try {
+            await sb.storage.from(COVER_BUCKET).remove([PROJ_COVER_PREFIX + projKey(projs[0]) + '.jpg']);
+            await sb.from('project_meta').update({has_cover:false}).eq('project', projs[0]);
+            if (projectMeta[projs[0]]) projectMeta[projs[0]].has_cover = false;
+            delete coverCache['proj_' + projKey(projs[0])];
+          } catch(e){}
+        }
+      }
+      else if (id && typeof pendingCover==='string'){
+        const ok=await saveCover('fr',id,pendingCover);
+        await sb.from('franchises').update({has_cover:ok}).eq('id',id);
+        // Se a franquia representa 1 projeto, também salva como capa do projeto (unificado)
+        const projs = projectsOfFranchise(id);
+        if (ok && projs.length === 1){
+          try {
+            const proj = projs[0];
+            const blob = dataUrlToBlob(pendingCover);
+            const path = PROJ_COVER_PREFIX + projKey(proj) + '.jpg';
+            try{ await sb.storage.from(COVER_BUCKET).remove([path]); }catch(e){}
+            let { error } = await sb.storage.from(COVER_BUCKET).upload(path, blob, { upsert:true, contentType:'image/jpeg', cacheControl:'1' });
+            if (error){ const r2 = await sb.storage.from(COVER_BUCKET).update(path, blob, { contentType:'image/jpeg' }); error = r2.error; }
+            if (!error){
+              await sb.from('project_meta').upsert({ project: proj, has_cover: true }, { onConflict: 'project' });
+              if (!projectMeta[proj]) projectMeta[proj] = {};
+              projectMeta[proj].has_cover = true;
+              delete coverCache['proj_' + projKey(proj)];
+            }
+          } catch(e){ console.warn('Sincronizar capa projeto:', e); }
+        }
+      }
       // projetos vinculados: remove os desmarcados desta franquia, adiciona os marcados
       if (id){
         const checks=[...picker.querySelectorAll('input[type=checkbox]')];
@@ -8643,6 +8707,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
 
         <div class="modal-actions">
+          ${isAdmin?`<button class="btn-danger" id="projDelete" style="margin-right:auto;">🗑️ Excluir projeto</button>`:''}
           <button class="btn-ghost" id="projClose">Fechar</button>
           ${isAdmin?`<button class="btn-primary" id="projSaveOrder">Salvar ordem</button>`:''}
         </div>
@@ -8652,6 +8717,107 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     wireParticipantesBox(project);
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+
+    // Botão excluir projeto (só admin)
+    const btnDelProj = $('#projDelete');
+    if (btnDelProj) btnDelProj.addEventListener('click', async () => {
+      // Conta o que será apagado
+      const pessoasNoProjeto = mainPeople().filter(p =>
+        p.entries.some(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase())
+      );
+      const totalEntradas = mainPeople().reduce((sum, p) =>
+        sum + p.entries.filter(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase()).length, 0
+      );
+      // Fichas que ficariam órfãs (só existem neste projeto)
+      const fichasOrfas = pessoasNoProjeto.filter(p =>
+        p.entries.every(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase())
+      );
+
+      const detalhes = `
+        <b style="color:var(--ink);">"${escapeHtml(project)}"</b><br>
+        <span style="font-size:12px;">
+          • ${totalEntradas} entrada${totalEntradas===1?'':'s'} de dublagem<br>
+          • ${fichasOrfas.length > 0 ? `<span style="color:#DC2626;font-weight:600;">${fichasOrfas.length} ficha${fichasOrfas.length===1?'':'s'} será${fichasOrfas.length===1?'':'ão'} apagada${fichasOrfas.length===1?'':'s'}</span> (só ${fichasOrfas.length===1?'existe':'existem'} aqui)` : 'Nenhuma ficha vai ser perdida (todas têm outros projetos)'}<br>
+          • Capa, tipo, coleção/franquia — tudo será removido
+        </span>
+      `;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir este projeto?',
+        mensagem: detalhes,
+        destaque: 'Esta ação não pode ser desfeita.',
+        textoBotao: '🗑️ Sim, excluir projeto',
+        corBotao: '#DC2626',
+        icone: '⚠️'
+      });
+      if (!ok) return;
+
+      btnDelProj.disabled = true;
+      btnDelProj.textContent = 'Excluindo…';
+      try {
+        // 1. Remove todas as entradas do projeto
+        await sb.from('entries').delete().eq('project', project);
+
+        // 2. Remove fichas órfãs (pessoas que só existiam nesse projeto)
+        for (const p of fichasOrfas){
+          try {
+            await deletePhoto(p.id);
+            await sb.from('people').delete().eq('id', p.id);
+          } catch(e){ console.warn('Deletar órfã:', e); }
+        }
+
+        // 3. Remove project_meta, project_categories, project_franchise, project_season, dub_order, project_participants
+        try { await sb.from('project_meta').delete().eq('project', project); } catch(e){}
+        try { await sb.from('project_categories').delete().eq('project', project); } catch(e){}
+        try { await sb.from('project_franchise').delete().eq('project', project); } catch(e){}
+        try { await sb.from('project_season').delete().eq('project', project); } catch(e){}
+        try { await sb.from('dub_order').delete().eq('project', project); } catch(e){}
+        try { await sb.from('project_participants').delete().eq('project', project); } catch(e){}
+
+        // 4. Remove capa do storage
+        try {
+          const key = PROJ_COVER_PREFIX + projKey(project);
+          await sb.storage.from(COVER_BUCKET).remove([key + '.jpg']);
+          delete coverCache[key];
+        } catch(e){}
+
+        // 5. Se estava vinculado a franquia que só tinha esse projeto, apaga franquia também
+        const frIdVinculada = projectFranchise[project];
+        if (frIdVinculada){
+          const outrosProjs = Object.keys(projectFranchise).filter(p => p !== project && projectFranchise[p] === frIdVinculada);
+          if (outrosProjs.length === 0){
+            try {
+              await sb.storage.from(COVER_BUCKET).remove(['fr_'+frIdVinculada+'.jpg']);
+              await sb.from('franchises').delete().eq('id', frIdVinculada);
+              franchises = franchises.filter(f => f.id !== frIdVinculada);
+              delete coverCache['fr_'+frIdVinculada];
+            } catch(e){ console.warn('Apagar franquia:', e); }
+          }
+        }
+
+        // Limpa caches locais
+        delete projectMeta[project];
+        delete projectCats[project];
+        delete projectFranchise[project];
+        delete projectSeason[project];
+        delete dubOrder[project];
+        delete projectParticipants[project];
+
+        ov.classList.remove('open');
+        await loadPeople();
+        await loadProjectMeta();
+        await loadColecoes();
+        invalidarCacheSimilares();
+        renderProjetos();
+        if (currentView === 'home') renderHome();
+        if (currentView === 'colecoes') renderColecoes();
+        showToast(`✅ Projeto "${project}" excluído.`);
+      } catch(err){
+        console.error(err);
+        showToast('Erro ao excluir: '+(err.message||''));
+        btnDelProj.disabled = false;
+        btnDelProj.textContent = '🗑️ Excluir projeto';
+      }
+    });
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
 
@@ -8700,7 +8866,29 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           const blob=dataUrlToBlob(d);
           let {error}=await sb.storage.from(COVER_BUCKET).upload(key+'.jpg',blob,{upsert:true,contentType:'image/jpeg'});
           if(error){ const r2=await sb.storage.from(COVER_BUCKET).update(key+'.jpg',blob,{contentType:'image/jpeg'}); error=r2.error; }
-          if(!error){ delete coverCache[key]; await sb.from('project_meta').upsert({project, has_cover:true, updated_at:new Date().toISOString()},{onConflict:'project'}); showToast('Capa salva.'); }
+          if(!error){
+            delete coverCache[key];
+            await sb.from('project_meta').upsert({project, has_cover:true, updated_at:new Date().toISOString()},{onConflict:'project'});
+
+            // Sincronia: se o projeto está vinculado a uma franquia com apenas esse projeto,
+            // apaga a capa dela pra o fallback usar a nova capa do projeto automaticamente.
+            // Assim a "fonte da verdade" da capa fica sempre no projeto.
+            try {
+              const frId = projectFranchise[project];
+              if (frId){
+                const projs = projectsOfFranchise(frId);
+                if (projs.length === 1){
+                  await sb.storage.from(COVER_BUCKET).remove(['fr_'+frId+'.jpg']);
+                  await sb.from('franchises').update({has_cover:false}).eq('id', frId);
+                  const fr = franchises.find(x => x.id === frId);
+                  if (fr) fr.has_cover = false;
+                  delete coverCache['fr_'+frId];
+                }
+              }
+            } catch(err){ console.warn('Sync capa franquia:', err); }
+
+            showToast('Capa salva.');
+          }
           else showToast('Erro ao salvar capa.');
         }catch(err){ showToast('Não consegui processar a imagem.'); }
         e.target.value='';
