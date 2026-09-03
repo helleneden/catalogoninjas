@@ -3603,9 +3603,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // exatamente qual pessoa quer cadastrar, não está montando o elenco do zero.
   let modalSemSugestoesColegas = false;
 
+  // Quando o modal Nova ficha é aberto de dentro do modal de um projeto (via
+  // "✨ Criar nova ficha"), guarda o nome desse projeto aqui. Assim, ao clicar
+  // em Cancelar, a gente volta pro modal do projeto (passo anterior) em vez
+  // de deixar o admin "perdido" vendo o fundo da tela (Home/Coleções/etc).
+  let modalOrigemProjeto = null;
+
   async function openModal(personId, opts={}){
     editingId = personId || null;
     modalSemSugestoesColegas = !!opts.suprimirSugestoesColegas;
+    modalOrigemProjeto = opts.origemProjeto || null;
     const person = editingId ? people.find(p => p.id === editingId) : null;
     const isEditing = !!person;
 
@@ -5138,7 +5145,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       : '✅ Ficha salva!');
   });
 
-  $('#cancelModalBtn').addEventListener('click', closeModal);
+  $('#cancelModalBtn').addEventListener('click', () => {
+    const voltarPara = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
+    closeModal();
+    if (voltarPara){
+      // Volta pro passo anterior (modal do projeto) em vez de deixar
+      // o admin "caído" na tela de fundo (Home/Coleções/etc).
+      openProjetoModal(voltarPara);
+    }
+  });
 
   // Juntar ficha atual com outra: move todas as entradas pra ficha destino, mantém foto/nome do destino
   $('#mergeModalBtn').addEventListener('click', async () => {
@@ -9561,7 +9576,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
         // cadastrar, não precisa de sugestões de elenco — isso já existe
         // diretamente no modal do projeto (bloco de sugestões próprio).
-        openModal(null, { suprimirSugestoesColegas: true });
+        // origemProjeto: se o admin cancelar, volta pro modal deste projeto.
+        openModal(null, { suprimirSugestoesColegas: true, origemProjeto: project });
         // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
         setTimeout(()=>{
           const projInp = $('#projMainInput');
