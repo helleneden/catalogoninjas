@@ -1265,6 +1265,65 @@
   @media (max-width: 560px){
     .wp-marcadas-list{ grid-template-columns: 1fr; }
   }
+
+  /* ---- Wizard: grid de ninjas da equipe (passo 5) ---- */
+  .wp-ninjas-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .wp-ninja-card{
+    position: relative;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 8px;
+    padding: 14px 10px 12px;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all .15s ease;
+    text-align: center;
+  }
+  .wp-ninja-card:hover{
+    border-color: var(--blue);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37,99,235,.10);
+  }
+  .wp-ninja-card.on{
+    border-color: var(--blue);
+    background: linear-gradient(135deg, rgba(37,99,235,.08), rgba(22,163,74,.04));
+    box-shadow: 0 4px 12px rgba(37,99,235,.15);
+  }
+  .wp-ninja-check{
+    position: absolute; top: 6px; right: 6px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    color: transparent;
+    transition: all .15s;
+  }
+  .wp-ninja-card.on .wp-ninja-check{
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+  .wp-ninja-ava{
+    width: 56px; height: 56px; border-radius: 50%;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(22,163,74,.06));
+    flex: 0 0 auto;
+  }
+  .wp-ninja-ava img{ width: 100%; height: 100%; object-fit: cover; }
+  .wp-ninja-fallback{ font-size: 26px; }
+  .wp-ninja-nome{
+    font-weight: 700; font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--ink);
+    word-break: break-word;
+  }
   .wp-marcada-item{
     display: flex; align-items: center; gap: 10px;
     padding: 10px 12px;
@@ -7012,6 +7071,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       capaPreview: null,
       dataProjeto: '',
       pessoasMarcadas: new Map(), // id -> {personId, personName, hasPhoto, voice, _nova}
+      ninjasMarcados: new Set(),  // user_ids dos ninjas da equipe que trabalharam no projeto
       colecaoId: null,      // categoria (coleção)
       franquiaId: null,     // franquia dentro da coleção
       franquiaNova: '',     // nome se admin quiser criar franquia nova
@@ -7031,9 +7091,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="ws-line"></div>
             <div class="ws-step ${state.passo>=4?'on':''} ${state.passo===4?'cur':''}"><span>4</span> Pessoas</div>
             <div class="ws-line"></div>
-            <div class="ws-step ${state.passo>=5?'on':''} ${state.passo===5?'cur':''}"><span>5</span> Coleção</div>
+            <div class="ws-step ${state.passo>=5?'on':''} ${state.passo===5?'cur':''}"><span>5</span> Ninjas</div>
             <div class="ws-line"></div>
-            <div class="ws-step ${state.passo>=6?'on':''} ${state.passo===6?'cur':''}"><span>6</span> Status</div>
+            <div class="ws-step ${state.passo>=6?'on':''} ${state.passo===6?'cur':''}"><span>6</span> Coleção</div>
+            <div class="ws-line"></div>
+            <div class="ws-step ${state.passo>=7?'on':''} ${state.passo===7?'cur':''}"><span>7</span> Status</div>
           </div>
 
           ${state.passo === 1 ? `
@@ -7086,6 +7148,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           ` : ''}
 
           ${state.passo === 5 ? `
+            <h2 style="margin-top:8px;">Quem da equipe trabalhou aqui?</h2>
+            <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Marque os ninjas do time que participaram deste projeto. Cada marcação conta no <b>ranking</b> de cada um.</p>
+            <div id="wpNinjasGrid"></div>
+          ` : ''}
+
+          ${state.passo === 6 ? `
             <h2 style="margin-top:8px;">Coleção / Franquia (opcional)</h2>
             <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Vincule este projeto a uma coleção ou franquia. Você pode pular se preferir.</p>
             <div class="field">
@@ -7113,7 +7181,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             </div>
           ` : ''}
 
-          ${state.passo === 6 ? `
+          ${state.passo === 7 ? `
             <h2 style="margin-top:8px;">Status do projeto</h2>
             <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Este projeto já está finalizado ou ainda em produção?</p>
             <div class="destino-grid">
@@ -7139,7 +7207,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               <div>
                 <div class="wizard-resumo-nome">${escapeHtml(state.nome)}</div>
                 <div class="wizard-resumo-status">
-                  ${iconeDoTipo(state.tipo||'')} ${escapeHtml(state.tipo||'sem tipo')} · ${state.pessoasMarcadas.size} pessoa${state.pessoasMarcadas.size===1?'':'s'}${state.dataProjeto?` · 📅 ${state.dataProjeto}`:''}
+                  ${iconeDoTipo(state.tipo||'')} ${escapeHtml(state.tipo||'sem tipo')} · ${state.pessoasMarcadas.size} pessoa${state.pessoasMarcadas.size===1?'':'s'} · 🥷 ${state.ninjasMarcados.size} ninja${state.ninjasMarcados.size===1?'':'s'}${state.dataProjeto?` · 📅 ${state.dataProjeto}`:''}
                   ${state.colecaoId ? ` · 🗂 ${escapeHtml((categories.find(c=>c.id===state.colecaoId)||{}).name||'')}` : ''}
                 </div>
               </div>
@@ -7149,7 +7217,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="modal-actions" style="margin-top:20px;">
             <button class="btn-ghost" id="wpCancel">${state.passo===1?'Cancelar':'← Voltar'}</button>
             <button class="btn-primary" id="wpNext">
-              ${state.passo===6?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===5?(state.colecaoId?'Próximo →':'Pular →'):'Próximo →'}
+              ${state.passo===7?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===5?(state.ninjasMarcados.size?'Próximo →':'Pular →'):state.passo===6?(state.colecaoId?'Próximo →':'Pular →'):'Próximo →'}
             </button>
           </div>
         </div>`;
@@ -7205,14 +7273,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         }
       }
 
-      // Passo 4: pessoas
+      // Passo 4: pessoas (fichas de dublagem) — igual antes
       if (state.passo === 4){
         renderPessoasMarcadas();
         wireBuscaPessoasWizard();
       }
 
-      // Passo 5: coleção/franquia
+      // Passo 5: ninjas da equipe que trabalharam no projeto
       if (state.passo === 5){
+        renderNinjasEquipe();
+      }
+
+      // Passo 6: coleção/franquia
+      if (state.passo === 6){
         const colSel = $('#wpColecao');
         if (colSel) colSel.addEventListener('change', () => {
           state.colecaoId = colSel.value || null;
@@ -7230,8 +7303,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         if (frNovaInp) frNovaInp.addEventListener('input', e => state.franquiaNova = e.target.value);
       }
 
-      // Passo 6: status
-      if (state.passo === 6){
+      // Passo 7: status
+      if (state.passo === 7){
         ov.querySelectorAll('input[name="wpDestino"]').forEach(r => r.addEventListener('change', e => {
           state.inProd = e.target.value === 'prod';
         }));
@@ -7258,13 +7331,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           state.passo = 5; render();
         }
         else if (state.passo === 5){
+          state.passo = 6; render();
+        }
+        else if (state.passo === 6){
           // Valida nome de nova franquia se aplicável
           if (state.franquiaId === '__nova__' && !(state.franquiaNova||'').trim()){
             showToast('Digite o nome da nova franquia.'); return;
           }
-          state.passo = 6; render();
+          state.passo = 7; render();
         }
-        else if (state.passo === 6){
+        else if (state.passo === 7){
           await criarProjeto();
         }
       });
@@ -7314,6 +7390,52 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
 
     // Renderiza as pessoas marcadas pra entrar no projeto
+    // Renderiza o grid de ninjas da equipe (usuários com perfil)
+    // Marcar/desmarcar registra em project_participants → conta no ranking
+    function renderNinjasEquipe(){
+      const grid = $('#wpNinjasGrid');
+      if (!grid) return;
+
+      const ninjasDisponiveis = Object.values(profilesByUser||{})
+        .filter(p => p.display_name)
+        .sort((a,b) => (a.display_name||'').localeCompare(b.display_name||'','pt-BR'));
+
+      if (ninjasDisponiveis.length === 0){
+        grid.innerHTML = `<div style="padding:16px;background:var(--surface-soft);border-radius:10px;text-align:center;color:var(--muted);font-size:13px;">
+          Nenhum ninja da equipe cadastrado ainda. Peça pra o pessoal fazer login.
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = `
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;font-weight:600;">
+          ${state.ninjasMarcados.size} de ${ninjasDisponiveis.length} ninja${ninjasDisponiveis.length===1?'':'s'} marcado${state.ninjasMarcados.size===1?'':'s'}
+        </div>
+        <div class="wp-ninjas-grid">
+          ${ninjasDisponiveis.map(n => {
+            const marcado = state.ninjasMarcados.has(n.user_id);
+            const ninjaImg = (typeof NINJAS !== 'undefined' && NINJAS[n.ninja_color||'azul']) || (typeof NINJAS !== 'undefined' ? NINJAS.azul : '');
+            return `
+              <div class="wp-ninja-card ${marcado?'on':''}" data-ninja-toggle="${n.user_id}">
+                <div class="wp-ninja-check">${marcado?'✓':''}</div>
+                <div class="wp-ninja-ava">
+                  ${ninjaImg ? `<img src="${ninjaImg}" alt="">` : `<div class="wp-ninja-fallback">🥷</div>`}
+                </div>
+                <div class="wp-ninja-nome">${escapeHtml(n.display_name)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      grid.querySelectorAll('[data-ninja-toggle]').forEach(card => card.addEventListener('click', () => {
+        const uid = card.dataset.ninjaToggle;
+        if (state.ninjasMarcados.has(uid)) state.ninjasMarcados.delete(uid);
+        else state.ninjasMarcados.add(uid);
+        renderNinjasEquipe();
+      }));
+    }
+
     function renderPessoasMarcadas(){
       const box = $('#wpMarcadas');
       if (!box) return;
@@ -7508,7 +7630,28 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           } catch(e){ console.error('Erro entrada pessoa:', e); }
         }
 
-        // 5. Vincula projeto a franquia (se admin escolheu)
+        // 5. Salva ninjas da equipe que participaram (conta no ranking)
+        if (state.ninjasMarcados.size > 0){
+          const rows = [];
+          for (const uid of state.ninjasMarcados){
+            const prof = (profilesByUser||{})[uid];
+            if (!prof) continue;
+            rows.push({
+              project: state.nome,
+              user_id: uid,
+              display_name: prof.display_name || 'Ninja',
+              ninja_color: prof.ninja_color || 'azul'
+            });
+          }
+          if (rows.length){
+            try {
+              await sb.from('project_participants').upsert(rows, { onConflict: 'project,user_id' });
+              projectParticipants[state.nome] = rows;
+            } catch(e){ console.warn('project_participants:', e); }
+          }
+        }
+
+        // 6. Vincula projeto a franquia (se admin escolheu)
         let franquiaFinalId = null;
         if (state.franquiaId === '__nova__' && (state.franquiaNova||'').trim()){
           // Cria nova franquia dentro da coleção
