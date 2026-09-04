@@ -388,6 +388,34 @@
   .chat-author{ font-weight:800; font-size:13.5px; }
   .chat-time{ font-size:11px; color:var(--muted); }
   .chat-body{ font-size:14px; color:var(--ink); white-space:pre-wrap; word-break:break-word; line-height:1.5; }
+  .chat-edit-textarea{
+    width: 100%;
+    min-height: 60px;
+    padding: 8px 10px;
+    border: 1.5px solid var(--blue);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .chat-edit-actions{
+    display: flex; justify-content: flex-end; gap: 8px;
+    margin-top: 6px;
+  }
+  .chat-edit-actions button{
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-family: inherit;
+  }
+  .chat-edit-actions .chat-edit-save{
+    background: var(--blue); color: #fff; border-color: var(--blue);
+  }
   .chat-body .mention{ color:var(--blue-deep); font-weight:700; background:rgba(37,99,235,.08); border-radius:4px; padding:0 3px; }
   .chat-actions{ display:flex; align-items:center; gap:4px; margin-top:4px; opacity:0; transition:opacity .15s; }
   .chat-msg:hover .chat-actions{ opacity:1; }
@@ -398,8 +426,8 @@
   .react-count{ font-size:12px; font-weight:700; }
   .chat-add-react{ background:none; border:1px dashed var(--line); border-radius:20px; padding:2px 8px; font-size:12px; color:var(--muted); cursor:pointer; }
   .chat-add-react:hover{ border-color:var(--blue); color:var(--blue-deep); }
-  .chat-del-msg{ background:none; border:none; font-size:11px; color:var(--muted); cursor:pointer; }
-  .chat-del-msg:hover{ color:#DC2626; }
+  .chat-edit-msg{ background:none; border:none; font-size:11px; color:var(--muted); cursor:pointer; }
+  .chat-edit-msg:hover{ color:var(--blue-deep); }
   .chat-input-row{ display:flex; gap:6px; align-items:flex-end; }
   .chat-input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; font-family:var(--font-body); resize:none; min-height:42px; max-height:100px; background:var(--bg); }
   .chat-input:focus{ outline:none; border-color:var(--blue); }
@@ -1515,6 +1543,32 @@
   .icon-btn:hover{ background:rgba(37,99,235,.08); border-color:var(--blue); color:var(--blue-deep); }
   .icon-btn:active{ transform:scale(.94); }
 
+  .bell-badge{
+    position: absolute; top: -4px; right: -4px;
+    min-width: 18px; height: 18px; padding: 0 4px;
+    background: #DC2626; color: #fff;
+    border-radius: 999px;
+    font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 0 2px var(--surface);
+  }
+  @keyframes bellShake{
+    0%, 100%{ transform: rotate(0); }
+    20%{ transform: rotate(-12deg); }
+    40%{ transform: rotate(10deg); }
+    60%{ transform: rotate(-8deg); }
+    80%{ transform: rotate(6deg); }
+  }
+  #bellBtn.tem-pendente{ animation: bellShake 1.8s ease-in-out infinite; animation-delay: 2s; }
+
+  .prr-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-soft);
+    border-radius: 10px;
+    flex-wrap: wrap;
+  }
+
   #profileBtn{
     display:flex; align-items:center; gap:9px;
     background:var(--surface-soft); border:1px solid var(--line);
@@ -2408,6 +2462,7 @@
   footer.note b{ color: var(--blue-deep); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
 /* =====================================================================
    CONFIGURAÇÃO DO SUPABASE  ·  preencha estas 2 linhas (veja o GUIA)
@@ -2478,13 +2533,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div style="font-size:12px; color:#64748B;">Catálogo de Vozes</div>
       </div>
     </div>
-    <p style="font-size:13px; color:#64748B; margin:10px 0 18px;">Entre com o login da equipe para acessar e editar o catálogo.</p>
-    <input id="authEmail" type="email" placeholder="E-mail" autocomplete="username" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:10px; box-sizing:border-box;">
-    <input id="authPass" type="password" placeholder="Senha" autocomplete="current-password" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
-    <button id="authLoginBtn" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; font-weight:700; font-size:14px; cursor:pointer;">Entrar</button>
-    <div id="authError" style="color:#DC2626; font-size:12.5px; margin-top:10px; min-height:16px;"></div>
-    <div id="authConfigWarn" style="display:none; background:#FEF3C7; border:1px solid #FCD34D; border-radius:10px; padding:10px 12px; margin-top:12px; font-size:12.5px; color:#92400E;">
-      ⚠️ App ainda não configurado com as chaves do Supabase.
+
+    <!-- TELA 1: login normal -->
+    <div id="authLoginView">
+      <p style="font-size:13px; color:#64748B; margin:10px 0 18px;">Entre com o login da equipe para acessar e editar o catálogo.</p>
+      <input id="authEmail" type="email" placeholder="E-mail" autocomplete="username" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:10px; box-sizing:border-box;">
+      <input id="authPass" type="password" placeholder="Senha" autocomplete="current-password" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
+      <button id="authLoginBtn" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; font-weight:700; font-size:14px; cursor:pointer;">Entrar</button>
+      <button id="authForgotBtn" style="width:100%; padding:10px; border:none; background:none; color:#2563EB; font-weight:600; font-size:12.5px; cursor:pointer; margin-top:10px;">Esqueci minha senha</button>
+      <div id="authError" style="color:#DC2626; font-size:12.5px; margin-top:2px; min-height:16px;"></div>
+      <div id="authConfigWarn" style="display:none; background:#FEF3C7; border:1px solid #FCD34D; border-radius:10px; padding:10px 12px; margin-top:12px; font-size:12.5px; color:#92400E;">
+        ⚠️ App ainda não configurado com as chaves do Supabase.
+      </div>
+    </div>
+
+    <!-- TELA 2: esqueci a senha -->
+    <div id="authForgotView" style="display:none;">
+      <p style="font-size:13px; color:#64748B; margin:10px 0 14px;">Digite seu e-mail de login. Um admin vai ver sua solicitação e trocar sua senha.</p>
+      <input id="authForgotEmail" type="email" placeholder="Seu e-mail de login" autocomplete="username" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
+      <button id="authForgotSendBtn" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; font-weight:700; font-size:14px; cursor:pointer;">Solicitar troca de senha</button>
+      <button id="authForgotBackBtn" style="width:100%; padding:10px; border:none; background:none; color:#64748B; font-weight:600; font-size:12.5px; cursor:pointer; margin-top:10px;">← Voltar ao login</button>
+      <div id="authForgotMsg" style="font-size:12.5px; margin-top:2px; min-height:16px;"></div>
     </div>
   </div>
 </div>
@@ -2500,6 +2569,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
     <div class="header-actions">
       <button id="refreshBtn" class="icon-btn" title="Atualizar dados">↻</button>
+      <button id="bellBtn" class="icon-btn admin-only" style="display:none;position:relative;" title="Solicitações de troca de senha">
+        🔔<span id="bellBadge" class="bell-badge" style="display:none;">0</span>
+      </button>
       <button id="profileBtn" title="Meu perfil">
         <img id="profileNinja" src="" alt="">
         <span id="profileName">Definir perfil</span>
@@ -2834,7 +2906,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     roxo: 'data:image/jpeg;base64,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',
     verde: 'data:image/jpeg;base64,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',
   };
-  let myProfile = { display_name:null, ninja_color:'azul' };
+  let myProfile = { display_name:null, ninja_color:'azul', recovery_email:null };
   let profilesByUser = {};
   let myEmail = null;
   let currentUserEmail = null;
@@ -2845,6 +2917,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let audiobooksFilter = 'producao';
   let projectParticipants = {}; // project -> [{user_id, display_name, ninja_color}]
   let backupLog = { last_backup_at: null, last_backup_by: null }; // último backup registrado
+  let passwordResetRequests = []; // solicitações de troca de senha pendentes/resolvidas
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -2924,6 +2997,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadAgenda(),
       loadChat(),
       loadBackupLog(),
+      loadPasswordResetRequests(),
     ]);
     projectCats = {};
     (catRes.data || []).forEach(r => { projectCats[r.project] = r.category; });
@@ -2937,6 +3011,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     render();
     checaNotificacaoSimilares();
     checaNotificacaoBackup();
+    renderBellBadge();
     if (currentView === 'home') renderHome();
     else if (currentView === 'colecoes') renderColecoes();
     else if (currentView === 'projetos') renderProjetos();
@@ -4831,7 +4906,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!isAdmin){ notice.style.display = 'none'; return; }
 
     const dias = diasDesdeUltimoBackup();
-    if (dias < 30){ notice.style.display = 'none'; return; }
+    if (dias < 15){ notice.style.display = 'none'; return; }
 
     const LS_KEY = 'backup_notice_dismissed';
     const dismissed = Number(localStorage.getItem(LS_KEY) || 0);
@@ -4844,7 +4919,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="similar-notice-ic">📦</span>
         <div class="similar-notice-body">
           <b>${nuncaFez ? 'Nenhum backup foi feito ainda' : `Já se passaram ${dias} dias desde o último backup`}</b><br>
-          <span style="font-size:12px;color:var(--muted);">Recomendado baixar um backup completo pelo menos 1x a cada 30 dias.</span>
+          <span style="font-size:12px;color:var(--muted);">Recomendado baixar um backup completo pelo menos 1x a cada 15 dias.</span>
         </div>
         <button class="similar-notice-cta" id="backupNoticeCta">Fazer agora</button>
         <button class="similar-notice-x" id="backupNoticeX" title="Fechar (7 dias)">✕</button>
@@ -6032,10 +6107,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         : `<div class="empty-state"><h2>Sem pessoas ainda</h2><p>Vincule projetos a esta franquia no botão ✎ da franquia.</p></div>`}`;
     hydratePhotos();
 
-    // Handler: excluir um projeto direto da lista
-    colecoesContent.querySelectorAll('[data-delproj]').forEach(btn => btn.addEventListener('click', async (e) => {
+    // Handler: excluir um projeto direto da lista (abre escolha Arquivar/Excluir)
+    colecoesContent.querySelectorAll('[data-delproj]').forEach(btn => btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      await confirmarEExcluirProjeto(btn.dataset.delproj);
+      openExcluirProjeto(btn.dataset.delproj);
     }));
   }
 
@@ -6104,8 +6179,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const projsDaFr = projectsOfFranchise(fr.id);
 
       if (projsDaFr.length === 1){
-        // Essa franquia é uma "espelho" de 1 projeto só — excluir aqui apaga o projeto inteiro
-        await confirmarEExcluirProjeto(projsDaFr[0]);
+        // Essa franquia é uma "espelho" de 1 projeto só — abre a mesma escolha
+        // Arquivar/Excluir permanentemente do projeto inteiro.
+        openExcluirProjeto(projsDaFr[0]);
         return;
       }
 
@@ -6505,8 +6581,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (fr) $('#colDelete').addEventListener('click', async ()=>{
       const projsDaFr = projectsOfFranchise(fr.id);
       if (projsDaFr.length === 1){
-        ov.classList.remove('open');
-        await confirmarEExcluirProjeto(projsDaFr[0]);
+        // openExcluirProjeto reusa o mesmo overlay — substitui o conteúdo no lugar
+        openExcluirProjeto(projsDaFr[0]);
         return;
       }
       const ok = await confirmarBonito({
@@ -7135,18 +7211,69 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return Math.floor(dif / (1000*60*60*24));
   }
 
+  // Carrega as solicitações de troca de senha (só faz sentido pra admin ver)
+  async function loadPasswordResetRequests(){
+    if (!isAdmin){ passwordResetRequests = []; return; }
+    try{
+      const { data } = await sb.from('password_reset_requests')
+        .select('*').order('requested_at', { ascending:false }).limit(50);
+      passwordResetRequests = data || [];
+    }catch(e){ passwordResetRequests = []; }
+  }
+
+  // Atualiza o sino de notificação (badge com quantas solicitações pendentes)
+  function renderBellBadge(){
+    const btn = document.getElementById('bellBtn');
+    const badge = document.getElementById('bellBadge');
+    if (!btn || !badge) return;
+    if (!isAdmin){ btn.style.display = 'none'; return; }
+    btn.style.display = 'flex';
+    const pendentes = (passwordResetRequests||[]).filter(r => r.status === 'pendente').length;
+    if (pendentes > 0){
+      badge.textContent = String(pendentes);
+      badge.style.display = 'flex';
+      btn.classList.add('tem-pendente');
+    } else {
+      badge.style.display = 'none';
+      btn.classList.remove('tem-pendente');
+    }
+  }
+
   // Exporta TODAS as tabelas do app num único arquivo JSON e baixa pro computador.
   // Depois registra em backup_log que o backup foi feito agora.
+  // Converte um array de objetos numa string CSV (separador vírgula, RFC4180).
+  // Colunas são a UNIÃO de todas as chaves encontradas (schemas podem variar
+  // levemente entre linhas). Valores objeto/array (colunas jsonb) são
+  // serializados como texto JSON dentro da célula.
+  function paraCSV(linhas){
+    if (!linhas || linhas.length === 0) return '';
+    const colunas = [...new Set(linhas.flatMap(l => Object.keys(l)))];
+    const escapar = (v) => {
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'object') v = JSON.stringify(v);
+      v = String(v);
+      if (/[",\n\r;]/.test(v)) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    };
+    const header = colunas.map(escapar).join(',');
+    const corpo = linhas.map(l => colunas.map(c => escapar(l[c])).join(','));
+    return [header, ...corpo].join('\r\n');
+  }
+
+  // Exporta TODAS as tabelas do app num arquivo .ZIP com um .CSV por tabela —
+  // formato universal (abre em Excel, Google Sheets, importa em qualquer
+  // banco de dados), em vez de um JSON só que só faz sentido dentro deste app.
   async function exportarBackupCompleto(btn){
     if (btn){ btn.disabled = true; btn.textContent = 'Gerando backup…'; }
     try {
       const [
-        peopleRes, catsRes, frsRes, pfRes, seasonsRes, psRes,
+        peopleRes, entriesRes, catsRes, frsRes, pfRes, seasonsRes, psRes,
         pmRes, pcRes, ppRes, doRes,
         abRes, avRes, ratingsRes, commentsRes, adminsRes, profilesRes,
         agendaRes, chatRes
       ] = await Promise.all([
-        sb.from('people').select('id, name, has_photo, entries ( id, project, voice, date )'),
+        sb.from('people').select('id, name, has_photo'),
+        sb.from('entries').select('id, person_id, project, voice, date'),
         sb.from('categories').select('*'),
         sb.from('franchises').select('*'),
         sb.from('project_franchise').select('*'),
@@ -7166,42 +7293,75 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         sb.from('chat_messages').select('*'),
       ]);
 
-      const backup = {
-        gerado_em: new Date().toISOString(),
-        gerado_por: myEmail || 'desconhecido',
-        versao_app: 'ninjas-vozes-v2',
-        tabelas: {
-          people: peopleRes.data || [],
-          categories: catsRes.data || [],
-          franchises: frsRes.data || [],
-          project_franchise: pfRes.data || [],
-          seasons: seasonsRes.data || [],
-          project_season: psRes.data || [],
-          project_meta: pmRes.data || [],
-          project_categories: pcRes.data || [],
-          project_participants: ppRes.data || [],
-          dub_order: doRes.data || [],
-          audiobooks: abRes.data || [],
-          audiobook_voices: avRes.data || [],
-          voice_user_ratings: ratingsRes.data || [],
-          voice_comments: commentsRes.data || [],
-          admins: adminsRes.data || [],
-          profiles: profilesRes.data || [],
-          agenda_notes: agendaRes.data || [],
-          chat_messages: chatRes.data || [],
-        }
+      const tabelas = {
+        people: peopleRes.data || [],
+        entries: entriesRes.data || [],
+        categories: catsRes.data || [],
+        franchises: frsRes.data || [],
+        project_franchise: pfRes.data || [],
+        seasons: seasonsRes.data || [],
+        project_season: psRes.data || [],
+        project_meta: pmRes.data || [],
+        project_categories: pcRes.data || [],
+        project_participants: ppRes.data || [],
+        dub_order: doRes.data || [],
+        audiobooks: abRes.data || [],
+        audiobook_voices: avRes.data || [],
+        voice_user_ratings: ratingsRes.data || [],
+        voice_comments: commentsRes.data || [],
+        admins: adminsRes.data || [],
+        profiles: profilesRes.data || [],
+        agenda_notes: agendaRes.data || [],
+        chat_messages: chatRes.data || [],
       };
 
-      const totalLinhas = Object.values(backup.tabelas).reduce((s, arr) => s + (arr?.length||0), 0);
+      const totalLinhas = Object.values(tabelas).reduce((s, arr) => s + (arr?.length||0), 0);
+      const agora = new Date();
+      const dataStr = agora.toISOString().slice(0,10);
 
-      // Gera o arquivo e dispara o download
-      const json = JSON.stringify(backup, null, 2);
-      const blob = new Blob([json], { type: 'application/json' });
+      // Monta o ZIP: um .csv por tabela + manifesto + leia-me explicando a estrutura
+      const zip = new JSZip();
+      Object.entries(tabelas).forEach(([nome, linhas]) => {
+        zip.file(`${nome}.csv`, paraCSV(linhas));
+      });
+      zip.file('manifesto.json', JSON.stringify({
+        gerado_em: agora.toISOString(),
+        gerado_por: myEmail || 'desconhecido',
+        versao_app: 'ninjas-vozes-v2',
+        formato: 'CSV (uma tabela por arquivo, separador vírgula, UTF-8)',
+        total_linhas: totalLinhas,
+        tabelas: Object.fromEntries(Object.entries(tabelas).map(([k,v]) => [k, v.length]))
+      }, null, 2));
+      zip.file('LEIA-ME.txt',
+`BACKUP — CATÁLOGO DE VOZES (Ninjas Audiovisual)
+Gerado em: ${agora.toLocaleString('pt-BR')}
+Por: ${myEmail || 'desconhecido'}
+
+Este arquivo contém um .csv por tabela do sistema. Formato universal:
+abre em Excel, Google Sheets, LibreOffice, ou pode ser importado em
+qualquer banco de dados (Postgres, MySQL, SQLite etc).
+
+Como as tabelas se relacionam (principais):
+- people.id           <- entries.person_id
+- categories.id        <- franchises.category_id
+- franchises.id        <- project_franchise.franchise_id (project_franchise.project = nome do projeto)
+- seasons.id           <- project_season.season_id
+- project_meta.project, project_categories.project, dub_order.project,
+  project_participants.project, project_franchise.project — todos usam
+  o NOME do projeto (texto) como chave, não um id numérico.
+
+Ficheiro "manifesto.json": metadados do backup (quando foi gerado, quantas
+linhas cada tabela tinha).
+
+Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
+(SQL Editor → botão de import, ou psql \\copy).`
+      );
+
+      const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
-      const dataStr = new Date().toISOString().slice(0,10);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `backup-catalogo-ninjas-${dataStr}.json`;
+      a.download = `backup-catalogo-ninjas-${dataStr}.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -7668,7 +7828,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="modal-actions" style="margin-top:20px;">
             <button class="btn-ghost" id="wpCancel">${state.passo===1?'Cancelar':'← Voltar'}</button>
             <button class="btn-primary" id="wpNext">
-              ${state.passo===7?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===5?(state.ninjasMarcados.size?'Próximo →':'Pular →'):state.passo===6?(state.colecaoId?'Próximo →':'Pular →'):'Próximo →'}
+              ${state.passo===7?'Criar projeto ✓':state.passo===3?(state.capaFile?'Próximo →':'Pular →'):state.passo===6?(state.colecaoId?'Próximo →':'Pular →'):'Próximo →'}
             </button>
           </div>
         </div>`;
@@ -7718,9 +7878,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
         function usarArquivo(f){
           state.capaFile = f;
-          const reader = new FileReader();
-          reader.onload = e => { state.capaPreview = e.target.result; render(); };
-          reader.readAsDataURL(f);
+          // Usa o mesmo pipeline do resto do app: converte pra JPEG normalizado.
+          // Antes, a capa do wizard era enviada com a extensão original do arquivo
+          // (.png, .webp...), mas coverUrl() sempre espera ".jpg" — por isso a capa
+          // "sumia" até o admin reenviar pelo modal do projeto (que já usava JPEG).
+          shrinkImage(f, 900, 0.85).then(jpegDataUrl => {
+            state.capaPreview = jpegDataUrl;
+            render();
+          }).catch(() => showToast('Não consegui processar essa imagem.'));
         }
       }
 
@@ -8017,26 +8182,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       btn.disabled = true;
       btn.textContent = 'Criando…';
       try{
-        // 1. Sobe capa
+        // 1. Sobe capa — usa o MESMO caminho padrão (saveCover) usado em todo o
+        // resto do app, sempre salvando como .jpg. Antes, o wizard subia o
+        // arquivo original com sua extensão nativa (.png/.webp/...), mas
+        // coverUrl() sempre procura por ".jpg" — por isso a capa não aparecia
+        // até o admin reenviar pelo modal do projeto (que já usava esse caminho certo).
         let capaOk = false;
-        if (state.capaFile){
-          try {
-            const ext = (state.capaFile.type.split('/')[1] || 'jpg').replace('jpeg','jpg');
-            const key = PROJ_COVER_PREFIX + projKey(state.nome) + '.' + ext;
-            const { error: upErr } = await sb.storage.from('capas').upload(key, state.capaFile, {
-              upsert: true,
-              contentType: state.capaFile.type
-            });
-            if (upErr){
-              console.error('Upload capa falhou:', upErr);
-              showToast('⚠ Não consegui salvar a capa: ' + upErr.message);
-            } else {
-              delete coverCache[PROJ_COVER_PREFIX + projKey(state.nome)];
-              capaOk = true;
-            }
-          } catch(e){
-            console.error('Erro upload capa:', e);
-          }
+        if (state.capaPreview){
+          capaOk = await saveCover('proj', projKey(state.nome), state.capaPreview);
         }
 
         // 2. project_meta
@@ -8205,7 +8358,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       try{
         await sb.from('project_meta').upsert({ project, archived:true, in_production:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
         projectMeta[project] = { ...(projectMeta[project]||{}), archived:true, in_production:false };
-        ov.classList.remove('open'); renderProjetos(); showToast('Projeto arquivado.');
+        ov.classList.remove('open');
+        renderProjetos();
+        if (currentView === 'home') renderHome();
+        if (currentView === 'colecoes') renderColecoes();
+        showToast(`📦 Projeto "${project}" arquivado. Encontre em Projetos → 📦 Arquivados.`);
       }catch(e){ showToast('Erro ao arquivar: '+(e.message||'')); }
     });
     $('#exExcluir').addEventListener('click', async ()=>{
@@ -8235,6 +8392,69 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Retorna Promise<boolean>
   // Modal de confirmação genérico com estilo do site.
   // Substitui o confirm() nativo. Retorna Promise<boolean>
+  // Pede o e-mail secundário de recuperação se ainda não foi cadastrado.
+  // É obrigatório (não dá pra fechar sem preencher) — usado tanto pros 2
+  // usuários que já estavam testando a plataforma quanto pra qualquer
+  // conta nova daqui pra frente.
+  function checaEmailRecuperacaoObrigatorio(){
+    if (!myProfile.display_name) return; // perfil ainda nem foi configurado, não insiste agora
+    if (myProfile.recovery_email) return; // já tem, nada a fazer
+    if (document.getElementById('recoveryEmailGate')) return; // já está mostrando
+
+    const ov = document.createElement('div');
+    ov.id = 'recoveryEmailGate';
+    ov.className = 'modal-overlay confirm-overlay open';
+    ov.style.zIndex = '10005';
+    ov.innerHTML = `
+      <div class="modal confirm-modal" style="max-width:440px;">
+        <div class="confirm-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);">📧</div>
+        <h2 style="text-align:center; margin:8px 0 4px;">Cadastre seu e-mail de recuperação</h2>
+        <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 16px;">
+          Esse e-mail é usado caso você esqueça sua senha e não tenha nenhum admin disponível pra te ajudar. É obrigatório preencher pra continuar usando o catálogo.
+        </p>
+        <div class="field">
+          <label for="recoveryEmailInput">E-mail secundário (diferente do seu login)</label>
+          <input type="email" id="recoveryEmailInput" placeholder="seuoutroemail@exemplo.com"
+            style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+        </div>
+        <div class="confirm-actions" style="justify-content:center;">
+          <button class="btn-primary" id="recoveryEmailSave" style="width:100%;justify-content:center;">Salvar e continuar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('#recoveryEmailInput');
+    inp.focus();
+    ov.querySelector('#recoveryEmailSave').addEventListener('click', async () => {
+      const email = inp.value.trim().toLowerCase();
+      if (!email || !email.includes('@') || !email.includes('.')){
+        showToast('Digite um e-mail válido.');
+        return;
+      }
+      if (email === (myEmail||'').toLowerCase()){
+        showToast('Precisa ser um e-mail diferente do seu login.');
+        return;
+      }
+      const btn = ov.querySelector('#recoveryEmailSave');
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+      try {
+        const { error } = await sb.from('profiles').upsert({
+          user_id: myUserId, recovery_email: email
+        }, { onConflict: 'user_id' });
+        if (error) throw error;
+        myProfile.recovery_email = email;
+        ov.remove();
+        showToast('✅ E-mail de recuperação salvo.');
+      } catch(e){
+        showToast('Erro ao salvar: '+(e.message||''));
+        btn.disabled = false;
+        btn.textContent = 'Salvar e continuar';
+      }
+    });
+    // Propositalmente SEM botão de cancelar/X e sem fechar clicando fora —
+    // é obrigatório preencher pra continuar.
+  }
+
   function confirmarBonito({titulo='Tem certeza?', mensagem='', destaque='', textoBotao='Confirmar', corBotao='#DC2626', icone='⚠️'}={}){
     return new Promise(resolve => {
       const conf = document.createElement('div');
@@ -9323,11 +9543,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     e.stopPropagation();
     document.querySelectorAll('.proj-ctx-menu').forEach(el => el.remove());
 
+    const emProducao = !!(projectMeta[project] && projectMeta[project].in_production);
+    const statusItem = emProducao
+      ? `<button type="button" data-ctx="concluir">✅ Marcar como concluído</button>`
+      : `<button type="button" data-ctx="produzir">🎬 Enviar p/ em produção</button>`;
+
     const menu = document.createElement('div');
     menu.className = 'proj-ctx-menu';
     menu.innerHTML = `
       <div class="proj-ctx-nome">${escapeHtml(project)}</div>
       <button type="button" data-ctx="abrir">👁️ Abrir projeto</button>
+      ${statusItem}
+      <button type="button" data-ctx="arquivar">📦 Arquivar projeto</button>
       <button type="button" data-ctx="excluir" class="danger">🗑️ Excluir projeto</button>
     `;
     document.body.appendChild(menu);
@@ -9356,10 +9583,54 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       fechar();
       openProjetoModal(project);
     });
-    menu.querySelector('[data-ctx="excluir"]').addEventListener('click', async () => {
+    const btnConcluir = menu.querySelector('[data-ctx="concluir"]');
+    if (btnConcluir) btnConcluir.addEventListener('click', async () => {
       fechar();
-      await confirmarEExcluirProjeto(project);
+      await mudarStatusProjeto(project, false);
     });
+    const btnProduzir = menu.querySelector('[data-ctx="produzir"]');
+    if (btnProduzir) btnProduzir.addEventListener('click', async () => {
+      fechar();
+      await mudarStatusProjeto(project, true);
+    });
+    menu.querySelector('[data-ctx="arquivar"]').addEventListener('click', async () => {
+      fechar();
+      await arquivarProjetoDireto(project);
+    });
+    menu.querySelector('[data-ctx="excluir"]').addEventListener('click', () => {
+      fechar();
+      // Abre o mesmo modal "O que você quer fazer?" (Arquivar / Excluir permanentemente),
+      // assim a opção de arquivar continua visível também por aqui.
+      openExcluirProjeto(project);
+    });
+  }
+
+  // Muda o status de um projeto entre "em produção" e "concluído".
+  // inProd=true → vai pra produção; inProd=false → vira concluído.
+  async function mudarStatusProjeto(project, inProd){
+    try{
+      await sb.from('project_meta').upsert({
+        project, in_production: inProd, archived:false, updated_at:new Date().toISOString()
+      }, { onConflict:'project' });
+      projectMeta[project] = { ...(projectMeta[project]||{}), in_production: inProd, archived:false };
+      renderProjetos();
+      if (currentView === 'home') renderHome();
+      if (currentView === 'colecoes') renderColecoes();
+      showToast(inProd ? `🎬 "${project}" enviado pra em produção.` : `✅ "${project}" marcado como concluído.`);
+    }catch(e){ showToast('Erro: '+(e.message||'')); }
+  }
+
+  // Arquiva um projeto direto (sem passar por modal de escolha) — usado pelo
+  // menu de contexto, que já tem a opção "Arquivar" separada da "Excluir".
+  async function arquivarProjetoDireto(project){
+    try{
+      await sb.from('project_meta').upsert({ project, archived:true, in_production:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
+      projectMeta[project] = { ...(projectMeta[project]||{}), archived:true, in_production:false };
+      renderProjetos();
+      if (currentView === 'home') renderHome();
+      if (currentView === 'colecoes') renderColecoes();
+      showToast(`📦 Projeto "${project}" arquivado.`);
+    }catch(e){ showToast('Erro ao arquivar: '+(e.message||'')); }
   }
 
   async function excluirProjetoCompleto(project){
@@ -9608,53 +9879,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
     ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
 
-    // Botão excluir projeto (só admin)
+    // Botão excluir projeto (só admin) — abre a mesma tela de escolha
+    // "Arquivar" ou "Excluir permanentemente" usada em todo o resto do app.
     const btnDelProj = $('#projDelete');
-    if (btnDelProj) btnDelProj.addEventListener('click', async () => {
-      // Conta o que será apagado
-      const pessoasNoProjeto = mainPeople().filter(p =>
-        p.entries.some(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase())
-      );
-      const totalEntradas = mainPeople().reduce((sum, p) =>
-        sum + p.entries.filter(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase()).length, 0
-      );
-      // Fichas que ficariam órfãs (só existem neste projeto)
-      const fichasOrfas = pessoasNoProjeto.filter(p =>
-        p.entries.every(e => (e.project||'').trim().toLowerCase() === project.trim().toLowerCase())
-      );
-
-      const detalhes = `
-        <b style="color:var(--ink);">"${escapeHtml(project)}"</b><br>
-        <span style="font-size:12px;">
-          • ${totalEntradas} entrada${totalEntradas===1?'':'s'} de dublagem<br>
-          • ${fichasOrfas.length > 0 ? `<span style="color:#DC2626;font-weight:600;">${fichasOrfas.length} ficha${fichasOrfas.length===1?'':'s'} será${fichasOrfas.length===1?'':'ão'} apagada${fichasOrfas.length===1?'':'s'}</span> (só ${fichasOrfas.length===1?'existe':'existem'} aqui)` : 'Nenhuma ficha vai ser perdida (todas têm outros projetos)'}<br>
-          • Capa, tipo, coleção/franquia — tudo será removido
-        </span>
-      `;
-      const ok = await confirmarBonito({
-        titulo: 'Excluir este projeto?',
-        mensagem: detalhes,
-        destaque: 'Esta ação não pode ser desfeita.',
-        textoBotao: '🗑️ Sim, excluir projeto',
-        corBotao: '#DC2626',
-        icone: '⚠️'
-      });
-      if (!ok) return;
-
-      btnDelProj.disabled = true;
-      btnDelProj.textContent = 'Excluindo…';
-      const res = await excluirProjetoCompleto(project);
-      if (res.ok){
-        ov.classList.remove('open');
-        renderProjetos();
-        if (currentView === 'home') renderHome();
-        if (currentView === 'colecoes') renderColecoes();
-        showToast(`✅ Projeto "${project}" excluído.`);
-      } else {
-        showToast('Erro ao excluir: '+((res.error&&res.error.message)||''));
-        btnDelProj.disabled = false;
-        btnDelProj.textContent = '🗑️ Excluir projeto';
-      }
+    if (btnDelProj) btnDelProj.addEventListener('click', () => {
+      openExcluirProjeto(project);
     });
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
@@ -9985,13 +10214,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const { data: sess } = await sb.auth.getSession();
       myUserId = sess && sess.session && sess.session.user ? sess.session.user.id : null;
       // carrega todos os perfis (para mostrar quem é quem, se precisar)
-      const { data: all } = await sb.from('profiles').select('user_id, display_name, ninja_color');
+      const { data: all } = await sb.from('profiles').select('user_id, display_name, ninja_color, recovery_email');
       profilesByUser = {};
       (all||[]).forEach(p => { profilesByUser[p.user_id] = p; });
       const mine = myUserId ? profilesByUser[myUserId] : null;
-      if (mine){ myProfile = { display_name: mine.display_name, ninja_color: mine.ninja_color||'azul' }; }
-      else { myProfile = { display_name:null, ninja_color:'azul' }; }
+      if (mine){ myProfile = { display_name: mine.display_name, ninja_color: mine.ninja_color||'azul', recovery_email: mine.recovery_email||null }; }
+      else { myProfile = { display_name:null, ninja_color:'azul', recovery_email:null }; }
       renderProfileWidget();
+      checaEmailRecuperacaoObrigatorio();
     }catch(e){ /* silencioso */ }
   }
 
@@ -10015,8 +10245,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         user_id: myUserId, display_name: name, ninja_color: color, updated_at: new Date().toISOString()
       }, { onConflict:'user_id' });
       if (error){ showToast('Erro ao salvar perfil: '+error.message); return false; }
-      myProfile = { display_name:name, ninja_color:color };
-      profilesByUser[myUserId] = { user_id:myUserId, display_name:name, ninja_color:color };
+      myProfile = { display_name:name, ninja_color:color, recovery_email: myProfile.recovery_email||null };
+      profilesByUser[myUserId] = { user_id:myUserId, display_name:name, ninja_color:color, recovery_email: myProfile.recovery_email||null };
       renderProfileWidget();
       return true;
     }catch(e){ showToast('Erro ao salvar perfil.'); return false; }
@@ -10071,6 +10301,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // abre perfil ao clicar no widget do canto
   document.addEventListener('click', (e)=>{
     if (e.target.closest('#profileBtn')) openProfileModal(false);
+    if (e.target.closest('#bellBtn')){
+      switchView('painel');
+      setTimeout(() => {
+        const painel = document.querySelector('.painel-title');
+        // Rola até o card de solicitações se existir
+        const cards = document.querySelectorAll('.painel-title');
+        for (const c of cards){
+          if (c.textContent.includes('Solicitações de troca de senha')){
+            c.scrollIntoView({behavior:'smooth', block:'center'});
+            break;
+          }
+        }
+      }, 150);
+    }
   });
 
 
@@ -10292,7 +10536,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </button>`;
       }).join('');
 
-      const canDel = mine || isAdmin;
+      // Só quem enviou pode editar, e só nos primeiros 5 minutos após o envio.
+      // A opção de apagar mensagem foi removida — só editar.
+      const cincoMin = 5 * 60 * 1000;
+      const dentroDoPrazo = (Date.now() - dt.getTime()) < cincoMin;
+      const canEdit = mine && dentroDoPrazo;
       return `${sep}
         <div class="chat-msg" data-msg="${m.id}">
           <img class="chat-ninja" src="${ninja}" alt="">
@@ -10302,10 +10550,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               <span class="chat-time">${hora}</span>
               <div class="chat-actions">
                 <button class="chat-add-react" data-add-react="${m.id}">😊</button>
-                ${canDel?`<button class="chat-del-msg" data-del-msg="${m.id}" title="Apagar">✕</button>`:''}
+                ${canEdit?`<button class="chat-edit-msg" data-edit-msg="${m.id}" title="Editar (só nos primeiros 5 min)">✎</button>`:''}
               </div>
             </div>
-            <div class="chat-body">${formatChatBody(m.body)}</div>
+            <div class="chat-body" data-body-for="${m.id}">${formatChatBody(m.body)}</div>
             ${reacts?`<div class="chat-reactions">${reacts}</div>`:''}
           </div>
         </div>`;
@@ -10334,12 +10582,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
+    const solicitacoesPanel = isAdmin ? renderSolicitacoesSenhaPanel() : '';
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
         ${renderChat()}
       </div>
       ${renderAgenda()}
+      ${renderSegurancaPanel()}
+      ${solicitacoesPanel}
       ${backupPanel}
       ${adminPanel}`;
     const msgs = $('#chatMsgs');
@@ -10347,13 +10598,113 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     wirePainelEvents();
     const btnBackup = $('#btnFazerBackup');
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
+    wireSegurancaPanel();
+  }
+
+  // Painel de solicitações de troca de senha — visível só pra admin.
+  // Mostra quem pediu, e deixa marcar como resolvido depois de trocar a
+  // senha da pessoa (pelo painel do Supabase, ou pela Edge Function se
+  // ela estiver publicada — ver função dispararTrocaSenhaAdmin).
+  function renderSolicitacoesSenhaPanel(){
+    const pendentes = (passwordResetRequests||[]).filter(r => r.status === 'pendente');
+    if (pendentes.length === 0) return '';
+    const linhas = pendentes.map(r => `
+      <div class="prr-item">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.email)}</div>
+          <div style="font-size:11.5px;color:var(--muted);">solicitado em ${new Date(r.requested_at).toLocaleString('pt-BR')}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <input type="password" class="prr-nova-senha" data-req-id="${r.id}" placeholder="Nova senha" style="width:130px;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;">
+          <button class="btn-primary" data-def-senha="${r.id}" data-email="${escapeHtml(r.email)}" style="padding:7px 12px;font-size:12.5px;">Definir</button>
+          <button class="btn-ghost" data-resolver-req="${r.id}" style="padding:7px 12px;font-size:12.5px;">✓ Já resolvi</button>
+        </div>
+      </div>`).join('');
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🔔 Solicitações de troca de senha (${pendentes.length})</div>
+        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">
+          "Definir" tenta trocar a senha direto (precisa da função de servidor publicada). Se ainda não estiver publicada, troque manualmente no painel do Supabase e clique em "Já resolvi".
+        </p>
+        <div style="display:flex;flex-direction:column;gap:8px;">${linhas}</div>
+      </div>`;
+  }
+  // Painel de segurança — visível pra QUALQUER usuário logado: trocar a
+  // própria senha e cadastrar/editar o e-mail de recuperação.
+  function renderSegurancaPanel(){
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🔒 Segurança da conta</div>
+        <div class="field">
+          <label for="novaSenhaInput">Nova senha</label>
+          <input type="password" id="novaSenhaInput" placeholder="Mínimo 6 caracteres" autocomplete="new-password"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+        </div>
+        <div class="field">
+          <label for="confirmaSenhaInput">Confirmar nova senha</label>
+          <input type="password" id="confirmaSenhaInput" placeholder="Digite de novo" autocomplete="new-password"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+        </div>
+        <button class="btn-primary" id="btnTrocarSenha" style="width:100%;justify-content:center;margin-bottom:16px;">Salvar nova senha</button>
+
+        <div class="field" style="margin-top:4px;border-top:1px dashed var(--line);padding-top:14px;">
+          <label for="emailRecupInput">E-mail de recuperação</label>
+          <input type="email" id="emailRecupInput" placeholder="seuoutroemail@exemplo.com" value="${escapeHtml(myProfile.recovery_email||'')}"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+          <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Usado se você esquecer a senha e não tiver admin disponível.</p>
+        </div>
+        <button class="btn-ghost" id="btnSalvarEmailRecup" style="width:100%;justify-content:center;">Salvar e-mail de recuperação</button>
+      </div>`;
+  }
+
+  function wireSegurancaPanel(){
+    const btnSenha = $('#btnTrocarSenha');
+    if (btnSenha) btnSenha.addEventListener('click', async () => {
+      const nova = ($('#novaSenhaInput').value||'');
+      const conf = ($('#confirmaSenhaInput').value||'');
+      if (nova.length < 6){ showToast('A senha precisa ter pelo menos 6 caracteres.'); return; }
+      if (nova !== conf){ showToast('As senhas não coincidem.'); return; }
+      btnSenha.disabled = true; btnSenha.textContent = 'Salvando…';
+      try {
+        const { error } = await sb.auth.updateUser({ password: nova });
+        if (error) throw error;
+        $('#novaSenhaInput').value = '';
+        $('#confirmaSenhaInput').value = '';
+        showToast('✅ Senha atualizada.');
+      } catch(e){
+        showToast('Erro ao trocar senha: '+(e.message||''));
+      } finally {
+        btnSenha.disabled = false; btnSenha.textContent = 'Salvar nova senha';
+      }
+    });
+
+    const btnRecup = $('#btnSalvarEmailRecup');
+    if (btnRecup) btnRecup.addEventListener('click', async () => {
+      const email = ($('#emailRecupInput').value||'').trim().toLowerCase();
+      if (!email || !email.includes('@') || !email.includes('.')){ showToast('Digite um e-mail válido.'); return; }
+      if (email === (myEmail||'').toLowerCase()){ showToast('Precisa ser um e-mail diferente do seu login.'); return; }
+      btnRecup.disabled = true; btnRecup.textContent = 'Salvando…';
+      try {
+        const { error } = await sb.from('profiles').upsert({
+          user_id: myUserId, recovery_email: email
+        }, { onConflict:'user_id' });
+        if (error) throw error;
+        myProfile.recovery_email = email;
+        if (profilesByUser[myUserId]) profilesByUser[myUserId].recovery_email = email;
+        showToast('✅ E-mail de recuperação salvo.');
+      } catch(e){
+        showToast('Erro: '+(e.message||''));
+      } finally {
+        btnRecup.disabled = false; btnRecup.textContent = 'Salvar e-mail de recuperação';
+      }
+    });
   }
 
   // Painel de backup — visível pra qualquer admin, mostra há quantos dias foi
   // o último backup e deixa baixar um novo a qualquer momento.
   function renderBackupPanel(){
     const dias = diasDesdeUltimoBackup();
-    const atrasado = dias >= 30;
+    const atrasado = dias >= 15;
     const nuncaFez = dias === Infinity;
     const dataFormatada = backupLog.last_backup_at
       ? new Date(backupLog.last_backup_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' })
@@ -10370,7 +10721,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="painel-title">📦 Backup dos dados</div>
         <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;">
           Baixa um arquivo com TODOS os dados do catálogo (fichas, projetos, coleções, avaliações, comentários...).
-          Recomendado pelo menos <b>1x a cada 30 dias</b>, e guardar em algum lugar seguro (Google Drive, computador, etc).
+          Recomendado pelo menos <b>1x a cada 15 dias</b>, e guardar em algum lugar seguro (Google Drive, computador, etc).
         </p>
         ${statusHtml}
         <button class="btn-primary" id="btnFazerBackup" style="margin-top:12px;width:100%;justify-content:center;">⬇️ Baixar backup completo agora</button>
@@ -10413,6 +10764,26 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     inp.value = '';
     renderPainel();
     showToast('Admin adicionado!');
+  }
+
+  // Tenta trocar a senha de outro usuário chamando a Edge Function
+  // "admin-reset-password" (precisa estar publicada no Supabase — veja o
+  // arquivo edge-function-admin-reset-password.ts). Se ainda não estiver
+  // publicada, avisa claramente em vez de fingir que funcionou.
+  async function dispararTrocaSenhaAdmin(email, novaSenha){
+    try {
+      const { data, error } = await sb.functions.invoke('admin-reset-password', {
+        body: { email, new_password: novaSenha }
+      });
+      if (error) throw error;
+      if (data && data.ok) return { ok:true };
+      return { ok:false, mensagem: (data && data.error) || 'A função retornou um erro inesperado.' };
+    } catch(e){
+      return {
+        ok:false,
+        mensagem: 'A função de servidor pra trocar senha ainda não foi publicada no Supabase. Troque manualmente em Authentication → Users no painel do Supabase, ou publique a Edge Function (arquivo edge-function-admin-reset-password.ts) e tente de novo.'
+      };
+    }
   }
 
   async function handleRemoveAdmin(email){
@@ -10474,26 +10845,89 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       // chat: abrir seletor de emoji
       const addReact = e.target.closest('[data-add-react]');
       if (addReact){ openEmojiPick(addReact.dataset.addReact, addReact); return; }
-      // chat: apagar mensagem
-      const delMsg = e.target.closest('[data-del-msg]');
-      if (delMsg){
-        const ok = await confirmarBonito({
-          titulo: 'Apagar esta mensagem?',
-          mensagem: '',
-          textoBotao: '🗑️ Sim, apagar',
-          corBotao: '#DC2626',
-          icone: '💬'
+      // chat: editar mensagem (só quem enviou, só nos primeiros 5 minutos —
+      // a opção de apagar mensagem foi removida, só editar)
+      const editMsg = e.target.closest('[data-edit-msg]');
+      if (editMsg){
+        const id = editMsg.dataset.editMsg;
+        const msg = chatCache.find(m => m.id === id);
+        if (!msg) return;
+        // Confere o prazo de novo (defesa extra, caso o botão tenha ficado visível por algum instante)
+        const dt = msg.created_at ? new Date(msg.created_at) : new Date();
+        if ((Date.now() - dt.getTime()) >= 5*60*1000){
+          showToast('O prazo de 5 minutos pra editar essa mensagem já passou.');
+          return;
+        }
+        const bodyEl = painelContent.querySelector(`[data-body-for="${id}"]`);
+        if (!bodyEl) return;
+        const original = msg.body;
+        bodyEl.innerHTML = `
+          <textarea class="chat-edit-textarea">${escapeHtml(original)}</textarea>
+          <div class="chat-edit-actions">
+            <button type="button" class="chat-edit-cancel">Cancelar</button>
+            <button type="button" class="chat-edit-save">Salvar</button>
+          </div>`;
+        const textarea = bodyEl.querySelector('.chat-edit-textarea');
+        textarea.focus();
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        bodyEl.querySelector('.chat-edit-cancel').addEventListener('click', () => {
+          bodyEl.innerHTML = formatChatBody(original);
         });
-        if (!ok) return;
-        const id = delMsg.dataset.delMsg;
-        await sb.from('chat_messages').delete().eq('id', id);
-        await reloadChatFromDB(true);
+        bodyEl.querySelector('.chat-edit-save').addEventListener('click', async () => {
+          const novo = textarea.value.trim();
+          if (!novo){ showToast('A mensagem não pode ficar vazia.'); return; }
+          const { error } = await sb.from('chat_messages').update({ body: novo }).eq('id', id);
+          if (error){ showToast('Erro ao editar: '+error.message); return; }
+          msg.body = novo;
+          bodyEl.innerHTML = formatChatBody(novo);
+          showToast('Mensagem editada.');
+        });
         return;
       }
       // admin: adicionar admin
       if (e.target.closest('#addAdminBtn')){ await handleAddAdmin(); return; }
       const rmAdmin = e.target.closest('[data-remove-admin]');
       if (rmAdmin){ await handleRemoveAdmin(rmAdmin.dataset.removeAdmin); return; }
+
+      // solicitação de senha: marcar como já resolvida manualmente
+      const resolverReq = e.target.closest('[data-resolver-req]');
+      if (resolverReq){
+        const id = resolverReq.dataset.resolverReq;
+        try{
+          await sb.from('password_reset_requests').update({
+            status:'resolvido', resolved_by: myEmail||null, resolved_at: new Date().toISOString()
+          }).eq('id', id);
+          await loadPasswordResetRequests();
+          renderBellBadge();
+          renderPainel();
+          showToast('Solicitação marcada como resolvida.');
+        }catch(err){ showToast('Erro: '+(err.message||'')); }
+        return;
+      }
+      // solicitação de senha: definir nova senha direto (precisa da Edge Function publicada)
+      const defSenha = e.target.closest('[data-def-senha]');
+      if (defSenha){
+        const id = defSenha.dataset.defSenha;
+        const email = defSenha.dataset.email;
+        const inp = painelContent.querySelector(`.prr-nova-senha[data-req-id="${id}"]`);
+        const novaSenha = inp ? inp.value : '';
+        if (!novaSenha || novaSenha.length < 6){ showToast('Digite uma senha com pelo menos 6 caracteres.'); return; }
+        defSenha.disabled = true; defSenha.textContent = 'Definindo…';
+        const res = await dispararTrocaSenhaAdmin(email, novaSenha);
+        if (res.ok){
+          await sb.from('password_reset_requests').update({
+            status:'resolvido', resolved_by: myEmail||null, resolved_at: new Date().toISOString()
+          }).eq('id', id);
+          await loadPasswordResetRequests();
+          renderBellBadge();
+          renderPainel();
+          showToast(`✅ Senha de ${email} atualizada.`);
+        } else {
+          defSenha.disabled = false; defSenha.textContent = 'Definir';
+          showToast(res.mensagem || 'Não consegui trocar a senha automaticamente.');
+        }
+        return;
+      }
     });
 
     // --- MUDANÇAS (delegadas) ---
@@ -10781,6 +11215,47 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const passInput = document.getElementById('authPass');
     if (loginBtn) loginBtn.addEventListener('click', tryLogin);
     if (passInput) passInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryLogin(); });
+
+    // --- Tela "Esqueci minha senha" ---
+    const forgotBtn = document.getElementById('authForgotBtn');
+    const backBtn = document.getElementById('authForgotBackBtn');
+    const sendBtn = document.getElementById('authForgotSendBtn');
+    const loginView = document.getElementById('authLoginView');
+    const forgotView = document.getElementById('authForgotView');
+    const forgotMsg = document.getElementById('authForgotMsg');
+
+    if (forgotBtn) forgotBtn.addEventListener('click', () => {
+      // Leva o e-mail já digitado (se tiver) pra tela de solicitação
+      const emailAtual = (document.getElementById('authEmail')||{}).value || '';
+      const forgotEmailInp = document.getElementById('authForgotEmail');
+      if (forgotEmailInp) forgotEmailInp.value = emailAtual;
+      if (forgotMsg) forgotMsg.textContent = '';
+      loginView.style.display = 'none';
+      forgotView.style.display = 'block';
+    });
+    if (backBtn) backBtn.addEventListener('click', () => {
+      forgotView.style.display = 'none';
+      loginView.style.display = 'block';
+    });
+    if (sendBtn) sendBtn.addEventListener('click', async () => {
+      const inp = document.getElementById('authForgotEmail');
+      const email = (inp && inp.value || '').trim().toLowerCase();
+      const setMsg = (msg, cor) => { if (forgotMsg){ forgotMsg.textContent = msg; forgotMsg.style.color = cor||'#DC2626'; } };
+      if (!email || !email.includes('@')){ setMsg('Digite um e-mail válido.'); return; }
+      sendBtn.disabled = true;
+      sendBtn.textContent = 'Enviando…';
+      try {
+        const { error } = await sb.from('password_reset_requests').insert({ email });
+        if (error) throw error;
+        setMsg('✅ Solicitação enviada! Um admin vai trocar sua senha em breve — combine com a equipe como vai receber a nova senha.', '#15803D');
+        if (inp) inp.value = '';
+      } catch(e){
+        setMsg('Erro ao enviar: '+(e.message||''));
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Solicitar troca de senha';
+      }
+    });
 
     // Se já houver sessão salva, entra direto.
     try {
