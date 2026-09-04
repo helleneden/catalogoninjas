@@ -7749,10 +7749,25 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <h2 style="margin-top:8px;">Quem participa?</h2>
             <p style="font-size:13px;color:var(--muted);margin:-6px 0 16px;">Busque pessoas já cadastradas ou crie novas. A voz de cada uma virá da ficha dela.</p>
             <div class="field">
-              <label>Buscar ou criar pessoa</label>
+              <label>Buscar pessoa já cadastrada</label>
               <div class="ac-wrap">
-                <input type="text" id="wpBuscarPessoa" placeholder="Digite o nome (ou nome de uma pessoa nova)..." autocomplete="off">
+                <input type="text" id="wpBuscarPessoa" placeholder="Digite o nome..." autocomplete="off">
                 <div class="ac-dropdown" id="wpBuscarDrop"></div>
+              </div>
+            </div>
+            <button type="button" class="btn-primary" id="wpBtnCriarFicha" style="width:100%;justify-content:center;margin-top:4px;">✨ Criar nova ficha</button>
+            <div id="wpCriarFichaBox" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border-radius:12px;">
+              <div class="field">
+                <label for="wpNovaFichaNome">Nome do personagem</label>
+                <input type="text" id="wpNovaFichaNome" placeholder="Ex: Michael Scott" autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="wpNovaFichaVoz">Voz utilizada (opcional por agora)</label>
+                <input type="text" id="wpNovaFichaVoz" placeholder="Ex: Marcus Jr" autocomplete="off">
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn-ghost" id="wpCancelarNovaFicha" style="flex:1;justify-content:center;">Cancelar</button>
+                <button type="button" class="btn-primary" id="wpConfirmarNovaFicha" style="flex:1;justify-content:center;">Adicionar</button>
               </div>
             </div>
             <div id="wpMarcadas"></div>
@@ -7893,6 +7908,43 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (state.passo === 4){
         renderPessoasMarcadas();
         wireBuscaPessoasWizard();
+
+        const btnCriar = $('#wpBtnCriarFicha');
+        const boxCriar = $('#wpCriarFichaBox');
+        const inpNome = $('#wpNovaFichaNome');
+        const inpVoz = $('#wpNovaFichaVoz');
+        if (btnCriar && boxCriar) btnCriar.addEventListener('click', () => {
+          boxCriar.style.display = 'block';
+          btnCriar.style.display = 'none';
+          inpNome.focus();
+        });
+        const fecharBoxCriar = () => {
+          boxCriar.style.display = 'none';
+          btnCriar.style.display = 'flex';
+          inpNome.value = ''; inpVoz.value = '';
+        };
+        const cancelarBtn = $('#wpCancelarNovaFicha');
+        if (cancelarBtn) cancelarBtn.addEventListener('click', fecharBoxCriar);
+        const confirmarBtn = $('#wpConfirmarNovaFicha');
+        if (confirmarBtn) confirmarBtn.addEventListener('click', () => {
+          const nome = (inpNome.value||'').trim();
+          if (!nome){ showToast('Digite o nome do personagem.'); inpNome.focus(); return; }
+          const voz = (inpVoz.value||'').trim();
+          const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+          state.pessoasMarcadas.set(tempId, {
+            personId: tempId,
+            personName: nome,
+            hasPhoto: false,
+            voice: voz,
+            _nova: true
+          });
+          fecharBoxCriar();
+          renderPessoasMarcadas();
+          showToast(`"${nome}" será criado(a) ao salvar o projeto.`);
+        });
+        // Enter no campo nome pula pro campo voz; Enter na voz confirma
+        if (inpNome) inpNome.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); inpVoz.focus(); } });
+        if (inpVoz) inpVoz.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); confirmarBtn.click(); } });
       }
 
       // Passo 5: ninjas da equipe que trabalharam no projeto
