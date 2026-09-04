@@ -10635,29 +10635,43 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     return `
       <div class="painel-card" style="margin-top:20px;">
         <div class="painel-title">🔒 Segurança da conta</div>
-        <div class="field">
-          <label for="novaSenhaInput">Nova senha</label>
-          <input type="password" id="novaSenhaInput" placeholder="Mínimo 6 caracteres" autocomplete="new-password"
-            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
-        </div>
-        <div class="field">
-          <label for="confirmaSenhaInput">Confirmar nova senha</label>
-          <input type="password" id="confirmaSenhaInput" placeholder="Digite de novo" autocomplete="new-password"
-            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
-        </div>
-        <button class="btn-primary" id="btnTrocarSenha" style="width:100%;justify-content:center;margin-bottom:16px;">Salvar nova senha</button>
 
-        <div class="field" style="margin-top:4px;border-top:1px dashed var(--line);padding-top:14px;">
+        <div class="field">
           <label for="emailRecupInput">E-mail de recuperação</label>
           <input type="email" id="emailRecupInput" placeholder="seuoutroemail@exemplo.com" value="${escapeHtml(myProfile.recovery_email||'')}"
             style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
           <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Usado se você esquecer a senha e não tiver admin disponível.</p>
         </div>
-        <button class="btn-ghost" id="btnSalvarEmailRecup" style="width:100%;justify-content:center;">Salvar e-mail de recuperação</button>
+        <button class="btn-ghost" id="btnSalvarEmailRecup" style="width:100%;justify-content:center;margin-bottom:14px;">Salvar e-mail de recuperação</button>
+
+        <button type="button" id="btnAbrirTrocarSenha" style="width:100%;text-align:left;background:none;border:none;padding:8px 0;border-top:1px dashed var(--line);color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;">
+          🔒 Alterar senha ▾
+        </button>
+        <div id="trocarSenhaBox" style="display:none;margin-top:10px;">
+          <div class="field">
+            <label for="novaSenhaInput">Nova senha</label>
+            <input type="password" id="novaSenhaInput" placeholder="Mínimo 6 caracteres" autocomplete="new-password"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+          </div>
+          <div class="field">
+            <label for="confirmaSenhaInput">Confirmar nova senha</label>
+            <input type="password" id="confirmaSenhaInput" placeholder="Digite de novo" autocomplete="new-password"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+          </div>
+          <button class="btn-primary" id="btnTrocarSenha" style="width:100%;justify-content:center;">Salvar nova senha</button>
+        </div>
       </div>`;
   }
 
   function wireSegurancaPanel(){
+    const btnAbrirSenha = $('#btnAbrirTrocarSenha');
+    const boxSenha = $('#trocarSenhaBox');
+    if (btnAbrirSenha && boxSenha) btnAbrirSenha.addEventListener('click', () => {
+      const abrindo = boxSenha.style.display === 'none';
+      boxSenha.style.display = abrindo ? 'block' : 'none';
+      btnAbrirSenha.textContent = abrindo ? '🔒 Alterar senha ▴' : '🔒 Alterar senha ▾';
+    });
+
     const btnSenha = $('#btnTrocarSenha');
     if (btnSenha) btnSenha.addEventListener('click', async () => {
       const nova = ($('#novaSenhaInput').value||'');
@@ -10672,7 +10686,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         $('#confirmaSenhaInput').value = '';
         showToast('✅ Senha atualizada.');
       } catch(e){
-        showToast('Erro ao trocar senha: '+(e.message||''));
+        console.error('Erro ao trocar senha:', e);
+        showToast('Erro ao trocar senha: '+(e.message||'erro desconhecido'));
       } finally {
         btnSenha.disabled = false; btnSenha.textContent = 'Salvar nova senha';
       }
