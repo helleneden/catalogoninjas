@@ -4002,7 +4002,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
     document.addEventListener('keydown', escHandler);
     ov.querySelector('#altCancel').addEventListener('click', cleanup);
-    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+    fecharAoClicarFora(ov, () => { cleanup(); });
 
     ov.querySelector('#altConfirm').addEventListener('click', async () => {
       const novaVoz = vozInput.value.trim();
@@ -4162,7 +4162,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     ov.classList.add('open');
     $('#buscaCancel').addEventListener('click', () => ov.classList.remove('open'));
-    ov.addEventListener('click', (e) => { if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
 
     const inp = $('#buscaPessoaInput');
     const drop = $('#buscaPessoaDropdown');
@@ -4756,7 +4756,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       };
       const escHandler = (e) => { if (e.key === 'Escape') cleanup('cancelou'); };
       document.addEventListener('keydown', escHandler);
-      ov.addEventListener('click', (e) => { if (e.target === ov) cleanup('cancelou'); });
+      fecharAoClicarFora(ov, () => { cleanup('cancelou'); });
 
       // Clique em "usar este" → adiciona ficha existente ao projeto
       ov.querySelectorAll('[data-usar]').forEach(btn => btn.addEventListener('click', async (e) => {
@@ -5443,7 +5443,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
     document.addEventListener('keydown', escHandler);
     ov.querySelector('#mergeCancel').addEventListener('click', cleanup);
-    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+    fecharAoClicarFora(ov, () => { cleanup(); });
 
     const renderResultados = () => {
       const q = input.value.trim().toLowerCase();
@@ -6432,6 +6432,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
   }
 
+  // Fecha um modal ao clicar no fundo escuro — mas SÓ se o clique começou
+  // E terminou ali (mousedown e mouseup no mesmo lugar). Sem essa checagem,
+  // selecionar um texto dentro do modal e "escorregar" o mouse até passar
+  // da borda (comum perto das bordas de campos de texto) contava como um
+  // clique no fundo, fechando o modal sem querer no meio da seleção.
+  function fecharAoClicarFora(overlay, aoFechar){
+    let mousedownNoFundo = false;
+    overlay.addEventListener('mousedown', (e) => {
+      mousedownNoFundo = (e.target === overlay);
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay && mousedownNoFundo) aoFechar();
+      mousedownNoFundo = false;
+    });
+  }
+
   function ensureColOverlay(){
     let ov = $('#colOverlay');
     if (!ov){
@@ -6467,7 +6483,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const setPrev = wireCoverUpload('cat');
     if (cat && cat.has_cover){ const u=coverUrl('cat',cat.id); if(u) setPrev(u); }
     $('#colCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     if (cat) $('#colDelete').addEventListener('click', async ()=>{
       const ok = await confirmarBonito({
         titulo: 'Excluir esta coleção?',
@@ -6528,7 +6544,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.classList.add('open');
     $('#seasonName').focus();
     $('#seasonCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#seasonSave').addEventListener('click', async ()=>{
       const name = $('#seasonName').value.trim();
       if (!name){ showToast('Dê um nome à temporada.'); return; }
@@ -6591,7 +6607,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.classList.add('open');
     $('#msClose').addEventListener('click', ()=>ov.classList.remove('open'));
     $('#msAdd').addEventListener('click', ()=>{ ov.classList.remove('open'); openSeasonModal(null, frId); });
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     ov.querySelectorAll('[data-edit-s]').forEach(b=>b.addEventListener('click',()=>{ ov.classList.remove('open'); openSeasonModal(b.dataset.editS, null); }));
     ov.querySelectorAll('[data-del-s]').forEach(b=>b.addEventListener('click', async ()=>{
       const s = seasons.find(x=>x.id===b.dataset.delS); if (!s) return;
@@ -6632,7 +6648,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     ov.classList.add('open');
     $('#moverCancel').addEventListener('click',()=>ov.classList.remove('open'));
-    ov.addEventListener('click',(e)=>{if(e.target===ov)ov.classList.remove('open');});
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#moverSalvar').addEventListener('click', async ()=>{
       const sel=ov.querySelector('input[name="moveCat"]:checked');
       if(!sel){ showToast('Selecione uma coleção.'); return; }
@@ -6675,7 +6691,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const setPrev = wireCoverUpload('fr');
     if (fr && fr.has_cover){ const u=coverUrl('fr',fr.id); if(u) setPrev(u); }
     $('#colCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     if (fr) $('#colDelete').addEventListener('click', async ()=>{
       const projsDaFr = projectsOfFranchise(fr.id);
       if (projsDaFr.length === 1){
@@ -7090,7 +7106,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // Handlers
     const cleanup = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); };
     ov.querySelector('#renomearCancel').addEventListener('click', cleanup);
-    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+    fecharAoClicarFora(ov, () => { cleanup(); });
     const escHandler = (e) => { if (e.key === 'Escape'){ cleanup(); document.removeEventListener('keydown', escHandler); } };
     document.addEventListener('keydown', escHandler);
 
@@ -7633,7 +7649,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>`;
     ov.classList.add('open');
     $('#prodCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#prodSave').addEventListener('click', async ()=>{
       const checks=[...ov.querySelectorAll('input[type=checkbox]')];
       $('#prodSave').disabled=true;
@@ -8474,7 +8490,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
 
     ov.classList.add('open');
-    ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     render();
   }
 
@@ -8503,7 +8519,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>`;
     ov.classList.add('open');
     $('#exCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#exArquivar').addEventListener('click', async ()=>{
       try{
         await sb.from('project_meta').upsert({ project, archived:true, in_production:false, updated_at:new Date().toISOString() }, { onConflict:'project' });
@@ -8749,7 +8765,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>`;
     ov.classList.add('open');
     $('#abCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#abArquivar').addEventListener('click', async ()=>{ await sb.from('audiobooks').update({archived:true, in_production:false}).eq('id',id); a.archived=true; a.in_production=false; ov.classList.remove('open'); renderAudiobooks(); showToast('Arquivado.'); });
     $('#abExcluir').addEventListener('click', async ()=>{
       const ok = await confirmarBonito({
@@ -8787,7 +8803,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>`;
     ov.classList.add('open');
     $('#abViewClose').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     const ed = $('#abEdit');
     if (ed) ed.addEventListener('click', ()=>openAudiobookEdit(id));
   }
@@ -8856,7 +8872,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     rewire();
     $('#abAddVoice').addEventListener('click', ()=>{ syncVoicesFromDOM(); voices.push({role:'',voice:'',is_main:false}); voicesWrap.innerHTML=voiceRowsHtml(); rewire(); });
     $('#abEditCancel').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     $('#abEditSave').addEventListener('click', async ()=>{
       syncVoicesFromDOM();
       const title=$('#abTitle').value.trim(); if(!title){ showToast('Dê um título.'); return; }
@@ -8932,7 +8948,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     ov.classList.add('open');
     hydratePhotos();
     $('#coadjClose').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     // clicar num coadjuvante abre a ficha para editar (foto/voz)
     ov.querySelectorAll('.voice-card[data-id]').forEach(card => {
       card.addEventListener('click', (e)=>{
@@ -9501,7 +9517,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const cleanup = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); document.removeEventListener('keydown', escHandler); };
     const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
     document.addEventListener('keydown', escHandler);
-    ov.addEventListener('click', (e) => { if (e.target === ov) cleanup(); });
+    fecharAoClicarFora(ov, () => { cleanup(); });
 
     async function confirmar(){
       const arr = [...local.pessoasParaAdicionar.values()];
@@ -10044,7 +10060,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     wireParticipantesBox(project);
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
-    ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
 
     // Botão excluir projeto (só admin) — abre a mesma tela de escolha
     // "Arquivar" ou "Excluir permanentemente" usada em todo o resto do app.
@@ -10628,7 +10644,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       b.style.border='3px solid var(--blue-deep)';
     }));
     const cancel = $('#profCancel'); if (cancel) cancel.addEventListener('click', ()=>ov.classList.remove('open'));
-    if (!firstTime) ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); });
+    if (!firstTime) fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     const logout = $('#profLogout');
     if (logout) logout.addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
     $('#profSave').addEventListener('click', async ()=>{
