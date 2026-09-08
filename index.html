@@ -10429,12 +10429,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           showToast('✅ Ordem salva.');
         } catch(err){
           console.error('Erro ao salvar ordem:', err);
-          const msg = (err.message||'');
-          if (msg.includes('entry_id') || msg.includes('column') || msg.includes('does not exist')){
-            showToast('❌ O banco ainda não tem a coluna necessária. Rode o arquivo SQL-corrigir-dub-order.sql no Supabase primeiro.');
-          } else {
-            showToast('❌ Erro ao salvar ordem: '+msg);
-          }
+          const msg = (err.message||'erro desconhecido');
+          const detalhes = err.details ? ` (${err.details})` : '';
+          const codigo = err.code ? ` [código: ${err.code}]` : '';
+          showToast(`❌ Erro ao salvar ordem: ${msg}${detalhes}${codigo}`);
           btn.disabled=false;
           btn.textContent = 'Salvar ordem';
         }
