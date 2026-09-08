@@ -232,6 +232,7 @@
     background:var(--surface); border:1px solid var(--line); border-radius:12px;
     transition:all .18s ease;
     position:relative;
+    user-select:none; -webkit-user-select:none; -moz-user-select:none;
   }
   .dub-item:hover{
     border-color:var(--blue);
@@ -9842,7 +9843,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 <span class="dub-pos">${i+1}</span>
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
-                <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
+                <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
                 ${isAdmin?`<button class="dub-del admin-only" title="Remover" data-del-person="${pr.personId}" data-del-voice="${escapeHtml(pr.voice)}" data-del-proj="${escapeHtml(project)}">🗑️</button>`:''}
               </li>`;
             }).join('')}
