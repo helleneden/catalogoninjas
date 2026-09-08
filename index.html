@@ -10211,58 +10211,142 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       // === BLOCO DE SUGESTÕES DE COLEGAS DE CENA ===
       renderSugestoesColegasProjeto(project);
 
-      // drag & drop da ordem — só se há lista pra ordenar
+      // ==========================================================
+      // Reordenação por arraste — sistema próprio (não usa o "drag"
+      // nativo do navegador, que é a causa da tremedeira/seleção de
+      // texto). Durante o arraste, só aplicamos "transform" (que não
+      // mexe no layout de verdade, então não pisca) — o DOM real só é
+      // reordenado uma vez, no momento que solta o mouse.
+      // ==========================================================
       const list=$('#dubList');
       if (!list){
-        // sem lista, só liga o botão salvar pra fazer nada
         const btnSave = $('#projSaveOrder');
         if (btnSave){ btnSave.style.display='none'; }
         return;
       }
-      let dragEl=null;
-      function limparIndicadores(){
-        list.querySelectorAll('.dub-item').forEach(i => {
-          i.classList.remove('drag-over-top','drag-over-bottom');
-        });
-      }
-      list.addEventListener('dragstart', e=>{
-        dragEl=e.target.closest('.dub-item');
-        if(dragEl) setTimeout(()=>dragEl.classList.add('dragging'), 0);
-      });
-      list.addEventListener('dragend', e=>{
-        if(dragEl) dragEl.classList.remove('dragging');
-        limparIndicadores();
-        dragEl=null;
-        renumber();
-      });
-      list.addEventListener('dragover', e=>{
-        e.preventDefault();
-        if(!dragEl) return;
-        const alvo = e.target.closest('.dub-item:not(.dragging)');
-        limparIndicadores();
-        if (!alvo){
-          // caiu no vazio no final
-          const items = [...list.querySelectorAll('.dub-item:not(.dragging)')];
-          if (items.length) items[items.length-1].classList.add('drag-over-bottom');
-          // só mexe no DOM se ainda não estiver no final (evita oscilação)
-          if (list.lastElementChild !== dragEl) list.appendChild(dragEl);
-          return;
-        }
-        const box = alvo.getBoundingClientRect();
-        const meio = box.top + box.height/2;
-        if (e.clientY < meio){
-          alvo.classList.add('drag-over-top');
-          // só reinsere se a posição realmente for diferente da atual —
-          // sem essa checagem, todo movimento do mouse reordenava de novo,
-          // e o item ficava "tremendo"/pulando durante o arraste
-          if (alvo.previousElementSibling !== dragEl) list.insertBefore(dragEl, alvo);
-        } else {
-          alvo.classList.add('drag-over-bottom');
-          if (alvo.nextElementSibling !== dragEl) list.insertBefore(dragEl, alvo.nextSibling);
-        }
-      });
-      list.addEventListener('drop', e => { e.preventDefault(); limparIndicadores(); });
+
+      // Remove qualquer atributo "draggable" nativo — não usamos mais
+      list.querySelectorAll('.dub-item').forEach(li => li.removeAttribute('draggable'));
+
       function renumber(){ [...list.querySelectorAll('.dub-item')].forEach((li,i)=> li.querySelector('.dub-pos').textContent=i+1); }
+
+      let arrastando = null; // { itens, alturaItem, indiceOriginal, indiceAtual, offsetInicialY }
+
+      function iniciarArraste(e, li){
+        e.preventDefault();
+        const itens = [...list.querySelectorAll('.dub-item')];
+        const indiceOriginal = itens.indexOf(li);
+        const alturaItem = li.offsetHeight + 10; // 10 = gap entre itens (margin-bottom do CSS)
+        const startY = (e.touches ? e.touches[0].clientY : e.clientY);
+
+        // trava a altura da lista pra ela não "pular" enquanto o item fica com position:absolute
+        list.style.height = list.offsetHeight + 'px';
+        list.style.position = 'relative';
+
+        // guarda a posição inicial de cada item (em relação ao topo da lista)
+        const listBox = list.getBoundingClientRect();
+        itens.forEach((it, i) => {
+          const b = it.getBoundingClientRect();
+          it.style.position = 'absolute';
+          it.style.top = (b.top - listBox.top) + 'px';
+          it.style.left = '0';
+          it.style.right = '0';
+          it.style.transition = 'transform .16s ease';
+          it.dataset.slot = i; // posição visual atual (pode mudar durante o arraste)
+        });
+
+        li.style.transition = 'none';
+        li.style.zIndex = '50';
+        li.classList.add('dragging');
+
+        arrastando = { itens, alturaItem, indiceOriginal, indiceAtual: indiceOriginal, startY, li, listBox };
+        document.addEventListener('mousemove', moverArraste);
+        document.addEventListener('mouseup', soltarArraste);
+        document.addEventListener('touchmove', moverArraste, {passive:false});
+        document.addEventListener('touchend', soltarArraste);
+      }
+
+      function moverArraste(e){
+        if (!arrastando) return;
+        e.preventDefault();
+        const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
+        const deltaY = clientY - arrastando.startY;
+        arrastando.li.style.transform = `translateY(${deltaY}px)`;
+
+        // calcula pra qual "slot" o item arrastado deve ir, baseado no centro dele
+        const novoIndice = Math.max(0, Math.min(
+          arrastando.itens.length - 1,
+          Math.round(arrastando.indiceOriginal + deltaY / arrastando.alturaItem)
+        ));
+
+        if (novoIndice !== arrastando.indiceAtual){
+          // desloca visualmente (via transform) os itens que estão "no caminho"
+          const de = arrastando.indiceAtual, para = novoIndice;
+          arrastando.itens.forEach((it) => {
+            if (it === arrastando.li) return;
+            const slotOriginal = Number(it.dataset.slotOriginal ?? it.dataset.slot);
+            if (!it.dataset.slotOriginal) it.dataset.slotOriginal = it.dataset.slot;
+          });
+          arrastando.itens.forEach((it) => {
+            if (it === arrastando.li) return;
+            const slotOriginal = Number(it.dataset.slotOriginal);
+            let deslocamento = 0;
+            if (de < para){
+              // arrastando pra baixo: quem está entre (de, para] sobe uma posição
+              if (slotOriginal > de && slotOriginal <= para) deslocamento = -1;
+            } else {
+              // arrastando pra cima: quem está entre [para, de) desce uma posição
+              if (slotOriginal >= para && slotOriginal < de) deslocamento = 1;
+            }
+            it.style.transform = `translateY(${deslocamento * arrastando.alturaItem}px)`;
+          });
+          arrastando.indiceAtual = novoIndice;
+        }
+      }
+
+      function soltarArraste(){
+        if (!arrastando) return;
+        const { itens, indiceOriginal, indiceAtual, li } = arrastando;
+
+        // Calcula a ordem final (array de elementos) sem tocar no DOM ainda
+        const semArrastado = itens.filter(it => it !== li);
+        semArrastado.splice(indiceAtual, 0, li);
+
+        // Reordena o DOM de verdade, de uma vez só (sem transição — já está tudo
+        // posicionado corretamente via transform, então não há salto visual)
+        itens.forEach(it => { it.style.transition = 'none'; });
+        semArrastado.forEach(it => list.appendChild(it));
+
+        // Limpa todos os estilos inline de posicionamento temporário
+        itens.forEach(it => {
+          it.style.position = '';
+          it.style.top = '';
+          it.style.left = '';
+          it.style.right = '';
+          it.style.transform = '';
+          it.style.zIndex = '';
+          it.style.transition = '';
+          delete it.dataset.slot;
+          delete it.dataset.slotOriginal;
+        });
+        list.style.height = '';
+        list.style.position = '';
+        li.classList.remove('dragging');
+
+        renumber();
+
+        document.removeEventListener('mousemove', moverArraste);
+        document.removeEventListener('mouseup', soltarArraste);
+        document.removeEventListener('touchmove', moverArraste);
+        document.removeEventListener('touchend', soltarArraste);
+        arrastando = null;
+      }
+
+      // Só a alça (⠿) inicia o arraste — evita conflito com cliques em texto/foto
+      list.querySelectorAll('.dub-handle').forEach(handle => {
+        handle.addEventListener('mousedown', (e) => iniciarArraste(e, e.target.closest('.dub-item')));
+        handle.addEventListener('touchstart', (e) => iniciarArraste(e, e.target.closest('.dub-item')), {passive:false});
+      });
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
         const voices=[...list.querySelectorAll('.dub-item')].map(li=>li.dataset.voice);
