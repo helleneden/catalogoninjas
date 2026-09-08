@@ -2919,6 +2919,32 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let audiobooksFilter = 'producao';
   let projectParticipants = {}; // project -> [{user_id, display_name, ninja_color}]
   let backupLog = { last_backup_at: null, last_backup_by: null }; // último backup registrado
+
+  // Estado do arraste da "Ordem de dublagem" — fica FORA da função de
+  // renderizar o modal (que roda de novo toda vez que o modal reabre).
+  // Se ficasse dentro, e o modal recarregasse no meio de um arraste
+  // (ex: depois de salvar uma voz), o item ficava "órfão": preso com
+  // posição fixa antiga, sem ninguém pra limpar — causava o item
+  // flutuando/sobreposto que aparecia depois de usar outras funções.
+  let arrastandoDub = null;
+  function forcarLimpezaArrasteDub(){
+    if (!arrastandoDub) return;
+    try{
+      const { li, placeholder, onMove, onUp, onMoveTouch, onUpTouch } = arrastandoDub;
+      if (li){
+        li.style.position = ''; li.style.top = ''; li.style.left = '';
+        li.style.width = ''; li.style.margin = ''; li.style.zIndex = '';
+        li.style.pointerEvents = ''; li.style.transition = ''; li.style.transform = '';
+        li.classList.remove('dragging');
+      }
+      if (placeholder && placeholder.parentNode) placeholder.remove();
+      if (onMove) document.removeEventListener('mousemove', onMove);
+      if (onUp) document.removeEventListener('mouseup', onUp);
+      if (onMoveTouch) document.removeEventListener('touchmove', onMoveTouch);
+      if (onUpTouch) document.removeEventListener('touchend', onUpTouch);
+    }catch(e){ console.warn('Limpeza de arraste:', e); }
+    arrastandoDub = null;
+  }
   let passwordResetRequests = []; // solicitações de troca de senha pendentes/resolvidas
 
   const mainContent = $('#mainContent');
@@ -9815,7 +9841,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     } catch(e){ console.warn('Limpar franquias órfãs:', e); }
   }
 
-  async function openProjetoModal(project){    const ov = ensureColOverlay();
+  async function openProjetoModal(project){
+    forcarLimpezaArrasteDub(); // garante que nada de um arraste anterior fique preso
+    const ov = ensureColOverlay();
     const pairs = orderedVoicesForProject(project);
     const url = projCoverUrl(project);
     ov.innerHTML = `
@@ -10236,16 +10264,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
       list.querySelectorAll('.dub-item').forEach(li => li.removeAttribute('draggable'));
 
+      // Se sobrou um arraste "preso" de antes (ex: o modal recarregou no meio
+      // de um arraste), limpa ele à força antes de configurar o novo.
+      forcarLimpezaArrasteDub();
+
       function renumber(){ [...list.querySelectorAll('.dub-item')].forEach((li,i)=> {
         const pos = li.querySelector('.dub-pos');
         if (pos) pos.textContent = i+1;
       }); }
 
-      let arrastando = null;
-
       function iniciarArraste(e, li){
         e.preventDefault();
-        if (arrastando) return; // já tem um arraste em andamento, ignora
+        if (arrastandoDub) forcarLimpezaArrasteDub(); // nunca dois arrastes ao mesmo tempo
         const startY = (e.touches ? e.touches[0].clientY : e.clientY);
         const rect = li.getBoundingClientRect();
 
@@ -10265,7 +10295,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         li.style.transition = 'none';
         li.classList.add('dragging');
 
-        arrastando = { li, placeholder, startY, startTop: rect.top };
+        arrastandoDub = { li, placeholder, startY, startTop: rect.top, list };
+        arrastandoDub.onMove = moverArraste;
+        arrastandoDub.onUp = soltarArraste;
+        arrastandoDub.onMoveTouch = moverArraste;
+        arrastandoDub.onUpTouch = soltarArraste;
         document.addEventListener('mousemove', moverArraste);
         document.addEventListener('mouseup', soltarArraste);
         document.addEventListener('touchmove', moverArraste, {passive:false});
@@ -10273,34 +10307,34 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
 
       function moverArraste(e){
-        if (!arrastando) return;
+        if (!arrastandoDub) return;
         e.preventDefault();
         const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
-        const deltaY = clientY - arrastando.startY;
-        arrastando.li.style.transform = `translateY(${deltaY}px)`;
+        const deltaY = clientY - arrastandoDub.startY;
+        arrastandoDub.li.style.transform = `translateY(${deltaY}px)`;
 
-        const centroArrastado = arrastando.startTop + deltaY + arrastando.li.offsetHeight/2;
-        const irmaos = [...list.children].filter(el => el !== arrastando.li && el !== arrastando.placeholder);
+        const centroArrastado = arrastandoDub.startTop + deltaY + arrastandoDub.li.offsetHeight/2;
+        const irmaos = [...arrastandoDub.list.children].filter(el => el !== arrastandoDub.li && el !== arrastandoDub.placeholder);
 
         for (const irmao of irmaos){
           const b = irmao.getBoundingClientRect();
           const centroIrmao = b.top + b.height/2;
-          const placeholderEstaAntes = !!(irmao.compareDocumentPosition(arrastando.placeholder) & Node.DOCUMENT_POSITION_PRECEDING);
+          const placeholderEstaAntes = !!(irmao.compareDocumentPosition(arrastandoDub.placeholder) & Node.DOCUMENT_POSITION_PRECEDING);
           if (centroArrastado < centroIrmao && !placeholderEstaAntes){
-            list.insertBefore(arrastando.placeholder, irmao);
+            arrastandoDub.list.insertBefore(arrastandoDub.placeholder, irmao);
             break;
           }
           if (centroArrastado > centroIrmao && placeholderEstaAntes){
-            list.insertBefore(arrastando.placeholder, irmao.nextSibling);
+            arrastandoDub.list.insertBefore(arrastandoDub.placeholder, irmao.nextSibling);
             break;
           }
         }
       }
 
       function soltarArraste(){
-        if (!arrastando) return;
-        const { li, placeholder } = arrastando;
-        list.insertBefore(li, placeholder);
+        if (!arrastandoDub) return;
+        const { li, placeholder, list: listRef } = arrastandoDub;
+        listRef.insertBefore(li, placeholder);
         placeholder.remove();
         li.style.position = '';
         li.style.top = '';
@@ -10318,7 +10352,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         document.removeEventListener('mouseup', soltarArraste);
         document.removeEventListener('touchmove', moverArraste);
         document.removeEventListener('touchend', soltarArraste);
-        arrastando = null;
+        arrastandoDub = null;
       }
 
       // Só a alça (⠿) inicia o arraste — evita conflito com cliques em texto/foto
