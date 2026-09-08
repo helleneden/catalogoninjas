@@ -2729,7 +2729,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     <!-- Voz utilizada com autocomplete e detecção -->
     <div class="field" data-only-new>
-      <label for="voiceMainInput">Voz utilizada <span style="color:#DC2626;">*</span></label>
+      <label for="voiceMainInput">Voz utilizada <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
       <div class="ac-wrap">
         <input type="text" id="voiceMainInput" placeholder="Ex: Marcus Jr, Kelly Souza" autocomplete="off">
         <div class="ac-dropdown" id="voiceMainAcDropdown"></div>
@@ -2740,14 +2740,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <!-- Bloco de sugestões (aparece quando voz existente) -->
     <div id="sugestoesBloco" style="display:none;" data-only-new></div>
 
-    <!-- SEÇÃO: Nome do projeto (obrigatório para novas fichas) -->
+    <!-- SEÇÃO: Nome do projeto (opcional — pode cadastrar a ficha sem projeto ainda) -->
     <div class="field" data-only-new>
-      <label for="projMainInput">Projeto <span style="color:#DC2626;">*</span></label>
+      <label for="projMainInput">Projeto <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
       <div class="ac-wrap">
-        <input type="text" id="projMainInput" placeholder="Digite um projeto existente" autocomplete="off">
+        <input type="text" id="projMainInput" placeholder="Digite um projeto existente (ou deixe em branco)" autocomplete="off">
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Só projetos já existentes. Pra criar projeto novo, vá em <b>Projetos → + Novo projeto</b>.</p>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco e vincular a um projeto depois. Se preencher, precisa ser um projeto que já existe — pra criar um novo, vá em <b>Projetos → + Novo projeto</b>. Preenchendo o projeto, a voz também precisa ser preenchida.</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -5206,52 +5206,63 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    // === MODO NOVA FICHA: só cria a ficha da pessoa vinculando a um PROJETO EXISTENTE ===
-    // (tipo/capa/destino do projeto são configurados quando o projeto é criado)
+    // === MODO NOVA FICHA: cria a ficha, com projeto+voz opcionais (podem ser
+    // preenchidos depois, quando essa pessoa entrar em algum projeto) ===
     const voz = $('#voiceMainInput').value.trim();
     const projeto = $('#projMainInput').value.trim();
     const data = $('#dateMainInput').value.trim();
 
-    if (!voz){ showToast('Digite a voz utilizada.'); $('#voiceMainInput').focus(); return; }
-    if (!projeto){ showToast('Digite o nome de um projeto existente.'); $('#projMainInput').focus(); return; }
+    // Voz e projeto são opcionais, mas dependentes entre si: se preencher
+    // um, precisa preencher o outro também (não dá pra ter voz sem saber
+    // em qual projeto ela é usada, nem um projeto sem voz definida).
+    if (projeto && !voz){ showToast('Preenchendo o projeto, digite também a voz utilizada.'); $('#voiceMainInput').focus(); return; }
+    if (voz && !projeto){ showToast('Preenchendo a voz, digite também o projeto (ou apague os dois pra cadastrar sem vincular ainda).'); $('#projMainInput').focus(); return; }
 
-    // Verifica se o projeto existe
-    const todosProjs = todosOsProjetos();
-    const projLower = projeto.toLowerCase();
-    if (!todosProjs.some(p => p.toLowerCase() === projLower)){
-      showToast('Projeto não existe. Crie em: Projetos → + Novo projeto');
-      $('#projMainInput').focus();
-      return;
-    }
-    // Usa o nome canônico (caso o admin tenha digitado com case diferente)
-    const projetoCanonico = todosProjs.find(p => p.toLowerCase() === projLower);
-
-    // === DETECÇÃO DE FICHAS SIMILARES ===
-    // Se o nome digitado é parecido com fichas existentes, mostra popup pra evitar duplicata
-    const similares = detectarFichasSimilares(name);
-    if (similares.length > 0){
-      // Marca cada similar com info se já está no projeto atual (pra o admin ver o contexto)
-      const projLower2 = projetoCanonico.toLowerCase();
-      const similaresComContexto = similares.map(s => {
-        const pessoa = mainPeople().find(p => p.id === s.id);
-        const jaNoProjeto = pessoa && pessoa.entries.some(e =>
-          (e.project||'').trim().toLowerCase() === projLower2
-        );
-        return { ...s, jaNoProjeto };
-      });
-
-      // Mostra popup — apresenta TODOS os similares (mesmo os que já estão no projeto)
-      const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoCanonico, voz, data);
-      if (escolha === 'adicionou_existente'){
-        closeModal();
-        return;
-      } else if (escolha === 'cancelou'){
+    // Verifica se o projeto existe (só quando foi preenchido)
+    let projetoCanonico = null;
+    if (projeto){
+      const todosProjs = todosOsProjetos();
+      const projLower = projeto.toLowerCase();
+      if (!todosProjs.some(p => p.toLowerCase() === projLower)){
+        showToast('Projeto não existe. Crie em: Projetos → + Novo projeto');
+        $('#projMainInput').focus();
         return;
       }
-      // 'continuar' → segue com o cadastro normal abaixo
+      // Usa o nome canônico (caso o admin tenha digitado com case diferente)
+      projetoCanonico = todosProjs.find(p => p.toLowerCase() === projLower);
     }
 
-    const cleanEntries = [{ project: projetoCanonico, voice: voz, date: data }];
+    // === DETECÇÃO DE FICHAS SIMILARES ===
+    // Só roda quando tem projeto preenchido — o botão "Usar este" do popup
+    // vincula a ficha existente a ESSE projeto, então sem projeto não faz
+    // sentido mostrar o popup (a pessoa está só cadastrando uma ficha solta,
+    // sem vínculo ainda).
+    if (projetoCanonico){
+      const similares = detectarFichasSimilares(name);
+      if (similares.length > 0){
+        // Marca cada similar com info se já está no projeto atual (pra o admin ver o contexto)
+        const projLower2 = projetoCanonico.toLowerCase();
+        const similaresComContexto = similares.map(s => {
+          const pessoa = mainPeople().find(p => p.id === s.id);
+          const jaNoProjeto = !!(pessoa && pessoa.entries.some(e =>
+            (e.project||'').trim().toLowerCase() === projLower2
+          ));
+          return { ...s, jaNoProjeto };
+        });
+
+        // Mostra popup — apresenta TODOS os similares (mesmo os que já estão no projeto)
+        const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoCanonico, voz, data);
+        if (escolha === 'adicionou_existente'){
+          closeModal();
+          return;
+        } else if (escolha === 'cancelou'){
+          return;
+        }
+        // 'continuar' → segue com o cadastro normal abaixo
+      }
+    }
+
+    const cleanEntries = projetoCanonico ? [{ project: projetoCanonico, voice: voz, date: data }] : [];
 
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
@@ -10875,13 +10886,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       <div class="painel-card" style="margin-top:20px;">
         <div class="painel-title">🔒 Segurança da conta</div>
 
-        <div class="field">
-          <label for="emailRecupInput">E-mail de recuperação</label>
-          <input type="email" id="emailRecupInput" placeholder="seuoutroemail@exemplo.com" value="${escapeHtml(myProfile.recovery_email||'')}"
-            style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
-          <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Usado se você esquecer a senha e não tiver admin disponível.</p>
+        <button type="button" id="btnAbrirEmailRecup" style="width:100%;text-align:left;background:none;border:none;padding:8px 0;color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;">
+          📧 E-mail de recuperação ▾
+        </button>
+        <div id="emailRecupBox" style="display:none;margin-top:10px;margin-bottom:4px;">
+          <div class="field">
+            <label for="emailRecupInput">E-mail de recuperação</label>
+            <input type="email" id="emailRecupInput" placeholder="seuoutroemail@exemplo.com" value="${escapeHtml(myProfile.recovery_email||'')}"
+              style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+            <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Usado se você esquecer a senha e não tiver admin disponível.</p>
+          </div>
+          <button class="btn-ghost" id="btnSalvarEmailRecup" style="width:100%;justify-content:center;">Salvar e-mail de recuperação</button>
         </div>
-        <button class="btn-ghost" id="btnSalvarEmailRecup" style="width:100%;justify-content:center;margin-bottom:14px;">Salvar e-mail de recuperação</button>
 
         <button type="button" id="btnAbrirTrocarSenha" style="width:100%;text-align:left;background:none;border:none;padding:8px 0;border-top:1px dashed var(--line);color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;">
           🔒 Alterar senha ▾
@@ -10903,6 +10919,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   function wireSegurancaPanel(){
+    const btnAbrirEmail = $('#btnAbrirEmailRecup');
+    const boxEmail = $('#emailRecupBox');
+    if (btnAbrirEmail && boxEmail) btnAbrirEmail.addEventListener('click', () => {
+      const abrindo = boxEmail.style.display === 'none';
+      boxEmail.style.display = abrindo ? 'block' : 'none';
+      btnAbrirEmail.textContent = abrindo ? '📧 E-mail de recuperação ▴' : '📧 E-mail de recuperação ▾';
+    });
+
     const btnAbrirSenha = $('#btnAbrirTrocarSenha');
     const boxSenha = $('#trocarSenhaBox');
     if (btnAbrirSenha && boxSenha) btnAbrirSenha.addEventListener('click', () => {
