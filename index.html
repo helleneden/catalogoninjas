@@ -10360,14 +10360,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
         const voices=[...list.querySelectorAll('.dub-item')].map(li=>li.dataset.voice);
-        $('#projSaveOrder').disabled=true;
+        const btn = $('#projSaveOrder');
+        btn.disabled=true;
+        btn.textContent = 'Salvando…';
         await sb.from('dub_order').delete().eq('project', project);
         if (voices.length){
           await sb.from('dub_order').insert(voices.map((v,i)=>({project, voice:v, position:i})));
         }
         dubOrder[project]=voices;
-        ov.classList.remove('open');
-        showToast('Ordem salva.');
+        btn.disabled=false;
+        btn.textContent = 'Salvar ordem';
+        showToast('✅ Ordem salva.');
       });
     }
   }
