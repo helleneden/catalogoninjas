@@ -3859,7 +3859,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // Modal pra alterar voz ou data de uma entrada específica
-  async function abrirAlterarVozData(person, entryIdxOrId, projeto, vozAtual, dataAtual){
+  async function abrirAlterarVozData(person, entryIdxOrId, projeto, vozAtual, dataAtual, onSalvou){
     const ov = document.createElement('div');
     ov.className = 'modal-overlay confirm-overlay open';
     ov.style.zIndex = '9999';
@@ -3955,10 +3955,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         cleanup();
         await loadPeople();
         invalidarCacheSimilares();
-        // Reabre o modal editar da mesma pessoa pra refletir a mudança
-        const personAtualizado = people.find(p => p.id === person.id);
-        if (personAtualizado){
-          renderProjetosDaFicha(personAtualizado);
+        if (typeof onSalvou === 'function'){
+          // quem chamou decide o que atualizar (ex: reabrir o modal do projeto)
+          onSalvou();
+        } else {
+          // comportamento padrão: reabre o modal editar da mesma pessoa
+          const personAtualizado = people.find(p => p.id === person.id);
+          if (personAtualizado){
+            renderProjetosDaFicha(personAtualizado);
+          }
         }
         showToast(`✅ Voz alterada para "${novaVoz}".`);
       } catch(err){
@@ -9955,7 +9960,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         || pessoa.entries.filter(e => (e.project||'').toLowerCase() === project.toLowerCase())[Number(el.dataset.entryIdx)];
       const vozAtual = entry ? entry.voice : '';
       const dataAtual = entry ? entry.date : '';
-      abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual);
+      abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual, () => {
+        // reabre o modal DESTE projeto atualizado, em vez do modal de ficha
+        openProjetoModal(project);
+      });
     }));
 
     // lixeira: remover a entrada (voz) daquele projeto para aquela pessoa
