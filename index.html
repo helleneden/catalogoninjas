@@ -288,6 +288,18 @@
     border-radius: 3px;
     padding: 1px 3px;
   }
+  .btn-danger-ghost{
+    background: var(--surface);
+    border: 1.5px solid #FECACA;
+    color: #DC2626;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .12s;
+    font-family: inherit;
+  }
+  .btn-danger-ghost:hover{ background: rgba(220,38,38,.08); border-color: #DC2626; }
   .dub-item.drag-over-top{ box-shadow:inset 0 3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-item.drag-over-bottom{ box-shadow:inset 0 -3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-pos{
@@ -2614,7 +2626,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>
     <div class="header-actions">
       <button id="refreshBtn" class="icon-btn" title="Atualizar dados">↻</button>
-      <button id="bellBtn" class="icon-btn admin-only" style="display:none;position:relative;" title="Solicitações de troca de senha">
+      <button id="bellBtn" class="icon-btn" style="display:none;position:relative;" title="Notificações">
         🔔<span id="bellBadge" class="bell-badge" style="display:none;">0</span>
       </button>
       <button id="profileBtn" title="Meu perfil">
@@ -2997,6 +3009,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     arrastandoDub = null;
   }
   let passwordResetRequests = []; // solicitações de troca de senha pendentes/resolvidas
+  let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -3077,6 +3090,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadChat(),
       loadBackupLog(),
       loadPasswordResetRequests(),
+      loadMinhasMencoes(),
     ]);
     projectCats = {};
     (catRes.data || []).forEach(r => { projectCats[r.project] = r.category; });
@@ -7289,11 +7303,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   async function loadProjectMeta(){
     try{
       const [pmRes, doRes] = await Promise.all([
-        sb.from('project_meta').select('project, in_production, has_cover, archived, notes'),
+        sb.from('project_meta').select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at'),
         sb.from('dub_order').select('project, entry_id, position').order('position')
       ]);
       projectMeta = {};
-      (pmRes.data||[]).forEach(r => { projectMeta[r.project] = { in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived, notes:r.notes||'' }; });
+      (pmRes.data||[]).forEach(r => { projectMeta[r.project] = {
+        in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived,
+        notes:r.notes||'', notes_author_id:r.notes_author_id||null,
+        notes_author_name:r.notes_author_name||'', notes_updated_at:r.notes_updated_at||null
+      }; });
       dubOrder = {};
       (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
     }catch(e){ projectMeta={}; dubOrder={}; }
@@ -7335,16 +7353,30 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ passwordResetRequests = []; }
   }
 
-  // Atualiza o sino de notificação (badge com quantas solicitações pendentes)
+  // Carrega as observações de projeto onde EU (usuário logado) fui marcado
+  async function loadMinhasMencoes(){
+    if (!myUserId){ minhasMencoes = []; return; }
+    try{
+      const { data } = await sb.from('project_note_mentions')
+        .select('*').eq('user_id', myUserId).order('created_at', { ascending:false }).limit(50);
+      minhasMencoes = data || [];
+    }catch(e){ minhasMencoes = []; }
+  }
+
+  // Atualiza o sino de notificação — soma solicitações de senha pendentes
+  // (só admin vê essas) + menções em observações de projeto (qualquer
+  // usuário pode ter). Por isso o sino agora aparece pra todo mundo, não
+  // só pra admin.
   function renderBellBadge(){
     const btn = document.getElementById('bellBtn');
     const badge = document.getElementById('bellBadge');
     if (!btn || !badge) return;
-    if (!isAdmin){ btn.style.display = 'none'; return; }
     btn.style.display = 'flex';
-    const pendentes = (passwordResetRequests||[]).filter(r => r.status === 'pendente').length;
-    if (pendentes > 0){
-      badge.textContent = String(pendentes);
+    const pendentesSenha = isAdmin ? (passwordResetRequests||[]).filter(r => r.status === 'pendente').length : 0;
+    const mencoesNaoLidas = (minhasMencoes||[]).filter(m => !m.read).length;
+    const total = pendentesSenha + mencoesNaoLidas;
+    if (total > 0){
+      badge.textContent = String(total);
       badge.style.display = 'flex';
       btn.classList.add('tem-pendente');
     } else {
@@ -9952,12 +9984,29 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div class="notes-toolbar">
             <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
             <button type="button" class="notes-tb-btn notes-tb-highlight" data-cmd="backColor" data-value="#FEF08A" title="Grifar em amarelo">🖍️ Grifar</button>
-            <button type="button" class="notes-tb-btn" data-cmd="removeFormat" title="Limpar formatação da seleção">✕ Limpar</button>
           </div>`:''}
           <div id="projNotesInput" class="notes-editor" ${isAdmin?'contenteditable="true"':''}
             data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências..."
             >${projectMeta[project]?.notes || ''}</div>
-          ${isAdmin?`<button type="button" class="btn-ghost" id="projSaveNotes" style="margin-top:8px;">Salvar observação</button>`:''}
+          ${projectMeta[project]?.notes_author_name ? `
+            <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">
+              ✎ Última edição por <b>${escapeHtml(projectMeta[project].notes_author_name)}</b>${projectMeta[project].notes_updated_at ? ` · ${new Date(projectMeta[project].notes_updated_at).toLocaleString('pt-BR')}` : ''}
+            </p>` : ''}
+          ${isAdmin?`
+          <div style="margin-top:12px;padding:12px;background:var(--surface-soft);border-radius:10px;">
+            <label style="font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;">🔔 Marcar pessoas (elas recebem uma notificação)</label>
+            <div id="notesMencoesChips" class="part-chips" style="margin-top:8px;"></div>
+            <div style="margin-top:10px;display:flex;gap:6px;align-items:center;">
+              <select id="notesMencaoSel" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;background:var(--bg);">
+                <option value="">+ Marcar ninja da equipe…</option>
+              </select>
+              <button class="btn-ghost" id="notesMencaoAddBtn" style="padding:7px 12px;font-size:12.5px;white-space:nowrap;">Marcar</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button type="button" class="btn-primary" id="projSaveNotes" style="flex:1;justify-content:center;">Salvar observação</button>
+            <button type="button" class="btn-danger-ghost" id="projClearNotes" title="Apagar tudo que foi escrito">🗑️</button>
+          </div>`:''}
         </div>
         <div class="field">
           <label>Ordem de dublagem${isAdmin?' <span style="text-transform:none; font-weight:400; color:var(--muted);">(arraste ⠿ para reordenar)</span>':''}</label>
@@ -10071,7 +10120,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
 
-    // Toolbar de formatação das observações (numerar / grifar / limpar)
+    // Toolbar de formatação das observações (numerar / grifar)
     const notesEditor = $('#projNotesInput');
     ov.querySelectorAll('.notes-tb-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -10082,19 +10131,108 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
     });
 
-    // Salvar observações da equipe
+    // Marcar pessoas pra notificar sobre esta observação (escolha feita
+    // agora mesmo, na hora de salvar — não fica guardado de uma vez pra
+    // outra, cada salvamento é uma notificação nova pra quem for marcado)
+    const mencoesSelecionadas = new Map(); // user_id -> {display_name, ninja_color}
+
+    function renderMencoesChips(){
+      const box = $('#notesMencoesChips');
+      if (!box) return;
+      const itens = [...mencoesSelecionadas.entries()];
+      box.innerHTML = itens.length ? itens.map(([uid, p]) => {
+        const ninja = NINJAS[p.ninja_color||'azul'] || NINJAS.azul;
+        return `
+          <span class="part-chip">
+            <img src="${ninja}" alt="">
+            ${escapeHtml(p.display_name||'Ninja')}
+            <button class="part-x" data-rm-mencao="${uid}" title="Remover">✕</button>
+          </span>`;
+      }).join('') : `<span style="font-size:12px;color:var(--muted);">Ninguém marcado ainda pra esta observação.</span>`;
+
+      box.querySelectorAll('[data-rm-mencao]').forEach(b => b.addEventListener('click', () => {
+        mencoesSelecionadas.delete(b.dataset.rmMencao);
+        renderMencoesChips();
+        renderMencaoSelect();
+      }));
+    }
+
+    function renderMencaoSelect(){
+      const sel = $('#notesMencaoSel');
+      if (!sel) return;
+      const disponiveis = Object.values(profilesByUser||{}).filter(p => p.display_name && !mencoesSelecionadas.has(p.user_id));
+      sel.innerHTML = `<option value="">+ Marcar ninja da equipe…</option>` +
+        disponiveis.map(p => `<option value="${p.user_id}">${escapeHtml(p.display_name)}</option>`).join('');
+    }
+    renderMencoesChips();
+    renderMencaoSelect();
+
+    const btnMencaoAdd = $('#notesMencaoAddBtn');
+    if (btnMencaoAdd) btnMencaoAdd.addEventListener('click', () => {
+      const sel = $('#notesMencaoSel');
+      const uid = sel.value;
+      if (!uid) return;
+      const perfil = profilesByUser[uid];
+      if (!perfil) return;
+      mencoesSelecionadas.set(uid, perfil);
+      renderMencoesChips();
+      renderMencaoSelect();
+    });
+
+    // Apagar tudo que foi escrito na observação
+    const btnClearNotes = $('#projClearNotes');
+    if (btnClearNotes) btnClearNotes.addEventListener('click', async () => {
+      const ok = await confirmarBonito({
+        titulo: 'Apagar toda a observação?',
+        mensagem: 'Isso apaga TUDO que está escrito no campo de observações deste projeto.',
+        destaque: 'Esta ação não pode ser desfeita depois de salvar.',
+        textoBotao: '🗑️ Sim, apagar tudo',
+        corBotao: '#DC2626',
+        icone: '🗑️'
+      });
+      if (!ok) return;
+      if (notesEditor) notesEditor.innerHTML = '';
+    });
+
+    // Salvar observações da equipe (com autor + notifica quem foi marcado)
     const btnSaveNotes = $('#projSaveNotes');
     if (btnSaveNotes) btnSaveNotes.addEventListener('click', async () => {
       const notes = (notesEditor ? notesEditor.innerHTML : '').trim();
       btnSaveNotes.disabled = true;
       btnSaveNotes.textContent = 'Salvando…';
       try {
+        const autorNome = myProfile.display_name || myEmail || 'Alguém';
+        const agora = new Date().toISOString();
         const { error } = await sb.from('project_meta').upsert({
-          project, notes, updated_at: new Date().toISOString()
+          project, notes,
+          notes_author_id: myUserId || null,
+          notes_author_name: autorNome,
+          notes_updated_at: agora,
+          updated_at: agora
         }, { onConflict: 'project' });
         if (error) throw error;
-        projectMeta[project] = { ...(projectMeta[project]||{}), notes };
-        showToast('✅ Observação salva.');
+        projectMeta[project] = {
+          ...(projectMeta[project]||{}),
+          notes, notes_author_id: myUserId||null, notes_author_name: autorNome, notes_updated_at: agora
+        };
+
+        // Cria as notificações pra quem foi marcado
+        if (mencoesSelecionadas.size > 0){
+          const linhas = [...mencoesSelecionadas.entries()].map(([uid, p]) => ({
+            project, user_id: uid, display_name: p.display_name||'Ninja',
+            author_name: autorNome, read: false
+          }));
+          try { await sb.from('project_note_mentions').insert(linhas); }
+          catch(e){ console.warn('Erro ao notificar marcações:', e); }
+        }
+
+        showToast(mencoesSelecionadas.size > 0
+          ? `✅ Observação salva e ${mencoesSelecionadas.size} pessoa${mencoesSelecionadas.size===1?'':'s'} notificada${mencoesSelecionadas.size===1?'':'s'}.`
+          : '✅ Observação salva.');
+        mencoesSelecionadas.clear();
+        renderMencoesChips();
+        renderMencaoSelect();
+        renderBellBadge();
       } catch(err){
         console.error('Erro ao salvar observação:', err);
         showToast('❌ Erro ao salvar: '+(err.message||'erro desconhecido'));
@@ -10663,11 +10801,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (e.target.closest('#bellBtn')){
       switchView('painel');
       setTimeout(() => {
-        const painel = document.querySelector('.painel-title');
-        // Rola até o card de solicitações se existir
+        const alvo = (minhasMencoes||[]).some(m => !m.read) ? 'Você foi marcado' : 'Solicitações de troca de senha';
         const cards = document.querySelectorAll('.painel-title');
         for (const c of cards){
-          if (c.textContent.includes('Solicitações de troca de senha')){
+          if (c.textContent.includes(alvo)){
             c.scrollIntoView({behavior:'smooth', block:'center'});
             break;
           }
@@ -10942,12 +11079,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
     const solicitacoesPanel = isAdmin ? renderSolicitacoesSenhaPanel() : '';
+    const mencoesPanel = renderMencoesPanel();
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
         ${renderChat()}
       </div>
       ${renderAgenda()}
+      ${mencoesPanel}
       ${renderSegurancaPanel()}
       ${solicitacoesPanel}
       ${backupPanel}
@@ -10958,6 +11097,67 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const btnBackup = $('#btnFazerBackup');
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
     wireSegurancaPanel();
+    wireMencoesPanel();
+  }
+
+  // Painel "Você foi marcado" — mostra observações de projeto onde o
+  // usuário logado foi marcado por algum admin, com botão de abrir o
+  // projeto e marcar como lida.
+  function renderMencoesPanel(){
+    if (!minhasMencoes || minhasMencoes.length === 0) return '';
+    const naoLidas = minhasMencoes.filter(m => !m.read);
+    const lidas = minhasMencoes.filter(m => m.read).slice(0, 5);
+    const linha = (m) => `
+      <div class="prr-item">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(m.project)}</div>
+          <div style="font-size:11.5px;color:var(--muted);">
+            marcado por <b>${escapeHtml(m.author_name||'alguém')}</b> · ${new Date(m.created_at).toLocaleString('pt-BR')}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-ghost" data-abrir-mencao="${escapeHtml(m.project)}" data-mencao-id="${m.id}" style="padding:7px 12px;font-size:12.5px;">Abrir projeto</button>
+          ${!m.read?`<button class="btn-primary" data-lida-mencao="${m.id}" style="padding:7px 12px;font-size:12.5px;">✓ Marcar como lida</button>`:''}
+        </div>
+      </div>`;
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🔔 Você foi marcado (${naoLidas.length})</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${naoLidas.map(linha).join('') || `<span style="font-size:12.5px;color:var(--muted);">Nenhuma pendente.</span>`}
+        </div>
+        ${lidas.length?`
+          <div style="margin-top:14px;padding-top:10px;border-top:1px dashed var(--line);">
+            <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;">Já lidas recentemente</div>
+            <div style="display:flex;flex-direction:column;gap:8px;opacity:.7;">${lidas.map(linha).join('')}</div>
+          </div>`:''}
+      </div>`;
+  }
+
+  function wireMencoesPanel(){
+    painelContent.querySelectorAll('[data-abrir-mencao]').forEach(btn => btn.addEventListener('click', async () => {
+      const project = btn.dataset.abrirMencao;
+      const id = btn.dataset.mencaoId;
+      // marca como lida ao abrir também
+      try {
+        await sb.from('project_note_mentions').update({ read: true }).eq('id', id);
+        const m = minhasMencoes.find(x => x.id === id);
+        if (m) m.read = true;
+        renderBellBadge();
+      } catch(e){}
+      switchView('projetos');
+      setTimeout(() => openProjetoModal(project), 150);
+    }));
+    painelContent.querySelectorAll('[data-lida-mencao]').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.lidaMencao;
+      try {
+        await sb.from('project_note_mentions').update({ read: true }).eq('id', id);
+        const m = minhasMencoes.find(x => x.id === id);
+        if (m) m.read = true;
+        renderBellBadge();
+        renderPainel();
+      } catch(e){ showToast('Erro ao marcar como lida.'); }
+    }));
   }
 
   // Painel de solicitações de troca de senha — visível só pra admin.
