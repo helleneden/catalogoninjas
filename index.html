@@ -245,6 +245,7 @@
     box-shadow:0 8px 24px rgba(30,58,138,.20);
     cursor:grabbing;
   }
+  .dub-clone{ list-style:none; pointer-events:none; }
   .dub-item.drag-over-top{ box-shadow:inset 0 3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-item.drag-over-bottom{ box-shadow:inset 0 -3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-pos{
@@ -2930,18 +2931,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function forcarLimpezaArrasteDub(){
     if (!arrastandoDub) return;
     try{
-      const { li, placeholder, onMove, onUp, onMoveTouch, onUpTouch } = arrastandoDub;
+      const { li, clone, onMove, onUp } = arrastandoDub;
       if (li){
-        li.style.position = ''; li.style.top = ''; li.style.left = '';
-        li.style.width = ''; li.style.margin = ''; li.style.zIndex = '';
-        li.style.pointerEvents = ''; li.style.transition = ''; li.style.transform = '';
+        li.style.visibility = '';
         li.classList.remove('dragging');
       }
-      if (placeholder && placeholder.parentNode) placeholder.remove();
-      if (onMove) document.removeEventListener('mousemove', onMove);
-      if (onUp) document.removeEventListener('mouseup', onUp);
-      if (onMoveTouch) document.removeEventListener('touchmove', onMoveTouch);
-      if (onUpTouch) document.removeEventListener('touchend', onUpTouch);
+      if (clone && clone.parentNode) clone.remove();
+      if (onMove){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('touchmove', onMove);
+      }
+      if (onUp){
+        document.removeEventListener('mouseup', onUp);
+        document.removeEventListener('touchend', onUp);
+      }
     }catch(e){ console.warn('Limpeza de arraste:', e); }
     arrastandoDub = null;
   }
@@ -10248,13 +10251,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       renderSugestoesColegasProjeto(project);
 
       // ==========================================================
-      // Reordenação por arraste — v2, com técnica de "placeholder".
-      // Só o item arrastado sai do fluxo normal (vira position:fixed
-      // e segue o mouse via transform). Um placeholder invisível ocupa
-      // o lugar dele na lista — o próprio navegador (flex) reorganiza
-      // os vizinhos sozinho quando o placeholder muda de posição, sem
-      // eu precisar calcular manualmente a posição de cada item (era
-      // isso que quebrava e deixava buracos/itens perdidos antes).
+      // Reordenação por arraste — v3, técnica de "clone visual".
+      // O item de VERDADE fica invisível (visibility:hidden) mas
+      // continua ocupando o espaço dele na lista — então o navegador
+      // nunca precisa "adivinhar" onde reabrir espaço, é tudo nativo.
+      // Uma CÓPIA visual (clone) é o que aparece flutuando e seguindo
+      // o mouse. Quando cruza a metade de um vizinho, movo o item de
+      // verdade (invisível) pra lá — o reflow dos vizinhos é feito
+      // pelo próprio navegador, não por mim calculando posições.
       // ==========================================================
       const list=$('#dubList');
       if (!list){
@@ -10275,31 +10279,33 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       function iniciarArraste(e, li){
         e.preventDefault();
-        if (arrastandoDub) forcarLimpezaArrasteDub(); // nunca dois arrastes ao mesmo tempo
+        if (arrastandoDub) forcarLimpezaArrasteDub();
         const startY = (e.touches ? e.touches[0].clientY : e.clientY);
         const rect = li.getBoundingClientRect();
 
-        const placeholder = document.createElement('li');
-        placeholder.className = 'dub-item dub-placeholder';
-        placeholder.style.height = rect.height + 'px';
-        placeholder.style.visibility = 'hidden';
-        li.parentNode.insertBefore(placeholder, li);
+        // Clone visual: some da lista real, flutua sozinho na tela
+        const clone = li.cloneNode(true);
+        clone.classList.add('dub-clone');
+        clone.style.position = 'fixed';
+        clone.style.top = rect.top + 'px';
+        clone.style.left = rect.left + 'px';
+        clone.style.width = rect.width + 'px';
+        clone.style.height = rect.height + 'px';
+        clone.style.margin = '0';
+        clone.style.zIndex = '9999';
+        clone.style.pointerEvents = 'none';
+        clone.style.boxShadow = '0 12px 28px rgba(0,0,0,.18)';
+        clone.style.transform = 'scale(1.02)';
+        document.body.appendChild(clone);
 
-        li.style.position = 'fixed';
-        li.style.top = rect.top + 'px';
-        li.style.left = rect.left + 'px';
-        li.style.width = rect.width + 'px';
-        li.style.margin = '0';
-        li.style.zIndex = '9999';
-        li.style.pointerEvents = 'none';
-        li.style.transition = 'none';
+        // O item de verdade fica invisível mas continua no fluxo normal
+        // (reserva o espaço dele) — isso é o que evita buracos/sobreposição
+        li.style.visibility = 'hidden';
         li.classList.add('dragging');
 
-        arrastandoDub = { li, placeholder, startY, startTop: rect.top, list };
+        arrastandoDub = { li, clone, startY, startTop: rect.top, list };
         arrastandoDub.onMove = moverArraste;
         arrastandoDub.onUp = soltarArraste;
-        arrastandoDub.onMoveTouch = moverArraste;
-        arrastandoDub.onUpTouch = soltarArraste;
         document.addEventListener('mousemove', moverArraste);
         document.addEventListener('mouseup', soltarArraste);
         document.addEventListener('touchmove', moverArraste, {passive:false});
@@ -10311,21 +10317,21 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         e.preventDefault();
         const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
         const deltaY = clientY - arrastandoDub.startY;
-        arrastandoDub.li.style.transform = `translateY(${deltaY}px)`;
+        arrastandoDub.clone.style.top = (arrastandoDub.startTop + deltaY) + 'px';
 
-        const centroArrastado = arrastandoDub.startTop + deltaY + arrastandoDub.li.offsetHeight/2;
-        const irmaos = [...arrastandoDub.list.children].filter(el => el !== arrastandoDub.li && el !== arrastandoDub.placeholder);
+        const centroArrastado = arrastandoDub.startTop + deltaY + arrastandoDub.clone.offsetHeight/2;
+        const irmaos = [...arrastandoDub.list.children].filter(el => el !== arrastandoDub.li);
 
         for (const irmao of irmaos){
           const b = irmao.getBoundingClientRect();
           const centroIrmao = b.top + b.height/2;
-          const placeholderEstaAntes = !!(irmao.compareDocumentPosition(arrastandoDub.placeholder) & Node.DOCUMENT_POSITION_PRECEDING);
-          if (centroArrastado < centroIrmao && !placeholderEstaAntes){
-            arrastandoDub.list.insertBefore(arrastandoDub.placeholder, irmao);
+          const liEstaAntes = !!(irmao.compareDocumentPosition(arrastandoDub.li) & Node.DOCUMENT_POSITION_PRECEDING);
+          if (centroArrastado < centroIrmao && !liEstaAntes){
+            arrastandoDub.list.insertBefore(arrastandoDub.li, irmao);
             break;
           }
-          if (centroArrastado > centroIrmao && placeholderEstaAntes){
-            arrastandoDub.list.insertBefore(arrastandoDub.placeholder, irmao.nextSibling);
+          if (centroArrastado > centroIrmao && liEstaAntes){
+            arrastandoDub.list.insertBefore(arrastandoDub.li, irmao.nextSibling);
             break;
           }
         }
@@ -10333,18 +10339,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       function soltarArraste(){
         if (!arrastandoDub) return;
-        const { li, placeholder, list: listRef } = arrastandoDub;
-        listRef.insertBefore(li, placeholder);
-        placeholder.remove();
-        li.style.position = '';
-        li.style.top = '';
-        li.style.left = '';
-        li.style.width = '';
-        li.style.margin = '';
-        li.style.zIndex = '';
-        li.style.pointerEvents = '';
-        li.style.transition = '';
-        li.style.transform = '';
+        const { li, clone } = arrastandoDub;
+        clone.remove();
+        li.style.visibility = '';
         li.classList.remove('dragging');
         renumber();
 
@@ -10362,7 +10359,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
-        const voices=[...list.querySelectorAll('.dub-item:not(.dub-placeholder)')].map(li=>li.dataset.voice);
+        const voices=[...list.querySelectorAll('.dub-item')].map(li=>li.dataset.voice);
         $('#projSaveOrder').disabled=true;
         await sb.from('dub_order').delete().eq('project', project);
         if (voices.length){
