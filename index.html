@@ -249,6 +249,45 @@
     cursor:grabbing;
   }
   .dub-clone{ list-style:none; pointer-events:none; }
+
+  /* ---- Editor de observações do projeto (com formatação) ---- */
+  .notes-toolbar{
+    display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .notes-tb-btn{
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: inherit;
+    transition: all .12s;
+  }
+  .notes-tb-btn:hover{ background: rgba(37,99,235,.08); border-color: var(--blue); color: var(--blue-deep); }
+  .notes-tb-highlight:hover{ background: rgba(250,204,21,.20); border-color: #EAB308; color: #854D0E; }
+  .notes-editor{
+    width: 100%; min-height: 70px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    font-size: 13.5px; font-family: inherit;
+    line-height: 1.5;
+    background: var(--surface);
+    color: var(--ink);
+  }
+  .notes-editor:focus{ outline: none; border-color: var(--blue); }
+  .notes-editor:empty::before{
+    content: attr(data-placeholder);
+    color: var(--muted);
+  }
+  .notes-editor ol{ margin: 4px 0 4px 20px; padding: 0; }
+  .notes-editor li{ margin-bottom: 3px; }
+  .notes-editor mark, .notes-editor [style*="background-color"]{
+    border-radius: 3px;
+    padding: 1px 3px;
+  }
   .dub-item.drag-over-top{ box-shadow:inset 0 3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-item.drag-over-bottom{ box-shadow:inset 0 -3px 0 var(--blue), 0 2px 12px rgba(37,99,235,.10); }
   .dub-pos{
@@ -9893,9 +9932,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>`:''}
         <div class="field">
           <label>📝 Observações da equipe</label>
-          <textarea id="projNotesInput" placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências..."
-            style="width:100%;min-height:70px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;resize:vertical;"
-            ${isAdmin?'':'readonly'}>${escapeHtml(projectMeta[project]?.notes || '')}</textarea>
+          ${isAdmin?`
+          <div class="notes-toolbar">
+            <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
+            <button type="button" class="notes-tb-btn notes-tb-highlight" data-cmd="backColor" data-value="#FEF08A" title="Grifar em amarelo">🖍️ Grifar</button>
+            <button type="button" class="notes-tb-btn" data-cmd="removeFormat" title="Limpar formatação da seleção">✕ Limpar</button>
+          </div>`:''}
+          <div id="projNotesInput" class="notes-editor" ${isAdmin?'contenteditable="true"':''}
+            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências..."
+            >${projectMeta[project]?.notes || ''}</div>
           ${isAdmin?`<button type="button" class="btn-ghost" id="projSaveNotes" style="margin-top:8px;">Salvar observação</button>`:''}
         </div>
         <div class="field">
@@ -10010,10 +10055,21 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
 
+    // Toolbar de formatação das observações (numerar / grifar / limpar)
+    const notesEditor = $('#projNotesInput');
+    ov.querySelectorAll('.notes-tb-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (notesEditor) notesEditor.focus();
+        const cmd = btn.dataset.cmd;
+        const valor = btn.dataset.value || null;
+        try { document.execCommand(cmd, false, valor); } catch(e){ console.warn('Formatação não suportada:', e); }
+      });
+    });
+
     // Salvar observações da equipe
     const btnSaveNotes = $('#projSaveNotes');
     if (btnSaveNotes) btnSaveNotes.addEventListener('click', async () => {
-      const notes = ($('#projNotesInput').value||'').trim();
+      const notes = (notesEditor ? notesEditor.innerHTML : '').trim();
       btnSaveNotes.disabled = true;
       btnSaveNotes.textContent = 'Salvando…';
       try {
@@ -10024,7 +10080,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         projectMeta[project] = { ...(projectMeta[project]||{}), notes };
         showToast('✅ Observação salva.');
       } catch(err){
-        showToast('Erro ao salvar: '+(err.message||''));
+        console.error('Erro ao salvar observação:', err);
+        showToast('❌ Erro ao salvar: '+(err.message||'erro desconhecido'));
       } finally {
         btnSaveNotes.disabled = false;
         btnSaveNotes.textContent = 'Salvar observação';
