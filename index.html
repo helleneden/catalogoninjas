@@ -2931,7 +2931,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function forcarLimpezaArrasteDub(){
     if (!arrastandoDub) return;
     try{
-      const { li, clone, onMove, onUp } = arrastandoDub;
+      const { li, clone, onMove, onUp, rafId } = arrastandoDub;
+      if (rafId) cancelAnimationFrame(rafId);
       if (li){
         li.style.visibility = '';
         li.classList.remove('dragging');
@@ -7212,12 +7213,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     try{
       const [pmRes, doRes] = await Promise.all([
         sb.from('project_meta').select('project, in_production, has_cover, archived'),
-        sb.from('dub_order').select('project, voice, position').order('position')
+        sb.from('dub_order').select('project, entry_id, position').order('position')
       ]);
       projectMeta = {};
       (pmRes.data||[]).forEach(r => { projectMeta[r.project] = { in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived }; });
       dubOrder = {};
-      (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.voice); });
+      (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
     }catch(e){ projectMeta={}; dubOrder={}; }
   }
 
@@ -8912,10 +8913,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     visiblePeople().forEach(p => p.entries.forEach(e => {
       if ((e.project||'').toLowerCase()===pl) pairs.push({ person:p.name, voice:e.voice, personId:p.id, hasPhoto:p.hasPhoto, entryId:e.id, date:e.date });
     }));
-    // ordena pela ordem salva; vozes sem ordem vão pro fim (alfabético)
+    // ordena pela ordem salva (por ID da entrada — sempre único, mesmo
+    // que a voz se repita entre pessoas, ex: várias "(voz não definida)").
+    // Quem não tem ordem salva vai pro fim, por ordem alfabética de nome.
     const saved = dubOrder[project] || [];
-    const idx = v => { const i = saved.indexOf(v); return i===-1 ? 9999 : i; };
-    pairs.sort((a,b) => idx(a.voice)-idx(b.voice) || a.voice.localeCompare(b.voice,'pt-BR'));
+    const idx = entryId => { const i = saved.indexOf(entryId); return i===-1 ? 9999 : i; };
+    pairs.sort((a,b) => idx(a.entryId)-idx(b.entryId) || a.person.localeCompare(b.person,'pt-BR'));
     return pairs;
   }
 
@@ -9875,7 +9878,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ? `<div class="dub-avatar photo-fallback" draggable="false" data-photo-for="${pr.personId}" data-name="${escapeHtml(pr.person)}">${initials}</div>`
                 : `<div class="dub-avatar photo-fallback" draggable="false">${initials}</div>`;
               return `
-              <li class="dub-item ${isAdmin?'draggable':''}" draggable="${isAdmin?'true':'false'}" data-voice="${escapeHtml(pr.voice)}" data-person-id="${pr.personId}">
+              <li class="dub-item" data-voice="${escapeHtml(pr.voice)}" data-person-id="${pr.personId}" data-entry-id="${pr.entryId||''}">
                 <span class="dub-pos">${i+1}</span>
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
@@ -10303,20 +10306,27 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         li.style.visibility = 'hidden';
         li.classList.add('dragging');
 
-        arrastandoDub = { li, clone, startY, startTop: rect.top, list };
+        arrastandoDub = { li, clone, startY, startTop: rect.top, list, ultimoClientY: startY, scrollAcumulado: 0 };
         arrastandoDub.onMove = moverArraste;
         arrastandoDub.onUp = soltarArraste;
         document.addEventListener('mousemove', moverArraste);
         document.addEventListener('mouseup', soltarArraste);
         document.addEventListener('touchmove', moverArraste, {passive:false});
         document.addEventListener('touchend', soltarArraste);
+
+        // Rolagem automática: enquanto o mouse fica perto da borda de cima
+        // ou de baixo da tela, a tela rola sozinha nessa direção — assim
+        // dá pra mover um item bem pra cima ou pra baixo em listas longas,
+        // mesmo além do que está visível no momento.
+        arrastandoDub.rafId = requestAnimationFrame(autoScrollLoop);
       }
 
-      function moverArraste(e){
+      // Aplica a posição do clone + decide troca de lugar com vizinhos.
+      // Usada tanto pelo movimento do mouse quanto pela rolagem automática
+      // (que precisa atualizar a posição mesmo se o mouse ficar parado).
+      function atualizarPosicaoClone(clientY){
         if (!arrastandoDub) return;
-        e.preventDefault();
-        const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
-        const deltaY = clientY - arrastandoDub.startY;
+        const deltaY = (clientY - arrastandoDub.startY) - arrastandoDub.scrollAcumulado;
         arrastandoDub.clone.style.top = (arrastandoDub.startTop + deltaY) + 'px';
 
         const centroArrastado = arrastandoDub.startTop + deltaY + arrastandoDub.clone.offsetHeight/2;
@@ -10337,6 +10347,35 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         }
       }
 
+      function autoScrollLoop(){
+        if (!arrastandoDub) return;
+        const y = arrastandoDub.ultimoClientY;
+        const margem = 70, velocidadeMax = 16;
+        let delta = 0;
+        if (y < margem){
+          delta = -velocidadeMax * (1 - y/margem);
+        } else if (y > window.innerHeight - margem){
+          const distBaixo = window.innerHeight - y;
+          delta = velocidadeMax * (1 - distBaixo/margem);
+        }
+        if (delta !== 0 && ov){
+          const antesScroll = ov.scrollTop;
+          ov.scrollTop += delta;
+          const deltaReal = ov.scrollTop - antesScroll; // pode ser menor se já bateu no limite
+          arrastandoDub.scrollAcumulado += deltaReal;
+          atualizarPosicaoClone(arrastandoDub.ultimoClientY);
+        }
+        arrastandoDub.rafId = requestAnimationFrame(autoScrollLoop);
+      }
+
+      function moverArraste(e){
+        if (!arrastandoDub) return;
+        e.preventDefault();
+        const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
+        arrastandoDub.ultimoClientY = clientY;
+        atualizarPosicaoClone(clientY);
+      }
+
       function soltarArraste(){
         if (!arrastandoDub) return;
         const { li, clone } = arrastandoDub;
@@ -10345,6 +10384,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         li.classList.remove('dragging');
         renumber();
 
+        if (arrastandoDub.rafId) cancelAnimationFrame(arrastandoDub.rafId);
         document.removeEventListener('mousemove', moverArraste);
         document.removeEventListener('mouseup', soltarArraste);
         document.removeEventListener('touchmove', moverArraste);
@@ -10359,18 +10399,30 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
-        const voices=[...list.querySelectorAll('.dub-item')].map(li=>li.dataset.voice);
+        const itens=[...list.querySelectorAll('.dub-item')];
         const btn = $('#projSaveOrder');
         btn.disabled=true;
         btn.textContent = 'Salvando…';
-        await sb.from('dub_order').delete().eq('project', project);
-        if (voices.length){
-          await sb.from('dub_order').insert(voices.map((v,i)=>({project, voice:v, position:i})));
+        try {
+          const { error: errDel } = await sb.from('dub_order').delete().eq('project', project);
+          if (errDel) throw errDel;
+          if (itens.length){
+            const linhas = itens.map((li,i)=>({ project, entry_id: li.dataset.entryId, position:i })).filter(l => l.entry_id);
+            if (linhas.length){
+              const { error: errIns } = await sb.from('dub_order').insert(linhas);
+              if (errIns) throw errIns;
+            }
+          }
+          dubOrder[project]=itens.map(li=>li.dataset.entryId).filter(Boolean);
+          btn.disabled=false;
+          btn.textContent = 'Salvar ordem';
+          showToast('✅ Ordem salva.');
+        } catch(err){
+          console.error('Erro ao salvar ordem:', err);
+          showToast('❌ Erro ao salvar ordem: '+(err.message||''));
+          btn.disabled=false;
+          btn.textContent = 'Salvar ordem';
         }
-        dubOrder[project]=voices;
-        btn.disabled=false;
-        btn.textContent = 'Salvar ordem';
-        showToast('✅ Ordem salva.');
       });
     }
   }
