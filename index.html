@@ -7234,11 +7234,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   async function loadProjectMeta(){
     try{
       const [pmRes, doRes] = await Promise.all([
-        sb.from('project_meta').select('project, in_production, has_cover, archived'),
+        sb.from('project_meta').select('project, in_production, has_cover, archived, notes'),
         sb.from('dub_order').select('project, entry_id, position').order('position')
       ]);
       projectMeta = {};
-      (pmRes.data||[]).forEach(r => { projectMeta[r.project] = { in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived }; });
+      (pmRes.data||[]).forEach(r => { projectMeta[r.project] = { in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived, notes:r.notes||'' }; });
       dubOrder = {};
       (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
     }catch(e){ projectMeta={}; dubOrder={}; }
@@ -9892,6 +9892,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           </div>
         </div>`:''}
         <div class="field">
+          <label>📝 Observações da equipe</label>
+          <textarea id="projNotesInput" placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências..."
+            style="width:100%;min-height:70px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;resize:vertical;"
+            ${isAdmin?'':'readonly'}>${escapeHtml(projectMeta[project]?.notes || '')}</textarea>
+          ${isAdmin?`<button type="button" class="btn-ghost" id="projSaveNotes" style="margin-top:8px;">Salvar observação</button>`:''}
+        </div>
+        <div class="field">
           <label>Ordem de dublagem${isAdmin?' <span style="text-transform:none; font-weight:400; color:var(--muted);">(arraste ⠿ para reordenar)</span>':''}</label>
           ${pairs.length ? `<ol class="dub-list" id="dubList">
             ${pairs.map((pr,i)=>{
@@ -10002,6 +10009,27 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
+
+    // Salvar observações da equipe
+    const btnSaveNotes = $('#projSaveNotes');
+    if (btnSaveNotes) btnSaveNotes.addEventListener('click', async () => {
+      const notes = ($('#projNotesInput').value||'').trim();
+      btnSaveNotes.disabled = true;
+      btnSaveNotes.textContent = 'Salvando…';
+      try {
+        const { error } = await sb.from('project_meta').upsert({
+          project, notes, updated_at: new Date().toISOString()
+        }, { onConflict: 'project' });
+        if (error) throw error;
+        projectMeta[project] = { ...(projectMeta[project]||{}), notes };
+        showToast('✅ Observação salva.');
+      } catch(err){
+        showToast('Erro ao salvar: '+(err.message||''));
+      } finally {
+        btnSaveNotes.disabled = false;
+        btnSaveNotes.textContent = 'Salvar observação';
+      }
+    });
 
     // clicar na voz abre o popup de "Alterar voz" (só admin pode editar de verdade,
     // mas deixamos visível pra todos verem a voz atual — o popup em si é protegido)
