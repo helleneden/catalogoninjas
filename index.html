@@ -10212,11 +10212,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       renderSugestoesColegasProjeto(project);
 
       // ==========================================================
-      // Reordenação por arraste — sistema próprio (não usa o "drag"
-      // nativo do navegador, que é a causa da tremedeira/seleção de
-      // texto). Durante o arraste, só aplicamos "transform" (que não
-      // mexe no layout de verdade, então não pisca) — o DOM real só é
-      // reordenado uma vez, no momento que solta o mouse.
+      // Reordenação por arraste — v2, com técnica de "placeholder".
+      // Só o item arrastado sai do fluxo normal (vira position:fixed
+      // e segue o mouse via transform). Um placeholder invisível ocupa
+      // o lugar dele na lista — o próprio navegador (flex) reorganiza
+      // os vizinhos sozinho quando o placeholder muda de posição, sem
+      // eu precisar calcular manualmente a posição de cada item (era
+      // isso que quebrava e deixava buracos/itens perdidos antes).
       // ==========================================================
       const list=$('#dubList');
       if (!list){
@@ -10224,42 +10226,38 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         if (btnSave){ btnSave.style.display='none'; }
         return;
       }
-
-      // Remove qualquer atributo "draggable" nativo — não usamos mais
       list.querySelectorAll('.dub-item').forEach(li => li.removeAttribute('draggable'));
 
-      function renumber(){ [...list.querySelectorAll('.dub-item')].forEach((li,i)=> li.querySelector('.dub-pos').textContent=i+1); }
+      function renumber(){ [...list.querySelectorAll('.dub-item')].forEach((li,i)=> {
+        const pos = li.querySelector('.dub-pos');
+        if (pos) pos.textContent = i+1;
+      }); }
 
-      let arrastando = null; // { itens, alturaItem, indiceOriginal, indiceAtual, offsetInicialY }
+      let arrastando = null;
 
       function iniciarArraste(e, li){
         e.preventDefault();
-        const itens = [...list.querySelectorAll('.dub-item')];
-        const indiceOriginal = itens.indexOf(li);
-        const alturaItem = li.offsetHeight + 10; // 10 = gap entre itens (margin-bottom do CSS)
+        if (arrastando) return; // já tem um arraste em andamento, ignora
         const startY = (e.touches ? e.touches[0].clientY : e.clientY);
+        const rect = li.getBoundingClientRect();
 
-        // trava a altura da lista pra ela não "pular" enquanto o item fica com position:absolute
-        list.style.height = list.offsetHeight + 'px';
-        list.style.position = 'relative';
+        const placeholder = document.createElement('li');
+        placeholder.className = 'dub-item dub-placeholder';
+        placeholder.style.height = rect.height + 'px';
+        placeholder.style.visibility = 'hidden';
+        li.parentNode.insertBefore(placeholder, li);
 
-        // guarda a posição inicial de cada item (em relação ao topo da lista)
-        const listBox = list.getBoundingClientRect();
-        itens.forEach((it, i) => {
-          const b = it.getBoundingClientRect();
-          it.style.position = 'absolute';
-          it.style.top = (b.top - listBox.top) + 'px';
-          it.style.left = '0';
-          it.style.right = '0';
-          it.style.transition = 'transform .16s ease';
-          it.dataset.slot = i; // posição visual atual (pode mudar durante o arraste)
-        });
-
+        li.style.position = 'fixed';
+        li.style.top = rect.top + 'px';
+        li.style.left = rect.left + 'px';
+        li.style.width = rect.width + 'px';
+        li.style.margin = '0';
+        li.style.zIndex = '9999';
+        li.style.pointerEvents = 'none';
         li.style.transition = 'none';
-        li.style.zIndex = '50';
         li.classList.add('dragging');
 
-        arrastando = { itens, alturaItem, indiceOriginal, indiceAtual: indiceOriginal, startY, li, listBox };
+        arrastando = { li, placeholder, startY, startTop: rect.top };
         document.addEventListener('mousemove', moverArraste);
         document.addEventListener('mouseup', soltarArraste);
         document.addEventListener('touchmove', moverArraste, {passive:false});
@@ -10273,66 +10271,39 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const deltaY = clientY - arrastando.startY;
         arrastando.li.style.transform = `translateY(${deltaY}px)`;
 
-        // calcula pra qual "slot" o item arrastado deve ir, baseado no centro dele
-        const novoIndice = Math.max(0, Math.min(
-          arrastando.itens.length - 1,
-          Math.round(arrastando.indiceOriginal + deltaY / arrastando.alturaItem)
-        ));
+        const centroArrastado = arrastando.startTop + deltaY + arrastando.li.offsetHeight/2;
+        const irmaos = [...list.children].filter(el => el !== arrastando.li && el !== arrastando.placeholder);
 
-        if (novoIndice !== arrastando.indiceAtual){
-          // desloca visualmente (via transform) os itens que estão "no caminho"
-          const de = arrastando.indiceAtual, para = novoIndice;
-          arrastando.itens.forEach((it) => {
-            if (it === arrastando.li) return;
-            const slotOriginal = Number(it.dataset.slotOriginal ?? it.dataset.slot);
-            if (!it.dataset.slotOriginal) it.dataset.slotOriginal = it.dataset.slot;
-          });
-          arrastando.itens.forEach((it) => {
-            if (it === arrastando.li) return;
-            const slotOriginal = Number(it.dataset.slotOriginal);
-            let deslocamento = 0;
-            if (de < para){
-              // arrastando pra baixo: quem está entre (de, para] sobe uma posição
-              if (slotOriginal > de && slotOriginal <= para) deslocamento = -1;
-            } else {
-              // arrastando pra cima: quem está entre [para, de) desce uma posição
-              if (slotOriginal >= para && slotOriginal < de) deslocamento = 1;
-            }
-            it.style.transform = `translateY(${deslocamento * arrastando.alturaItem}px)`;
-          });
-          arrastando.indiceAtual = novoIndice;
+        for (const irmao of irmaos){
+          const b = irmao.getBoundingClientRect();
+          const centroIrmao = b.top + b.height/2;
+          const placeholderEstaAntes = !!(irmao.compareDocumentPosition(arrastando.placeholder) & Node.DOCUMENT_POSITION_PRECEDING);
+          if (centroArrastado < centroIrmao && !placeholderEstaAntes){
+            list.insertBefore(arrastando.placeholder, irmao);
+            break;
+          }
+          if (centroArrastado > centroIrmao && placeholderEstaAntes){
+            list.insertBefore(arrastando.placeholder, irmao.nextSibling);
+            break;
+          }
         }
       }
 
       function soltarArraste(){
         if (!arrastando) return;
-        const { itens, indiceOriginal, indiceAtual, li } = arrastando;
-
-        // Calcula a ordem final (array de elementos) sem tocar no DOM ainda
-        const semArrastado = itens.filter(it => it !== li);
-        semArrastado.splice(indiceAtual, 0, li);
-
-        // Reordena o DOM de verdade, de uma vez só (sem transição — já está tudo
-        // posicionado corretamente via transform, então não há salto visual)
-        itens.forEach(it => { it.style.transition = 'none'; });
-        semArrastado.forEach(it => list.appendChild(it));
-
-        // Limpa todos os estilos inline de posicionamento temporário
-        itens.forEach(it => {
-          it.style.position = '';
-          it.style.top = '';
-          it.style.left = '';
-          it.style.right = '';
-          it.style.transform = '';
-          it.style.zIndex = '';
-          it.style.transition = '';
-          delete it.dataset.slot;
-          delete it.dataset.slotOriginal;
-        });
-        list.style.height = '';
-        list.style.position = '';
+        const { li, placeholder } = arrastando;
+        list.insertBefore(li, placeholder);
+        placeholder.remove();
+        li.style.position = '';
+        li.style.top = '';
+        li.style.left = '';
+        li.style.width = '';
+        li.style.margin = '';
+        li.style.zIndex = '';
+        li.style.pointerEvents = '';
+        li.style.transition = '';
+        li.style.transform = '';
         li.classList.remove('dragging');
-
         renumber();
 
         document.removeEventListener('mousemove', moverArraste);
@@ -10349,7 +10320,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
-        const voices=[...list.querySelectorAll('.dub-item')].map(li=>li.dataset.voice);
+        const voices=[...list.querySelectorAll('.dub-item:not(.dub-placeholder)')].map(li=>li.dataset.voice);
         $('#projSaveOrder').disabled=true;
         await sb.from('dub_order').delete().eq('project', project);
         if (voices.length){
