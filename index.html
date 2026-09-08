@@ -10286,7 +10286,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const startY = (e.touches ? e.touches[0].clientY : e.clientY);
         const rect = li.getBoundingClientRect();
 
-        // Clone visual: some da lista real, flutua sozinho na tela
+        // Altura de referência (item + espaçamento entre eles no CSS) —
+        // calculada 1 vez só, não consultada de novo a cada movimento.
+        const gap = parseFloat(getComputedStyle(list).rowGap || getComputedStyle(list).gap || '6') || 6;
+        const itemHeight = rect.height + gap;
+        const irmaosNoInicio = [...list.children]; // ordem original completa (inclui o próprio li)
+        const indiceOriginal = irmaosNoInicio.indexOf(li);
+
+        // Clone visual: só ele flutua e segue o mouse
         const clone = li.cloneNode(true);
         clone.classList.add('dub-clone');
         clone.style.position = 'fixed';
@@ -10306,7 +10313,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         li.style.visibility = 'hidden';
         li.classList.add('dragging');
 
-        arrastandoDub = { li, clone, startY, startTop: rect.top, list, ultimoClientY: startY, scrollAcumulado: 0 };
+        arrastandoDub = {
+          li, clone, startY, startTop: rect.top, list,
+          ultimoClientY: startY, scrollAcumulado: 0,
+          itemHeight, indiceOriginal, indiceAtual: indiceOriginal,
+          totalItens: irmaosNoInicio.length
+        };
         arrastandoDub.onMove = moverArraste;
         arrastandoDub.onUp = soltarArraste;
         document.addEventListener('mousemove', moverArraste);
@@ -10322,28 +10334,26 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
 
       // Aplica a posição do clone + decide troca de lugar com vizinhos.
-      // Usada tanto pelo movimento do mouse quanto pela rolagem automática
-      // (que precisa atualizar a posição mesmo se o mouse ficar parado).
+      // Usa só ARITMÉTICA (altura do item × quantos "passos" o mouse andou)
+      // em vez de consultar a posição de cada vizinho a cada movimento —
+      // isso que deixava tudo lento antes. Só mexe no DOM quando o
+      // "passo" realmente muda, não em todo pixel de movimento.
       function atualizarPosicaoClone(clientY){
         if (!arrastandoDub) return;
         const deltaY = (clientY - arrastandoDub.startY) - arrastandoDub.scrollAcumulado;
         arrastandoDub.clone.style.top = (arrastandoDub.startTop + deltaY) + 'px';
 
-        const centroArrastado = arrastandoDub.startTop + deltaY + arrastandoDub.clone.offsetHeight/2;
-        const irmaos = [...arrastandoDub.list.children].filter(el => el !== arrastandoDub.li);
+        const passos = Math.round(deltaY / arrastandoDub.itemHeight);
+        const novoIndice = Math.max(0, Math.min(arrastandoDub.totalItens - 1, arrastandoDub.indiceOriginal + passos));
 
-        for (const irmao of irmaos){
-          const b = irmao.getBoundingClientRect();
-          const centroIrmao = b.top + b.height/2;
-          const liEstaAntes = !!(irmao.compareDocumentPosition(arrastandoDub.li) & Node.DOCUMENT_POSITION_PRECEDING);
-          if (centroArrastado < centroIrmao && !liEstaAntes){
-            arrastandoDub.list.insertBefore(arrastandoDub.li, irmao);
-            break;
+        if (novoIndice !== arrastandoDub.indiceAtual){
+          const irmaos = [...arrastandoDub.list.children].filter(el => el !== arrastandoDub.li);
+          if (novoIndice >= irmaos.length){
+            arrastandoDub.list.appendChild(arrastandoDub.li);
+          } else {
+            arrastandoDub.list.insertBefore(arrastandoDub.li, irmaos[novoIndice]);
           }
-          if (centroArrastado > centroIrmao && liEstaAntes){
-            arrastandoDub.list.insertBefore(arrastandoDub.li, irmao.nextSibling);
-            break;
-          }
+          arrastandoDub.indiceAtual = novoIndice;
         }
       }
 
@@ -10419,7 +10429,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           showToast('✅ Ordem salva.');
         } catch(err){
           console.error('Erro ao salvar ordem:', err);
-          showToast('❌ Erro ao salvar ordem: '+(err.message||''));
+          const msg = (err.message||'');
+          if (msg.includes('entry_id') || msg.includes('column') || msg.includes('does not exist')){
+            showToast('❌ O banco ainda não tem a coluna necessária. Rode o arquivo SQL-corrigir-dub-order.sql no Supabase primeiro.');
+          } else {
+            showToast('❌ Erro ao salvar ordem: '+msg);
+          }
           btn.disabled=false;
           btn.textContent = 'Salvar ordem';
         }
