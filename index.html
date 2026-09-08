@@ -262,7 +262,8 @@
   .dub-handle:active{ cursor:grabbing; }
   .dub-voice{ flex:1; min-width:0; }
   .dub-voice .vn{ font-weight:600; font-size:13.5px; line-height:1.2; }
-  .dub-voice .pn{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .dub-voice .pn{ font-size:11.5px; color:var(--muted); margin-top:2px; cursor:pointer; display:inline-block; border-bottom:1px dashed transparent; transition:all .12s; }
+  .dub-voice .pn:hover{ color:var(--blue-deep); border-bottom-color:var(--blue-deep); }
   .dub-avatar{ width:38px; height:38px; border-radius:50%; font-size:13px; flex:0 0 auto; box-shadow:0 2px 6px rgba(0,0,0,.08); }
   .coadj-folder{
     display:flex; align-items:center; gap:12px; padding:12px 14px;
@@ -8874,7 +8875,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // pares pessoa->voz do projeto
     const pairs = [];
     visiblePeople().forEach(p => p.entries.forEach(e => {
-      if ((e.project||'').toLowerCase()===pl) pairs.push({ person:p.name, voice:e.voice, personId:p.id, hasPhoto:p.hasPhoto });
+      if ((e.project||'').toLowerCase()===pl) pairs.push({ person:p.name, voice:e.voice, personId:p.id, hasPhoto:p.hasPhoto, entryId:e.id, date:e.date });
     }));
     // ordena pela ordem salva; vozes sem ordem vão pro fim (alfabético)
     const saved = dubOrder[project] || [];
@@ -9841,7 +9842,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 <span class="dub-pos">${i+1}</span>
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
-                <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn">${escapeHtml(pr.voice)}</div></div>
+                <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
                 ${isAdmin?`<button class="dub-del admin-only" title="Remover" data-del-person="${pr.personId}" data-del-voice="${escapeHtml(pr.voice)}" data-del-proj="${escapeHtml(project)}">🗑️</button>`:''}
               </li>`;
             }).join('')}
@@ -9939,6 +9940,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
+
+    // clicar na voz abre o popup de "Alterar voz" (só admin pode editar de verdade,
+    // mas deixamos visível pra todos verem a voz atual — o popup em si é protegido)
+    ov.querySelectorAll('[data-edit-voz]').forEach(el => el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!isAdmin) return;
+      const personId = el.dataset.personId;
+      const entryIdOuIdx = el.dataset.editVoz || el.dataset.entryIdx;
+      const pessoa = people.find(p => p.id === personId);
+      if (!pessoa) return;
+      const entry = pessoa.entries.find(e => e.id && String(e.id) === el.dataset.editVoz)
+        || pessoa.entries.filter(e => (e.project||'').toLowerCase() === project.toLowerCase())[Number(el.dataset.entryIdx)];
+      const vozAtual = entry ? entry.voice : '';
+      const dataAtual = entry ? entry.date : '';
+      abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual);
+    }));
 
     // lixeira: remover a entrada (voz) daquele projeto para aquela pessoa
     ov.querySelectorAll('.dub-del').forEach(btn => btn.addEventListener('click', async (e)=>{
@@ -10220,23 +10237,27 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       list.addEventListener('dragover', e=>{
         e.preventDefault();
         if(!dragEl) return;
-        limparIndicadores();
         const alvo = e.target.closest('.dub-item:not(.dragging)');
+        limparIndicadores();
         if (!alvo){
           // caiu no vazio no final
           const items = [...list.querySelectorAll('.dub-item:not(.dragging)')];
           if (items.length) items[items.length-1].classList.add('drag-over-bottom');
-          list.appendChild(dragEl);
+          // só mexe no DOM se ainda não estiver no final (evita oscilação)
+          if (list.lastElementChild !== dragEl) list.appendChild(dragEl);
           return;
         }
         const box = alvo.getBoundingClientRect();
         const meio = box.top + box.height/2;
         if (e.clientY < meio){
           alvo.classList.add('drag-over-top');
-          list.insertBefore(dragEl, alvo);
+          // só reinsere se a posição realmente for diferente da atual —
+          // sem essa checagem, todo movimento do mouse reordenava de novo,
+          // e o item ficava "tremendo"/pulando durante o arraste
+          if (alvo.previousElementSibling !== dragEl) list.insertBefore(dragEl, alvo);
         } else {
           alvo.classList.add('drag-over-bottom');
-          list.insertBefore(dragEl, alvo.nextSibling);
+          if (alvo.nextElementSibling !== dragEl) list.insertBefore(dragEl, alvo.nextSibling);
         }
       });
       list.addEventListener('drop', e => { e.preventDefault(); limparIndicadores(); });
