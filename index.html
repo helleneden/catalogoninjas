@@ -7302,10 +7302,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   async function loadProjectMeta(){
     try{
-      const [pmRes, doRes] = await Promise.all([
-        sb.from('project_meta').select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at'),
-        sb.from('dub_order').select('project, entry_id, position').order('position')
-      ]);
+      let pmRes = await sb.from('project_meta')
+        .select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+
+      // Se as colunas novas (notes_*) ainda não existirem no banco (SQL
+      // de menções ainda não rodado), essa busca falha inteira. Em vez de
+      // perder TODOS os projetos por causa disso, tenta de novo só com as
+      // colunas básicas — assim o app continua funcionando normalmente,
+      // só sem o recurso novo até o SQL ser rodado.
+      if (pmRes.error){
+        console.warn('Colunas novas de project_meta indisponíveis, usando busca básica:', pmRes.error.message);
+        pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
+      }
+
+      const doRes = await sb.from('dub_order').select('project, entry_id, position').order('position');
+
       projectMeta = {};
       (pmRes.data||[]).forEach(r => { projectMeta[r.project] = {
         in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived,
@@ -7314,7 +7325,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }; });
       dubOrder = {};
       (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
-    }catch(e){ projectMeta={}; dubOrder={}; }
+    }catch(e){ console.error('Erro grave em loadProjectMeta:', e); }
   }
 
   async function loadParticipants(){
