@@ -351,6 +351,10 @@
   }
   .dub-handle:hover{ color:var(--blue-deep); background:rgba(37,99,235,.08); }
   .dub-handle:active{ cursor:grabbing; }
+  .dub-select-coadj{
+    width:17px; height:17px; flex:0 0 auto; cursor:pointer;
+    accent-color:#7C3AED;
+  }
   .dub-voice{ flex:1; min-width:0; }
   .dub-voice .vn{ font-weight:600; font-size:13.5px; line-height:1.2; }
   .dub-voice .pn{ font-size:18px; font-weight:800; color:var(--blue-deep); margin-top:4px; cursor:pointer; display:inline-block; border-bottom:1px dashed transparent; transition:all .12s; }
@@ -10137,16 +10141,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         ${isAdmin?`
         <div class="field">
           <label>Capa do projeto</label>
-          <div class="photo-upload-row">
-            <div class="photo-drop" id="projCoverDrop" style="width:120px; height:68px; border-radius:12px;">
-              <img id="projCoverImg" src="${url?escapeHtml(url):''}" alt="" style="${url?'display:block;width:100%;height:100%;object-fit:cover;':'display:none;'}">
-              <span id="projCoverHint" style="${url?'display:none;':''}">🖼️<br>Capa</span>
-            </div>
-            <div class="photo-upload-actions">
-              <input type="file" id="projCoverFile" accept="image/*" style="display:none;">
-              <button type="button" class="btn-ghost" id="projCoverPick">Escolher imagem</button>
-            </div>
+          <div class="photo-drop proj-cover-banner" id="projCoverDrop" style="width:100%; height:180px; border-radius:14px; position:relative;">
+            <img id="projCoverImg" src="${url?escapeHtml(url):''}" alt="" style="${url?'display:block;width:100%;height:100%;object-fit:cover;border-radius:14px;':'display:none;'}">
+            <span id="projCoverHint" style="${url?'display:none;':''}">🖼️<br>Capa</span>
+            ${url?`<button type="button" class="btn-ghost" id="projCoverPick" style="position:absolute;bottom:10px;right:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(4px);">✎ Trocar capa</button>`:''}
           </div>
+          <input type="file" id="projCoverFile" accept="image/*" style="display:none;">
+          ${!url?`<button type="button" class="btn-ghost" id="projCoverPick" style="margin-top:8px;width:100%;justify-content:center;">Escolher imagem</button>`:''}
         </div>`:''}
         <div class="field">
           <label>📝 Observações da equipe</label>
@@ -10180,6 +10181,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               return `
               <li class="dub-item" data-voice="${escapeHtml(pr.voice)}" data-person-id="${pr.personId}" data-entry-id="${pr.entryId||''}">
                 <span class="dub-pos">${i+1}</span>
+                ${isAdmin?`<input type="checkbox" class="dub-select-coadj" data-person-id="${pr.personId}" data-entry-id="${pr.entryId||''}" data-person-name="${escapeHtml(pr.person)}" title="Selecionar pra marcar como coadjuvante">`:''}
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
@@ -10192,6 +10194,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="empty-projeto-tit">Nenhuma pessoa neste projeto ainda</div>
             <div class="empty-projeto-sub">${isAdmin?'Clique em <b>+ Adicionar pessoa</b> abaixo para vincular fichas a este projeto.':'Aguarde o admin adicionar as pessoas.'}</div>
           </div>`}
+          ${isAdmin && pairs.length ? `
+          <div id="coadjBulkBar" style="display:none;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;">
+            <span style="font-size:12.5px;color:#6D28D9;font-weight:600;flex:1;"><span id="coadjBulkCount">0</span> selecionado(s)</span>
+            <button type="button" class="btn-ghost" id="coadjBulkCancel" style="padding:6px 12px;font-size:12.5px;">Cancelar</button>
+            <button type="button" id="coadjBulkMark" style="padding:6px 14px;font-size:12.5px;border:none;border-radius:8px;background:#7C3AED;color:#fff;font-weight:700;cursor:pointer;">☾ Marcar como coadjuvante</button>
+          </div>`:''}
           ${isAdmin?`
           <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
             <button class="btn-ghost admin-only" id="btnAddFichaExistente" style="flex:1;min-width:180px;justify-content:center;font-size:13px;padding:10px;">🔍 Adicionar ficha existente</button>
@@ -10787,6 +10795,58 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       list.querySelectorAll('.dub-handle').forEach(handle => {
         handle.addEventListener('mousedown', (e) => iniciarArraste(e, e.target.closest('.dub-item')));
         handle.addEventListener('touchstart', (e) => iniciarArraste(e, e.target.closest('.dub-item')), {passive:false});
+      });
+
+      // Seleção múltipla pra marcar como coadjuvante direto na lista do projeto
+      const bulkBar = $('#coadjBulkBar');
+      const bulkCount = $('#coadjBulkCount');
+      function atualizarBarraCoadj(){
+        if (!bulkBar) return;
+        const marcados = list.querySelectorAll('.dub-select-coadj:checked').length;
+        bulkBar.style.display = marcados > 0 ? 'flex' : 'none';
+        if (bulkCount) bulkCount.textContent = String(marcados);
+      }
+      list.querySelectorAll('.dub-select-coadj').forEach(cb => {
+        cb.addEventListener('change', atualizarBarraCoadj);
+      });
+      const btnCoadjCancel = $('#coadjBulkCancel');
+      if (btnCoadjCancel) btnCoadjCancel.addEventListener('click', () => {
+        list.querySelectorAll('.dub-select-coadj:checked').forEach(cb => cb.checked = false);
+        atualizarBarraCoadj();
+      });
+      const btnCoadjMark = $('#coadjBulkMark');
+      if (btnCoadjMark) btnCoadjMark.addEventListener('click', async () => {
+        const selecionados = [...list.querySelectorAll('.dub-select-coadj:checked')].map(cb => ({
+          entryId: cb.dataset.entryId, personId: cb.dataset.personId, nome: cb.dataset.personName
+        })).filter(s => s.entryId);
+        if (selecionados.length === 0) return;
+
+        const ok = await confirmarBonito({
+          titulo: `Marcar ${selecionados.length} pessoa${selecionados.length===1?'':'s'} como coadjuvante?`,
+          mensagem: `<span style="font-size:12px;">${selecionados.map(s=>escapeHtml(s.nome)).join(', ')}</span><br><br><span style="font-size:12px;">A entrada de cada um NESTE projeto vai pra subpasta "⟫ Coadjuvantes" e some da lista principal de dublagem.</span>`,
+          textoBotao: '☾ Sim, marcar como coadjuvante',
+          corBotao: '#7C3AED',
+          icone: '☾'
+        });
+        if (!ok) return;
+
+        btnCoadjMark.disabled = true;
+        btnCoadjMark.textContent = 'Marcando…';
+        try {
+          const novoProj = coadjProjectOf(project);
+          for (const s of selecionados){
+            await sb.from('entries').update({ project: novoProj }).eq('id', s.entryId);
+          }
+          await loadPeople();
+          invalidarCacheSimilares();
+          showToast(`✅ ${selecionados.length} pessoa${selecionados.length===1?'':'s'} marcada${selecionados.length===1?'':'s'} como coadjuvante.`);
+          openProjetoModal(project);
+        } catch(err){
+          console.error('Erro ao marcar coadjuvantes:', err);
+          showToast('❌ Erro: '+(err.message||''));
+          btnCoadjMark.disabled = false;
+          btnCoadjMark.textContent = '☾ Marcar como coadjuvante';
+        }
       });
 
       $('#projSaveOrder').addEventListener('click', async ()=>{
