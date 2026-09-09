@@ -5046,11 +5046,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           invalidarCacheSimilares();
           showToast(`✅ "${pname}" atualizado(a).`);
           cleanup('adicionou_existente');
-          if (projeto && projeto !== SEM_PROJETO){
-            setTimeout(() => {
-              if (typeof openProjetoModal === 'function') openProjetoModal(projeto);
-            }, 300);
-          }
+          // Nota: quem chamou esta função (o único lugar que usa) já cuida
+          // de reabrir o modal do projeto certo depois do cleanup, usando
+          // modalOrigemProjeto — não precisa duplicar essa lógica aqui.
         } catch(err){
           showToast('Erro: '+(err.message||''));
         }
@@ -5550,6 +5548,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       projetoCanonico = SEM_PROJETO;
     }
 
+    // Se marcou "é coadjuvante" e tem um projeto de verdade (não o "sem
+    // projeto ainda"), a entrada já nasce na subpasta de coadjuvantes.
+    // Calculado ANTES da checagem de duplicata, pra o popup "Usar este"
+    // também respeitar a marcação (antes ele sempre usava o projeto normal,
+    // ignorando o checkbox de coadjuvante).
+    const marcouCoadjuvante = $('#novaFichaCoadjCheck')?.checked;
+    const projetoFinal = (marcouCoadjuvante && projetoCanonico && projetoCanonico !== SEM_PROJETO)
+      ? coadjProjectOf(projetoCanonico)
+      : projetoCanonico;
+
     // === DETECÇÃO DE FICHAS SIMILARES ===
     // Só roda quando tem projeto preenchido — o botão "Usar este" do popup
     // vincula a ficha existente a ESSE projeto, então sem projeto não faz
@@ -5569,9 +5577,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         });
 
         // Mostra popup — apresenta TODOS os similares (mesmo os que já estão no projeto)
-        const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoCanonico, voz, data);
+        const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoFinal, voz, data);
         if (escolha === 'adicionou_existente'){
+          const voltarPara = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
           closeModal();
+          if (voltarPara) openProjetoModal(voltarPara);
           return;
         } else if (escolha === 'cancelou'){
           return;
@@ -5579,13 +5589,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         // 'continuar' → segue com o cadastro normal abaixo
       }
     }
-
-    // Se marcou "é coadjuvante" e tem um projeto de verdade (não o "sem
-    // projeto ainda"), a entrada já nasce na subpasta de coadjuvantes.
-    const marcouCoadjuvante = $('#novaFichaCoadjCheck')?.checked;
-    const projetoFinal = (marcouCoadjuvante && projetoCanonico && projetoCanonico !== SEM_PROJETO)
-      ? coadjProjectOf(projetoCanonico)
-      : projetoCanonico;
 
     const cleanEntries = projetoFinal ? [{ project: projetoFinal, voice: voz, date: data }] : [];
 
