@@ -9179,7 +9179,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const coadjProj = (base + COADJ_SUFFIX).toLowerCase();
     const out = [];
     visiblePeople().forEach(p => p.entries.forEach(e => {
-      if ((e.project||'').toLowerCase()===coadjProj) out.push({ person:p.name, voice:e.voice, personId:p.id, hasPhoto:p.hasPhoto });
+      if ((e.project||'').toLowerCase()===coadjProj) out.push({ person:p.name, voice:e.voice, personId:p.id, hasPhoto:p.hasPhoto, entryId:e.id });
     }));
     return out.sort((a,b)=>a.person.localeCompare(b.person,'pt-BR'));
   }
@@ -9194,7 +9194,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}">${initials}</div>`
         : `<div class="photo-fallback">${initials}</div>`;
       return `
-        <div class="voice-card" data-id="${c.personId}" style="cursor:pointer;">
+        <div class="voice-card" data-id="${c.personId}" style="cursor:pointer;position:relative;">
+          ${isAdmin?`<button class="btn-ghost" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Tirar de coadjuvante — volta pro projeto principal" style="position:absolute;top:8px;right:8px;padding:4px 9px;font-size:11px;z-index:2;">↩ Tirar</button>`:''}
           <div class="card-top">
             ${photo}
             <div class="card-name-block">
@@ -9219,10 +9220,41 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     $('#coadjClose').addEventListener('click', ()=>ov.classList.remove('open'));
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
+
+    // Tirar de coadjuvante — volta a entrada pro projeto principal (base,
+    // sem o sufixo "⟫ Coadjuvantes"), fazendo a pessoa reaparecer na
+    // lista normal "Ordem de dublagem" do projeto.
+    ov.querySelectorAll('[data-remover-coadj]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // não deixa abrir a ficha ao clicar no botão
+        const entryId = btn.dataset.removerCoadj;
+        const nome = btn.dataset.removerNome;
+        if (!entryId) return;
+        const ok = await confirmarBonito({
+          titulo: 'Tirar de coadjuvante?',
+          mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b><br><span style="font-size:12px;">Volta pra lista principal de dublagem de "${escapeHtml(base)}".</span>`,
+          textoBotao: '↩ Sim, tirar de coadjuvante',
+          corBotao: '#7C3AED',
+          icone: '↩'
+        });
+        if (!ok) return;
+        try {
+          await sb.from('entries').update({ project: base }).eq('id', entryId);
+          await loadPeople();
+          invalidarCacheSimilares();
+          showToast(`"${nome}" voltou pra lista principal.`);
+          openCoadjuvantesModal(project); // reabre atualizado
+        } catch(err){
+          showToast('Erro: '+(err.message||''));
+        }
+      });
+    });
+
     // clicar num coadjuvante abre a ficha para editar (foto/voz)
     ov.querySelectorAll('.voice-card[data-id]').forEach(card => {
       card.addEventListener('click', (e)=>{
         if (e.target.closest('img.photo, [data-photo-for]')) return; // foto amplia
+        if (e.target.closest('[data-remover-coadj]')) return; // botão de tirar
         openModal(card.dataset.id);
       });
     });
