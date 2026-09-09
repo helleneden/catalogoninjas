@@ -4698,9 +4698,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         return p.name.toLowerCase().includes(ql);
       }).slice(0, 8);
 
-      // Verifica se o nome digitado é totalmente novo (não bate com nenhuma pessoa existente)
-      const nenhumaExata = !mainPeople().some(p => p.name.trim().toLowerCase() === ql);
-
       let html = '';
       if (matches.length){
         html += matches.map(p => {
@@ -4717,14 +4714,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             </div>`;
         }).join('');
       }
-      // Sempre oferece opção de "criar nova pessoa com este nome" se digitou algo específico
-      if (q.length >= 2 && nenhumaExata){
-        html += `<div class="suges-buscar-nova" data-nova-nome="${escapeHtml(q)}">
-          ➕ Criar nova pessoa: "<b>${escapeHtml(q)}</b>"
-        </div>`;
-      }
+      // Removido de propósito: opção de "criar nova pessoa" aqui. Esta busca
+      // é só pra encontrar fichas JÁ EXISTENTES pra sugerir como colega de
+      // cena — pra criar uma pessoa nova, use o botão "+ Nova ficha" normal.
       if (!html){
-        drop.classList.remove('open');
+        drop.innerHTML = `<div class="suges-buscar-nova" style="color:var(--muted);cursor:default;">Nenhuma ficha encontrada com esse nome.</div>`;
+        drop.classList.add('open');
         return;
       }
       drop.innerHTML = html;
@@ -4759,26 +4754,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         input.value = '';
         drop.classList.remove('open');
         renderSugestoesBloco();
-        return;
-      }
-      // Criar nova pessoa
-      const novaBtn = e.target.closest('[data-nova-nome]');
-      if (novaBtn){
-        const nome = novaBtn.dataset.novaNome;
-        // ID temporário; será resolvido no save (savePersonExtra)
-        const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-        pessoasExtras.push({
-          personId: tempId,
-          personName: nome,
-          hasPhoto: false,
-          voice: '',
-          _nova: true // marca como pessoa nova a criar
-        });
-        sugestoesMarcadas.add(`${tempId}||__extra__`);
-        input.value = '';
-        drop.classList.remove('open');
-        renderSugestoesBloco();
-        showToast(`"${nome}" será criada ao salvar.`);
         return;
       }
     });
@@ -4839,6 +4814,59 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     // Ordena por score decrescente e limita a 6
     return resultados.sort((a,b) => b.score - a.score).slice(0, 6);
+  }
+
+  // Popup simples de duplicata pro contexto do WIZARD (a pessoa ainda não foi
+  // salva no banco, só está "marcada" na memória até o projeto ser criado de
+  // verdade). Diferente de confirmarDuplicataFicha (que já mexe no banco),
+  // esse só devolve qual pessoa usar (ou null pra seguir criando nova).
+  function confirmarDuplicataWizard(nomeDigitado, similares){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10001';
+      const linhas = similares.map(s => {
+        const iniciais = s.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        return `
+          <div class="dup-item" data-usar-existente="${s.id}">
+            <div class="photo-fallback" ${s.hasPhoto?`data-photo-for="${s.id}" data-name="${escapeHtml(s.name)}"`:''} style="width:34px;height:34px;border-radius:8px;font-size:12px;">${iniciais}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:13.5px;">${escapeHtml(s.name)}</div>
+              <div style="font-size:11.5px;color:var(--muted);">${s.entries.length} projeto${s.entries.length===1?'':'s'}</div>
+            </div>
+            <button type="button" class="dup-usar-btn">Usar este</button>
+          </div>`;
+      }).join('');
+      ov.innerHTML = `
+        <div class="dup-modal">
+          <div class="dup-header">
+            <div class="dup-icon">⚠️</div>
+            <h2 style="margin:8px 0 4px;text-align:center;">Nome parecido encontrado</h2>
+            <p style="text-align:center;font-size:13px;color:var(--muted);margin:0 0 14px;">
+              Já existe${similares.length===1?'':'m'} ficha${similares.length===1?'':'s'} parecida${similares.length===1?'':'s'} com "<b>${escapeHtml(nomeDigitado)}</b>". É a mesma pessoa?
+            </p>
+          </div>
+          <div class="dup-list">${linhas}</div>
+          <button type="button" class="dup-btn-continuar" id="dupWizContinuar">Não, é outra pessoa — criar nova</button>
+          <button type="button" class="dup-btn-cancel" id="dupWizCancelar">Cancelar</button>
+        </div>`;
+      document.body.appendChild(ov);
+      hydratePhotos();
+
+      const cleanup = (resultado) => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); resolve(resultado); };
+      ov.querySelectorAll('[data-usar-existente]').forEach(item => {
+        item.querySelector('.dup-usar-btn').addEventListener('click', () => {
+          const id = item.dataset.usarExistente;
+          const pessoa = similares.find(s => s.id === id);
+          cleanup(pessoa || null);
+        });
+      });
+      const btnContinuar = ov.querySelector('#dupWizContinuar');
+      if (btnContinuar) btnContinuar.addEventListener('click', () => cleanup('continuar'));
+      const btnCancelar = ov.querySelector('#dupWizCancelar');
+      if (btnCancelar) btnCancelar.addEventListener('click', () => cleanup(null));
+      fecharAoClicarFora(ov, () => cleanup(null));
+    });
   }
 
   // Popup pra decidir: adicionar ficha existente ao projeto, ou continuar cadastro novo
@@ -8222,10 +8250,33 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const cancelarBtn = $('#wpCancelarNovaFicha');
         if (cancelarBtn) cancelarBtn.addEventListener('click', fecharBoxCriar);
         const confirmarBtn = $('#wpConfirmarNovaFicha');
-        if (confirmarBtn) confirmarBtn.addEventListener('click', () => {
+        if (confirmarBtn) confirmarBtn.addEventListener('click', async () => {
           const nome = (inpNome.value||'').trim();
           if (!nome){ showToast('Digite o nome do personagem.'); inpNome.focus(); return; }
           const voz = (inpVoz.value||'').trim();
+
+          // Checa nomes parecidos antes de criar (evita duplicata sem querer)
+          const similares = detectarFichasSimilares(nome);
+          if (similares.length > 0){
+            const escolha = await confirmarDuplicataWizard(nome, similares);
+            if (escolha === null) return; // cancelou
+            if (escolha !== 'continuar'){
+              // Escolheu usar uma ficha existente
+              state.pessoasMarcadas.set(escolha.id, {
+                personId: escolha.id,
+                personName: escolha.name,
+                hasPhoto: escolha.hasPhoto,
+                voice: (escolha.entries[0] && escolha.entries[0].voice) || '',
+                _nova: false
+              });
+              fecharBoxCriar();
+              renderPessoasMarcadas();
+              showToast(`"${escolha.name}" adicionado(a).`);
+              return;
+            }
+            // 'continuar' → segue criando nova, código abaixo
+          }
+
           const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
           state.pessoasMarcadas.set(tempId, {
             personId: tempId,
@@ -8450,7 +8501,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           if (state.pessoasMarcadas.has(p.id)) return false;
           return p.name.toLowerCase().includes(ql);
         }).slice(0, 8);
-        const nenhumaExata = !visiblePeople().some(p => p.name.trim().toLowerCase() === ql);
 
         let html = '';
         if (matches.length){
@@ -8470,12 +8520,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               </div>`;
           }).join('');
         }
-        if (q.length >= 2 && nenhumaExata){
-          html += `<div class="ac-item" data-nova-nome="${escapeHtml(q)}" style="color:var(--blue-deep);font-weight:600;">
-            ➕ Criar nova pessoa: "${escapeHtml(q)}"
-          </div>`;
+        // Removido de propósito: opção de "criar nova pessoa" aqui. Esta busca
+        // é só pra encontrar fichas JÁ EXISTENTES — quem quiser criar uma nova
+        // ficha usa o botão "✨ Criar nova ficha" logo abaixo, que é o lugar certo
+        // (e já checa nomes parecidos antes de criar, evitando duplicatas).
+        if (!html){
+          drop.innerHTML = `<div class="ac-item" style="color:var(--muted);cursor:default;">Nenhuma ficha encontrada com esse nome.</div>`;
+          drop.classList.add('open');
+          return;
         }
-        if (!html){ drop.classList.remove('open'); return; }
         drop.innerHTML = html;
         drop.classList.add('open');
         hydratePhotos();
@@ -8499,23 +8552,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             hasPhoto: addItem.dataset.addPhoto === '1',
             voice: addItem.dataset.addVoice || '',
             _nova: false
-          });
-          input.value = '';
-          drop.classList.remove('open');
-          renderPessoasMarcadas();
-          return;
-        }
-        // Criar nova
-        const novaItem = e.target.closest('[data-nova-nome]');
-        if (novaItem){
-          const nome = novaItem.dataset.novaNome;
-          const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-          state.pessoasMarcadas.set(tempId, {
-            personId: tempId,
-            personName: nome,
-            hasPhoto: false,
-            voice: '',
-            _nova: true
           });
           input.value = '';
           drop.classList.remove('open');
