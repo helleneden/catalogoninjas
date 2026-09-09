@@ -288,6 +288,41 @@
     border-radius: 3px;
     padding: 1px 3px;
   }
+
+  /* ---- Marcação @menção dentro do texto ---- */
+  .mention-tag{
+    display: inline-block;
+    background: rgba(37,99,235,.12);
+    color: var(--blue-deep);
+    font-weight: 700;
+    border-radius: 5px;
+    padding: 1px 6px;
+    cursor: default;
+    user-select: none;
+  }
+  .mention-dropdown{
+    position: fixed;
+    z-index: 10010;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(15,23,42,.18);
+    min-width: 180px;
+    max-width: 260px;
+    padding: 6px;
+    display: none;
+  }
+  .mention-item{
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink);
+  }
+  .mention-item:hover{ background: rgba(37,99,235,.08); }
+  .mention-item img{ width: 22px; height: 22px; border-radius: 50%; flex: 0 0 auto; }
+
   .btn-danger-ghost{
     background: var(--surface);
     border: 1.5px solid #FECACA;
@@ -318,7 +353,7 @@
   .dub-handle:active{ cursor:grabbing; }
   .dub-voice{ flex:1; min-width:0; }
   .dub-voice .vn{ font-weight:600; font-size:13.5px; line-height:1.2; }
-  .dub-voice .pn{ font-size:11.5px; color:var(--muted); margin-top:2px; cursor:pointer; display:inline-block; border-bottom:1px dashed transparent; transition:all .12s; }
+  .dub-voice .pn{ font-size:14px; color:var(--muted); margin-top:2px; cursor:pointer; display:inline-block; border-bottom:1px dashed transparent; transition:all .12s; }
   .dub-voice .pn:hover{ color:var(--blue-deep); border-bottom-color:var(--blue-deep); }
   .dub-avatar{ width:38px; height:38px; border-radius:50%; font-size:13px; flex:0 0 auto; box-shadow:0 2px 6px rgba(0,0,0,.08); }
   .coadj-folder{
@@ -2987,6 +3022,110 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const SEM_PROJETO = '(Sem projeto ainda)';
 
   let arrastandoDub = null;
+  // ==========================================================
+  // Sistema de @menção dentro de um editor (contenteditable) — digitar
+  // "@" seguido de letras abre uma listinha de ninjas da equipe; escolher
+  // um insere uma marcação destacada ("@Nome") no meio do texto. Quem foi
+  // marcado é lido depois na hora de salvar, procurando essas marcações
+  // no HTML do editor (não precisa de nenhum painel/lista separada).
+  // ==========================================================
+  function iniciarMencoesEditor(editor){
+    let dropdownEl = null;
+    let anchorNode = null;
+    let anchorOffset = null;
+
+    function fecharDropdown(){
+      if (dropdownEl){ dropdownEl.remove(); dropdownEl = null; }
+      anchorNode = null; anchorOffset = null;
+    }
+
+    function detectarArroba(){
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount){ fecharDropdown(); return; }
+      const range = sel.getRangeAt(0);
+      if (!range.collapsed || range.startContainer.nodeType !== Node.TEXT_NODE){ fecharDropdown(); return; }
+
+      const node = range.startContainer;
+      const textoAntes = node.textContent.slice(0, range.startOffset);
+      const match = textoAntes.match(/@([^\s@]{0,25})$/);
+      if (!match){ fecharDropdown(); return; }
+
+      const query = match[1].toLowerCase();
+      const candidatos = Object.values(profilesByUser||{})
+        .filter(p => p.display_name && p.display_name.toLowerCase().includes(query))
+        .slice(0, 6);
+
+      if (candidatos.length === 0){ fecharDropdown(); return; }
+
+      anchorNode = node;
+      anchorOffset = range.startOffset - match[0].length;
+      mostrarDropdown(candidatos, range);
+    }
+
+    function mostrarDropdown(candidatos, range){
+      if (!dropdownEl){
+        dropdownEl = document.createElement('div');
+        dropdownEl.className = 'mention-dropdown';
+        document.body.appendChild(dropdownEl);
+      }
+      dropdownEl.innerHTML = candidatos.map(p => {
+        const ninja = NINJAS[p.ninja_color||'azul'] || NINJAS.azul;
+        return `<div class="mention-item" data-uid="${p.user_id}" data-nome="${escapeHtml(p.display_name)}">
+          <img src="${ninja}" alt=""><span>${escapeHtml(p.display_name)}</span>
+        </div>`;
+      }).join('');
+
+      let rect;
+      try { rect = range.getClientRects()[0] || range.getBoundingClientRect(); }
+      catch(e){ rect = editor.getBoundingClientRect(); }
+
+      dropdownEl.style.left = (rect.left) + 'px';
+      dropdownEl.style.top = (rect.bottom + 6) + 'px';
+      dropdownEl.style.display = 'block';
+
+      dropdownEl.querySelectorAll('.mention-item').forEach(item => {
+        item.addEventListener('mousedown', (e) => {
+          e.preventDefault(); // não deixa o clique tirar o foco/seleção antes de inserir
+          inserirMencao(item.dataset.uid, item.dataset.nome);
+        });
+      });
+    }
+
+    function inserirMencao(uid, nome){
+      if (!anchorNode) return;
+      const sel = window.getSelection();
+      if (!sel || !sel.rangeCount) return;
+      try {
+        const range = document.createRange();
+        range.setStart(anchorNode, anchorOffset);
+        range.setEnd(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset);
+        range.deleteContents();
+
+        const span = document.createElement('span');
+        span.className = 'mention-tag';
+        span.contentEditable = 'false';
+        span.dataset.userId = uid;
+        span.textContent = '@' + nome;
+        range.insertNode(span);
+
+        const espaco = document.createTextNode('\u00A0');
+        span.after(espaco);
+        const novoRange = document.createRange();
+        novoRange.setStartAfter(espaco);
+        novoRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(novoRange);
+      } catch(e){ console.warn('Erro ao inserir menção:', e); }
+
+      fecharDropdown();
+      editor.focus();
+    }
+
+    editor.addEventListener('input', detectarArroba);
+    editor.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharDropdown(); });
+    editor.addEventListener('blur', () => { setTimeout(fecharDropdown, 150); });
+  }
+
   function forcarLimpezaArrasteDub(){
     if (!arrastandoDub) return;
     try{
@@ -9995,25 +10134,16 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div class="notes-toolbar">
             <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
             <button type="button" class="notes-tb-btn notes-tb-highlight" data-cmd="backColor" data-value="#FEF08A" title="Grifar em amarelo">🖍️ Grifar</button>
-          </div>`:''}
+          </div>
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Digite <b>@</b> seguido do nome pra marcar alguém da equipe — a pessoa recebe notificação quando você salvar.</p>`:''}
           <div id="projNotesInput" class="notes-editor" ${isAdmin?'contenteditable="true"':''}
-            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências..."
+            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências... use @ pra marcar alguém"
             >${projectMeta[project]?.notes || ''}</div>
           ${projectMeta[project]?.notes_author_name ? `
             <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">
               ✎ Última edição por <b>${escapeHtml(projectMeta[project].notes_author_name)}</b>${projectMeta[project].notes_updated_at ? ` · ${new Date(projectMeta[project].notes_updated_at).toLocaleString('pt-BR')}` : ''}
             </p>` : ''}
           ${isAdmin?`
-          <div style="margin-top:12px;padding:12px;background:var(--surface-soft);border-radius:10px;">
-            <label style="font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;">🔔 Marcar pessoas (elas recebem uma notificação)</label>
-            <div id="notesMencoesChips" class="part-chips" style="margin-top:8px;"></div>
-            <div style="margin-top:10px;display:flex;gap:6px;align-items:center;">
-              <select id="notesMencaoSel" style="flex:1;padding:7px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px;background:var(--bg);">
-                <option value="">+ Marcar ninja da equipe…</option>
-              </select>
-              <button class="btn-ghost" id="notesMencaoAddBtn" style="padding:7px 12px;font-size:12.5px;white-space:nowrap;">Marcar</button>
-            </div>
-          </div>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button type="button" class="btn-primary" id="projSaveNotes" style="flex:1;justify-content:center;">Salvar observação</button>
             <button type="button" class="btn-danger-ghost" id="projClearNotes" title="Apagar tudo que foi escrito">🗑️</button>
@@ -10142,53 +10272,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
     });
 
-    // Marcar pessoas pra notificar sobre esta observação (escolha feita
-    // agora mesmo, na hora de salvar — não fica guardado de uma vez pra
-    // outra, cada salvamento é uma notificação nova pra quem for marcado)
-    const mencoesSelecionadas = new Map(); // user_id -> {display_name, ninja_color}
-
-    function renderMencoesChips(){
-      const box = $('#notesMencoesChips');
-      if (!box) return;
-      const itens = [...mencoesSelecionadas.entries()];
-      box.innerHTML = itens.length ? itens.map(([uid, p]) => {
-        const ninja = NINJAS[p.ninja_color||'azul'] || NINJAS.azul;
-        return `
-          <span class="part-chip">
-            <img src="${ninja}" alt="">
-            ${escapeHtml(p.display_name||'Ninja')}
-            <button class="part-x" data-rm-mencao="${uid}" title="Remover">✕</button>
-          </span>`;
-      }).join('') : `<span style="font-size:12px;color:var(--muted);">Ninguém marcado ainda pra esta observação.</span>`;
-
-      box.querySelectorAll('[data-rm-mencao]').forEach(b => b.addEventListener('click', () => {
-        mencoesSelecionadas.delete(b.dataset.rmMencao);
-        renderMencoesChips();
-        renderMencaoSelect();
-      }));
-    }
-
-    function renderMencaoSelect(){
-      const sel = $('#notesMencaoSel');
-      if (!sel) return;
-      const disponiveis = Object.values(profilesByUser||{}).filter(p => p.display_name && !mencoesSelecionadas.has(p.user_id));
-      sel.innerHTML = `<option value="">+ Marcar ninja da equipe…</option>` +
-        disponiveis.map(p => `<option value="${p.user_id}">${escapeHtml(p.display_name)}</option>`).join('');
-    }
-    renderMencoesChips();
-    renderMencaoSelect();
-
-    const btnMencaoAdd = $('#notesMencaoAddBtn');
-    if (btnMencaoAdd) btnMencaoAdd.addEventListener('click', () => {
-      const sel = $('#notesMencaoSel');
-      const uid = sel.value;
-      if (!uid) return;
-      const perfil = profilesByUser[uid];
-      if (!perfil) return;
-      mencoesSelecionadas.set(uid, perfil);
-      renderMencoesChips();
-      renderMencaoSelect();
-    });
+    // Sistema de @menção DENTRO do próprio texto — digitar "@nome" mostra
+    // uma lista de ninjas da equipe pra escolher, e escolher insere uma
+    // marcação destacada no meio do texto (em vez de um painel separado).
+    if (notesEditor && isAdmin) iniciarMencoesEditor(notesEditor);
 
     // Apagar tudo que foi escrito na observação
     const btnClearNotes = $('#projClearNotes');
@@ -10205,10 +10292,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (notesEditor) notesEditor.innerHTML = '';
     });
 
-    // Salvar observações da equipe (com autor + notifica quem foi marcado)
+    // Salvar observações da equipe (com autor + notifica quem foi marcado
+    // com @ dentro do texto)
     const btnSaveNotes = $('#projSaveNotes');
     if (btnSaveNotes) btnSaveNotes.addEventListener('click', async () => {
       const notes = (notesEditor ? notesEditor.innerHTML : '').trim();
+      // Extrai quem foi marcado direto das marcações @ presentes no texto
+      const marcados = notesEditor
+        ? [...new Set([...notesEditor.querySelectorAll('.mention-tag')].map(s => s.dataset.userId))]
+        : [];
       btnSaveNotes.disabled = true;
       btnSaveNotes.textContent = 'Salvando…';
       try {
@@ -10227,22 +10319,19 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           notes, notes_author_id: myUserId||null, notes_author_name: autorNome, notes_updated_at: agora
         };
 
-        // Cria as notificações pra quem foi marcado
-        if (mencoesSelecionadas.size > 0){
-          const linhas = [...mencoesSelecionadas.entries()].map(([uid, p]) => ({
-            project, user_id: uid, display_name: p.display_name||'Ninja',
+        // Cria as notificações pra quem foi marcado com @ no texto
+        if (marcados.length > 0){
+          const linhas = marcados.map(uid => ({
+            project, user_id: uid, display_name: (profilesByUser[uid]||{}).display_name||'Ninja',
             author_name: autorNome, read: false
           }));
           try { await sb.from('project_note_mentions').insert(linhas); }
           catch(e){ console.warn('Erro ao notificar marcações:', e); }
         }
 
-        showToast(mencoesSelecionadas.size > 0
-          ? `✅ Observação salva e ${mencoesSelecionadas.size} pessoa${mencoesSelecionadas.size===1?'':'s'} notificada${mencoesSelecionadas.size===1?'':'s'}.`
+        showToast(marcados.length > 0
+          ? `✅ Observação salva e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.`
           : '✅ Observação salva.');
-        mencoesSelecionadas.clear();
-        renderMencoesChips();
-        renderMencaoSelect();
         renderBellBadge();
       } catch(err){
         console.error('Erro ao salvar observação:', err);
