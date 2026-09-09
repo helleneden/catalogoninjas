@@ -4876,6 +4876,36 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // salva no banco, só está "marcada" na memória até o projeto ser criado de
   // verdade). Diferente de confirmarDuplicataFicha (que já mexe no banco),
   // esse só devolve qual pessoa usar (ou null pra seguir criando nova).
+  // Popup rápido: pergunta se a pessoa que está prestes a ser cadastrada é
+  // coadjuvante neste projeto. Retorna Promise<true|false|null> — null se
+  // cancelou a criação da ficha inteira.
+  function perguntarCoadjuvante(){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10002';
+      ov.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:380px;">
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
+          <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
+          <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 18px;">
+            Se for coadjuvante, a ficha já nasce direto na pasta "⟫ Coadjuvantes" deste projeto.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="coadjSimBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
+            <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não, papel principal</button>
+            <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      const cleanup = (resultado) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(), 200); resolve(resultado); };
+      ov.querySelector('#coadjSimBtn').addEventListener('click', () => cleanup(true));
+      ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup(false));
+      ov.querySelector('#coadjCancelBtn').addEventListener('click', () => cleanup(null));
+      fecharAoClicarFora(ov, () => cleanup(null));
+    });
+  }
+
   function confirmarDuplicataWizard(nomeDigitado, similares){
     return new Promise(resolve => {
       const ov = document.createElement('div');
@@ -10566,7 +10596,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       // Botão "Criar nova ficha" — abre modal de nova ficha com projeto pré-preenchido
       const btnCriarNova = $('#btnCriarNovaFicha');
-      if (btnCriarNova) btnCriarNova.addEventListener('click', ()=>{
+      if (btnCriarNova) btnCriarNova.addEventListener('click', async ()=>{
+        // Pergunta logo de cara se é coadjuvante — bem mais visível que um
+        // checkbox escondido no meio do formulário.
+        const ehCoadjuvante = await perguntarCoadjuvante();
+        if (ehCoadjuvante === null) return; // cancelou tudo
+
         ov.classList.remove('open');
         // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
         // cadastrar, não precisa de sugestões de elenco — isso já existe
@@ -10580,6 +10615,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             projInp.value = project;
             projInp.dispatchEvent(new Event('input', {bubbles:true}));
           }
+          // Já marca o checkbox de coadjuvante de acordo com a resposta do popup
+          const coadjCheck = $('#novaFichaCoadjCheck');
+          if (coadjCheck) coadjCheck.checked = ehCoadjuvante;
           const nameInp = $('#nameInput');
           if (nameInp) nameInp.focus();
         }, 100);
