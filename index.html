@@ -3199,7 +3199,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ console.warn('Limpeza de arraste:', e); }
     arrastandoDub = null;
   }
-  let passwordResetRequests = []; // solicitações de troca de senha pendentes/resolvidas
+  // (Removido: passwordResetRequests — fluxo de senha agora é self-service)
   let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
 
   const mainContent = $('#mainContent');
@@ -3280,7 +3280,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadAgenda(),
       loadChat(),
       loadBackupLog(),
-      loadPasswordResetRequests(),
       loadMinhasMencoes(),
     ]);
     projectCats = {};
@@ -7573,16 +7572,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return Math.floor(dif / (1000*60*60*24));
   }
 
-  // Carrega as solicitações de troca de senha (só faz sentido pra admin ver)
-  async function loadPasswordResetRequests(){
-    if (!isAdmin){ passwordResetRequests = []; return; }
-    try{
-      const { data } = await sb.from('password_reset_requests')
-        .select('*').order('requested_at', { ascending:false }).limit(50);
-      passwordResetRequests = data || [];
-    }catch(e){ passwordResetRequests = []; }
-  }
-
   // Carrega as observações de projeto onde EU (usuário logado) fui marcado
   async function loadMinhasMencoes(){
     if (!myUserId){ minhasMencoes = []; return; }
@@ -7593,18 +7582,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ minhasMencoes = []; }
   }
 
-  // Atualiza o sino de notificação — soma solicitações de senha pendentes
-  // (só admin vê essas) + menções em observações de projeto (qualquer
-  // usuário pode ter). Por isso o sino agora aparece pra todo mundo, não
-  // só pra admin.
+  // Atualiza o sino de notificação — conta menções em observações de
+  // projeto (qualquer usuário pode ter). O recurso de solicitação de
+  // senha pro admin foi removido (agora é 100% self-service por e-mail).
   function renderBellBadge(){
     const btn = document.getElementById('bellBtn');
     const badge = document.getElementById('bellBadge');
     if (!btn || !badge) return;
     btn.style.display = 'flex';
-    const pendentesSenha = isAdmin ? (passwordResetRequests||[]).filter(r => r.status === 'pendente').length : 0;
-    const mencoesNaoLidas = (minhasMencoes||[]).filter(m => !m.read).length;
-    const total = pendentesSenha + mencoesNaoLidas;
+    const total = (minhasMencoes||[]).filter(m => !m.read).length;
     if (total > 0){
       badge.textContent = String(total);
       badge.style.display = 'flex';
@@ -11061,10 +11047,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (e.target.closest('#bellBtn')){
       switchView('painel');
       setTimeout(() => {
-        const alvo = (minhasMencoes||[]).some(m => !m.read) ? 'Você foi marcado' : 'Solicitações de troca de senha';
         const cards = document.querySelectorAll('.painel-title');
         for (const c of cards){
-          if (c.textContent.includes(alvo)){
+          if (c.textContent.includes('Você foi marcado')){
             c.scrollIntoView({behavior:'smooth', block:'center'});
             break;
           }
@@ -11338,7 +11323,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
-    const solicitacoesPanel = isAdmin ? renderSolicitacoesSenhaPanel() : '';
     const mencoesPanel = renderMencoesPanel();
     painelContent.innerHTML = `
       <div class="painel-grid">
@@ -11348,7 +11332,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       ${renderAgenda()}
       ${mencoesPanel}
       ${renderSegurancaPanel()}
-      ${solicitacoesPanel}
       ${backupPanel}
       ${adminPanel}`;
     const msgs = $('#chatMsgs');
@@ -11420,34 +11403,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }));
   }
 
-  // Painel de solicitações de troca de senha — visível só pra admin.
-  // Mostra quem pediu, e deixa marcar como resolvido depois de trocar a
-  // senha da pessoa (pelo painel do Supabase, ou pela Edge Function se
-  // ela estiver publicada — ver função dispararTrocaSenhaAdmin).
-  function renderSolicitacoesSenhaPanel(){
-    const pendentes = (passwordResetRequests||[]).filter(r => r.status === 'pendente');
-    if (pendentes.length === 0) return '';
-    const linhas = pendentes.map(r => `
-      <div class="prr-item">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13.5px;">${escapeHtml(r.email)}</div>
-          <div style="font-size:11.5px;color:var(--muted);">solicitado em ${new Date(r.requested_at).toLocaleString('pt-BR')}</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <input type="password" class="prr-nova-senha" data-req-id="${r.id}" placeholder="Nova senha" style="width:130px;padding:7px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;">
-          <button class="btn-primary" data-def-senha="${r.id}" data-email="${escapeHtml(r.email)}" style="padding:7px 12px;font-size:12.5px;">Definir</button>
-          <button class="btn-ghost" data-resolver-req="${r.id}" style="padding:7px 12px;font-size:12.5px;">✓ Já resolvi</button>
-        </div>
-      </div>`).join('');
-    return `
-      <div class="painel-card" style="margin-top:20px;">
-        <div class="painel-title">🔔 Solicitações de troca de senha (${pendentes.length})</div>
-        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">
-          Essas pessoas já devem ter recebido um e-mail automático com link pra criar a senha nova sozinhas — normalmente não precisa fazer nada. "Definir" só é útil se o e-mail não chegar e a função de servidor estiver publicada. Se não precisar mais, clique em "Já resolvi".
-        </p>
-        <div style="display:flex;flex-direction:column;gap:8px;">${linhas}</div>
-      </div>`;
-  }
+  // Nota: o painel de "Solicitações de troca de senha" foi removido — o
+  // fluxo de recuperação agora é 100% self-service (a pessoa recebe um
+  // e-mail com link e cria a senha nova sozinha, sem precisar de admin).
   // Painel de segurança — visível pra QUALQUER usuário logado: trocar a
   // própria senha e cadastrar/editar o e-mail de recuperação.
   function renderSegurancaPanel(){
@@ -11613,30 +11571,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     showToast('Admin adicionado!');
   }
 
-  // Tenta trocar a senha de outro usuário chamando a Edge Function
-  // "admin-reset-password" (precisa estar publicada no Supabase — veja o
-  // arquivo edge-function-admin-reset-password.ts). Se ainda não estiver
-  // publicada, avisa claramente em vez de fingir que funcionou.
-  async function dispararTrocaSenhaAdmin(email, novaSenha){
-    try {
-      const { data, error } = await sb.functions.invoke('admin-reset-password', {
-        body: { email, new_password: novaSenha }
-      });
-      if (error) throw error;
-      if (data && data.ok) return { ok:true };
-      return { ok:false, mensagem: (data && data.error) || 'A função retornou um erro inesperado.' };
-    } catch(e){
-      console.error('Erro ao chamar admin-reset-password:', e);
-      // Mostra o erro de verdade em vez de sempre supor que não foi publicada —
-      // pode ser CORS, autenticação, nome da função errado, secrets faltando, etc.
-      const detalhe = (e && (e.message || e.error_description || e.error)) || String(e);
-      return {
-        ok:false,
-        mensagem: `Erro ao chamar a função de servidor: ${detalhe}. Se ela já estiver publicada no Supabase, veja o console (F12) pra mais detalhes — pode ser um problema diferente de "não publicada" (ex: nome errado, CORS, segredo faltando).`
-      };
-    }
-  }
-
   async function handleRemoveAdmin(email){
     const ok = await confirmarBonito({
       titulo: 'Remover admin?',
@@ -11739,46 +11673,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (e.target.closest('#addAdminBtn')){ await handleAddAdmin(); return; }
       const rmAdmin = e.target.closest('[data-remove-admin]');
       if (rmAdmin){ await handleRemoveAdmin(rmAdmin.dataset.removeAdmin); return; }
-
-      // solicitação de senha: marcar como já resolvida manualmente
-      const resolverReq = e.target.closest('[data-resolver-req]');
-      if (resolverReq){
-        const id = resolverReq.dataset.resolverReq;
-        try{
-          await sb.from('password_reset_requests').update({
-            status:'resolvido', resolved_by: myEmail||null, resolved_at: new Date().toISOString()
-          }).eq('id', id);
-          await loadPasswordResetRequests();
-          renderBellBadge();
-          renderPainel();
-          showToast('Solicitação marcada como resolvida.');
-        }catch(err){ showToast('Erro: '+(err.message||'')); }
-        return;
-      }
-      // solicitação de senha: definir nova senha direto (precisa da Edge Function publicada)
-      const defSenha = e.target.closest('[data-def-senha]');
-      if (defSenha){
-        const id = defSenha.dataset.defSenha;
-        const email = defSenha.dataset.email;
-        const inp = painelContent.querySelector(`.prr-nova-senha[data-req-id="${id}"]`);
-        const novaSenha = inp ? inp.value : '';
-        if (!novaSenha || novaSenha.length < 6){ showToast('Digite uma senha com pelo menos 6 caracteres.'); return; }
-        defSenha.disabled = true; defSenha.textContent = 'Definindo…';
-        const res = await dispararTrocaSenhaAdmin(email, novaSenha);
-        if (res.ok){
-          await sb.from('password_reset_requests').update({
-            status:'resolvido', resolved_by: myEmail||null, resolved_at: new Date().toISOString()
-          }).eq('id', id);
-          await loadPasswordResetRequests();
-          renderBellBadge();
-          renderPainel();
-          showToast(`✅ Senha de ${email} atualizada.`);
-        } else {
-          defSenha.disabled = false; defSenha.textContent = 'Definir';
-          showToast(res.mensagem || 'Não consegui trocar a senha automaticamente.');
-        }
-        return;
-      }
     });
 
     // --- MUDANÇAS (delegadas) ---
@@ -12101,10 +11995,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const redirectUrl = window.location.origin + window.location.pathname;
         const { error: errEmail } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
         if (errEmail) console.warn('Erro ao enviar e-mail de recuperação:', errEmail);
-
-        // Também registra a solicitação (visível pro admin no sininho), só
-        // como registro/histórico — não é mais necessário pro admin agir.
-        try { await sb.from('password_reset_requests').insert({ email }); } catch(e){}
 
         setMsg('✅ Se esse e-mail estiver cadastrado, um link pra criar uma senha nova foi enviado. Confira sua caixa de entrada (e o spam).', '#15803D');
         if (inp) inp.value = '';
