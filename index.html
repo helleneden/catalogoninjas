@@ -2838,6 +2838,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
+        <input type="checkbox" id="novaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
+        ☾ Esta pessoa é coadjuvante neste projeto
+      </label>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha já entra direto na pasta "⟫ Coadjuvantes" do projeto, em vez da lista principal.</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -5541,7 +5546,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
 
-    const cleanEntries = projetoCanonico ? [{ project: projetoCanonico, voice: voz, date: data }] : [];
+    // Se marcou "é coadjuvante" e tem um projeto de verdade (não o "sem
+    // projeto ainda"), a entrada já nasce na subpasta de coadjuvantes.
+    const marcouCoadjuvante = $('#novaFichaCoadjCheck')?.checked;
+    const projetoFinal = (marcouCoadjuvante && projetoCanonico && projetoCanonico !== SEM_PROJETO)
+      ? coadjProjectOf(projetoCanonico)
+      : projetoCanonico;
+
+    const cleanEntries = projetoFinal ? [{ project: projetoFinal, voice: voz, date: data }] : [];
 
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
@@ -5602,6 +5614,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
 
+    const voltarParaProjeto = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
     $('#saveModalBtn').disabled = false;
     $('#saveModalBtn').textContent = 'Salvar ficha';
     closeModal();
@@ -5610,7 +5623,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     invalidarCacheSimilares();
     showToast(criadasSugestoes > 0
       ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
-      : '✅ Ficha salva!');
+      : (marcouCoadjuvante && projetoFinal && projetoFinal !== projetoCanonico
+          ? '✅ Ficha salva na pasta de coadjuvantes!'
+          : '✅ Ficha salva!'));
+    if (voltarParaProjeto){
+      // Veio de dentro de um projeto (botão "✨ Criar nova ficha") — volta
+      // pro modal desse projeto já atualizado, em vez de deixar o admin
+      // "caído" na tela de fundo sem ver a ficha nova na lista.
+      openProjetoModal(voltarParaProjeto);
+    }
   });
 
   $('#cancelModalBtn').addEventListener('click', () => {
