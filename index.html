@@ -352,8 +352,8 @@
   .dub-handle:hover{ color:var(--blue-deep); background:rgba(37,99,235,.08); }
   .dub-handle:active{ cursor:grabbing; }
   .dub-select-coadj{
-    width:17px; height:17px; flex:0 0 auto; cursor:pointer;
-    accent-color:#7C3AED;
+    width:17px !important; height:17px !important; flex:0 0 auto; cursor:pointer;
+    accent-color:#7C3AED; padding:0 !important; border:none !important;
   }
   .dub-voice{ flex:1; min-width:0; }
   .dub-voice .vn{ font-weight:600; font-size:13.5px; line-height:1.2; }
@@ -2645,7 +2645,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     <!-- TELA 2: esqueci a senha -->
     <div id="authForgotView" style="display:none;">
-      <p style="font-size:13px; color:#64748B; margin:10px 0 14px;">Digite seu e-mail de login. Um admin vai ver sua solicitação e trocar sua senha.</p>
+      <p style="font-size:13px; color:#64748B; margin:10px 0 14px;">Digite seu e-mail de login. Você vai receber um link por e-mail pra criar uma senha nova, sem precisar de admin.</p>
       <input id="authForgotEmail" type="email" placeholder="Seu e-mail de login" autocomplete="username" style="width:100%; padding:11px 13px; border:1px solid #E2E8F0; border-radius:10px; font-size:14px; margin-bottom:14px; box-sizing:border-box;">
       <button id="authForgotSendBtn" style="width:100%; padding:12px; border:none; border-radius:12px; background:linear-gradient(135deg,#2563EB,#1D4ED8); color:#fff; font-weight:700; font-size:14px; cursor:pointer;">Solicitar troca de senha</button>
       <button id="authForgotBackBtn" style="width:100%; padding:10px; border:none; background:none; color:#64748B; font-weight:600; font-size:12.5px; cursor:pointer; margin-top:10px;">← Voltar ao login</button>
@@ -2899,6 +2899,54 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const sb = (window.supabase && SUPABASE_URL.indexOf('COLE_AQUI') === -1)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
+
+  // Quando a pessoa clica no link de recuperação de senha que chega por
+  // e-mail, o Supabase dispara esse evento assim que ela volta pro app.
+  // Mostramos uma telinha pra ela criar a senha nova, sem precisar de admin.
+  if (sb){
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') mostrarTelaNovaSenhaRecuperacao();
+    });
+  }
+
+  function mostrarTelaNovaSenhaRecuperacao(){
+    if (document.getElementById('recuperacaoNovaSenhaGate')) return; // já está mostrando
+    const ov = document.createElement('div');
+    ov.id = 'recuperacaoNovaSenhaGate';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:20000;background:linear-gradient(135deg,#1D4ED8 0%,#0F172A 100%);display:flex;align-items:center;justify-content:center;padding:24px;';
+    ov.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(0,0,0,0.3);">
+        <div style="text-align:center;font-size:32px;margin-bottom:6px;">🔑</div>
+        <h2 style="text-align:center;margin:0 0 6px;font-family:'Sora',sans-serif;">Crie sua nova senha</h2>
+        <p style="text-align:center;font-size:13px;color:#64748B;margin:0 0 20px;">Escolha uma senha nova pra sua conta.</p>
+        <input type="password" id="recNovaSenhaInput" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password"
+          style="width:100%;padding:11px 13px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;margin-bottom:10px;box-sizing:border-box;">
+        <input type="password" id="recConfirmaSenhaInput" placeholder="Confirme a nova senha" autocomplete="new-password"
+          style="width:100%;padding:11px 13px;border:1px solid #E2E8F0;border-radius:10px;font-size:14px;margin-bottom:14px;box-sizing:border-box;">
+        <button id="recSalvarBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Salvar nova senha</button>
+        <div id="recMsg" style="font-size:12.5px;margin-top:10px;min-height:16px;text-align:center;"></div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const setMsg = (msg, cor) => { const el = document.getElementById('recMsg'); if (el){ el.textContent = msg; el.style.color = cor||'#DC2626'; } };
+    document.getElementById('recSalvarBtn').addEventListener('click', async () => {
+      const nova = document.getElementById('recNovaSenhaInput').value || '';
+      const conf = document.getElementById('recConfirmaSenhaInput').value || '';
+      if (nova.length < 6){ setMsg('A senha precisa ter pelo menos 6 caracteres.'); return; }
+      if (nova !== conf){ setMsg('As senhas não coincidem.'); return; }
+      const btn = document.getElementById('recSalvarBtn');
+      btn.disabled = true; btn.textContent = 'Salvando…';
+      try {
+        const { error } = await sb.auth.updateUser({ password: nova });
+        if (error) throw error;
+        setMsg('✅ Senha atualizada! Redirecionando…', '#15803D');
+        setTimeout(() => { window.location.href = window.location.origin + window.location.pathname; }, 1200);
+      } catch(e){
+        setMsg('Erro: '+(e.message||''));
+        btn.disabled = false; btn.textContent = 'Salvar nova senha';
+      }
+    });
+  }
 
   const CATEGORIES = ['Documentários', 'Estudos e Aconselhamentos', 'Materiais Infantis', 'Filmes'];
   const NO_CAT = 'Sem categoria';
@@ -11363,7 +11411,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       <div class="painel-card" style="margin-top:20px;">
         <div class="painel-title">🔔 Solicitações de troca de senha (${pendentes.length})</div>
         <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">
-          "Definir" tenta trocar a senha direto (precisa da função de servidor publicada). Se ainda não estiver publicada, troque manualmente no painel do Supabase e clique em "Já resolvi".
+          Essas pessoas já devem ter recebido um e-mail automático com link pra criar a senha nova sozinhas — normalmente não precisa fazer nada. "Definir" só é útil se o e-mail não chegar e a função de servidor estiver publicada. Se não precisar mais, clique em "Já resolvi".
         </p>
         <div style="display:flex;flex-direction:column;gap:8px;">${linhas}</div>
       </div>`;
@@ -12016,9 +12064,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       sendBtn.disabled = true;
       sendBtn.textContent = 'Enviando…';
       try {
-        const { error } = await sb.from('password_reset_requests').insert({ email });
-        if (error) throw error;
-        setMsg('✅ Solicitação enviada! Um admin vai trocar sua senha em breve — combine com a equipe como vai receber a nova senha.', '#15803D');
+        // Dispara o e-mail de recuperação nativo do Supabase — a pessoa recebe
+        // um link seguro pra criar a senha nova sozinha, sem precisar de admin.
+        const redirectUrl = window.location.origin + window.location.pathname;
+        const { error: errEmail } = await sb.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl });
+        if (errEmail) console.warn('Erro ao enviar e-mail de recuperação:', errEmail);
+
+        // Também registra a solicitação (visível pro admin no sininho), só
+        // como registro/histórico — não é mais necessário pro admin agir.
+        try { await sb.from('password_reset_requests').insert({ email }); } catch(e){}
+
+        setMsg('✅ Se esse e-mail estiver cadastrado, um link pra criar uma senha nova foi enviado. Confira sua caixa de entrada (e o spam).', '#15803D');
         if (inp) inp.value = '';
       } catch(e){
         setMsg('Erro ao enviar: '+(e.message||''));
