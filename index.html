@@ -3333,7 +3333,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     if (person.entries.length){
       const rows = person.entries.map(e => ({ person_id: person.id, project: e.project, voice: e.voice, date: e.date || null }));
-      await sb.from('entries').insert(rows);
+      const { error: errEntries } = await sb.from('entries').insert(rows);
+      if (errEntries){
+        console.error('Erro ao criar entradas de', person.name, ':', errEntries);
+        showToast(`⚠️ "${person.name}" foi salvo(a), mas a entrada do projeto NÃO — erro: ${errEntries.message||'desconhecido'}`);
+      }
     }
     return person.id;
   }
@@ -5631,12 +5635,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             if (errNova || !novaPessoa){ console.error('Erro ao criar pessoa nova:', errNova); continue; }
             personIdReal = novaPessoa.id;
           }
-          await sb.from('entries').insert({
+          const { error: errSug } = await sb.from('entries').insert({
             person_id: personIdReal,
             project: projetoCanonico,
             voice: sug.voice || voz,
             date: data || null
           });
+          if (errSug){ console.error('Erro criando entrada da sugestão:', errSug); continue; }
           criadasSugestoes++;
         } catch(e){
           console.error('Erro criando sugestão:', e);
@@ -8694,6 +8699,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
         // 4. Cria as entradas das pessoas selecionadas
         let criadas = 0;
+        const falhas = [];
         for (const pessoa of state.pessoasMarcadas.values()){
           try {
             let personIdReal = pessoa.personId;
@@ -8701,17 +8707,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               const { data: nova, error: errN } = await sb.from('people')
                 .insert({ name: pessoa.personName, has_photo: false })
                 .select('id').single();
-              if (errN || !nova){ console.error(errN); continue; }
+              if (errN || !nova){ console.error(errN); falhas.push(pessoa.personName); continue; }
               personIdReal = nova.id;
             }
-            await sb.from('entries').insert({
+            const { error: errE } = await sb.from('entries').insert({
               person_id: personIdReal,
               project: pessoa._coadjuvante ? coadjProjectOf(state.nome) : state.nome,
               voice: pessoa.voice || '(voz não definida)',
               date: state.dataProjeto || null
             });
+            if (errE){
+              console.error('Erro ao criar entrada de', pessoa.personName, ':', errE);
+              falhas.push(pessoa.personName);
+              continue;
+            }
             criadas++;
-          } catch(e){ console.error('Erro entrada pessoa:', e); }
+          } catch(e){ console.error('Erro entrada pessoa:', e); falhas.push(pessoa.personName); }
         }
 
         // 5. Salva ninjas da equipe que participaram (conta no ranking)
@@ -8795,7 +8806,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         await loadProjectMeta();
         renderProjetos();
         if (currentView === 'home') renderHome();
-        showToast(`✅ Projeto "${state.nome}" criado com ${criadas} pessoa${criadas===1?'':'s'}!${state.capaFile && !capaOk ? ' (capa não salva)' : ''}`);
+        if (falhas.length > 0){
+          showToast(`⚠️ Projeto "${state.nome}" criado, mas ${falhas.length} pessoa${falhas.length===1?'':'s'} NÃO foi${falhas.length===1?'':'ram'} salva${falhas.length===1?'':'s'}: ${falhas.join(', ')}. Tente adicionar de novo pelo modal do projeto.`);
+        } else {
+          showToast(`✅ Projeto "${state.nome}" criado com ${criadas} pessoa${criadas===1?'':'s'}!${state.capaFile && !capaOk ? ' (capa não salva)' : ''}`);
+        }
       }catch(err){
         showToast('Erro ao criar: ' + (err.message||''));
         btn.disabled = false;
