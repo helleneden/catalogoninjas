@@ -9450,12 +9450,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             Projeto: <b style="color:var(--ink);">${escapeHtml(project)}</b>
           </p>
           <div class="field">
-            <label>Buscar ficha existente ou criar nova</label>
+            <label>Buscar ficha já existente</label>
             <div class="ac-wrap">
               <input type="text" id="addPessoaInput" placeholder="Digite o nome do personagem..." autocomplete="off">
               <div class="ac-dropdown" id="addPessoaDrop" style="max-height:340px;"></div>
             </div>
-            <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Escolha uma ficha já cadastrada (a voz vem dela) ou crie uma nova.</p>
+            <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Só fichas já cadastradas (a voz vem dela). Pra criar uma ficha nova, use o botão "✨ Criar nova ficha" no modal do projeto.</p>
           </div>
           <div class="field">
             <label>Data de uso (opcional)</label>
@@ -9621,7 +9621,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           if (local.pessoasParaAdicionar.has(p.id)) return false;
           return p.name.toLowerCase().includes(ql);
         }).slice(0, 8);
-        const nenhumaExata = !visiblePeople().some(p => p.name.trim().toLowerCase() === ql);
 
         let html = '';
         if (matches.length){
@@ -9641,12 +9640,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               </div>`;
           }).join('');
         }
-        if (q.length >= 2 && nenhumaExata){
-          html += `<div class="ac-item" data-nova-nome="${escapeHtml(q)}" style="color:var(--blue-deep);font-weight:600;">
-            ➕ Criar nova ficha: "${escapeHtml(q)}"
-          </div>`;
+        // Removido de propósito: opção de "criar nova ficha" aqui. Esta busca
+        // é só pra encontrar fichas JÁ EXISTENTES — quem quiser criar uma nova
+        // ficha usa o botão "✨ Criar nova ficha" ao lado, que é o lugar certo.
+        if (!html){
+          drop.innerHTML = `<div class="ac-item" style="color:var(--muted);cursor:default;">Nenhuma ficha encontrada com esse nome.</div>`;
+          drop.classList.add('open');
+          return;
         }
-        if (!html){ drop.classList.remove('open'); return; }
         drop.innerHTML = html;
         drop.classList.add('open');
         hydratePhotos();
@@ -9670,23 +9671,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             hasPhoto: addItem.dataset.addPhoto === '1',
             voice: addItem.dataset.addVoice || '',
             _nova: false
-          });
-          input.value = '';
-          drop.classList.remove('open');
-          render();
-          return;
-        }
-        // Nova
-        const novaItem = e.target.closest('[data-nova-nome]');
-        if (novaItem){
-          const nome = novaItem.dataset.novaNome;
-          const tempId = 'novo_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
-          local.pessoasParaAdicionar.set(tempId, {
-            personId: tempId,
-            personName: nome,
-            hasPhoto: false,
-            voice: '',
-            _nova: true
           });
           input.value = '';
           drop.classList.remove('open');
@@ -11466,9 +11450,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (data && data.ok) return { ok:true };
       return { ok:false, mensagem: (data && data.error) || 'A função retornou um erro inesperado.' };
     } catch(e){
+      console.error('Erro ao chamar admin-reset-password:', e);
+      // Mostra o erro de verdade em vez de sempre supor que não foi publicada —
+      // pode ser CORS, autenticação, nome da função errado, secrets faltando, etc.
+      const detalhe = (e && (e.message || e.error_description || e.error)) || String(e);
       return {
         ok:false,
-        mensagem: 'A função de servidor pra trocar senha ainda não foi publicada no Supabase. Troque manualmente em Authentication → Users no painel do Supabase, ou publique a Edge Function (arquivo edge-function-admin-reset-password.ts) e tente de novo.'
+        mensagem: `Erro ao chamar a função de servidor: ${detalhe}. Se ela já estiver publicada no Supabase, veja o console (F12) pra mais detalhes — pode ser um problema diferente de "não publicada" (ex: nome errado, CORS, segredo faltando).`
       };
     }
   }
