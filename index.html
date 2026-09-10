@@ -375,6 +375,14 @@
   }
   .dub-item:hover .dub-del{ opacity:1; }
   .dub-del:hover{ background:rgba(220,38,38,.1); color:#DC2626; }
+  .dub-copy{
+    background:none; border:none; cursor:pointer; font-size:15px; opacity:.5;
+    padding:6px 8px; border-radius:8px; flex:0 0 auto;
+    transition:opacity .15s, background .15s, color .15s;
+    color:var(--muted);
+  }
+  .dub-item:hover .dub-copy{ opacity:1; }
+  .dub-copy:hover{ background:rgba(37,99,235,.1); color:var(--blue-deep); }
 
   .empty-projeto{
     text-align:center; padding:32px 20px; background:var(--surface-soft);
@@ -2838,11 +2846,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
-      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
-        <input type="checkbox" id="novaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
-        ☾ Esta pessoa é coadjuvante neste projeto
-      </label>
-      <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha já entra direto na pasta "⟫ Coadjuvantes" do projeto, em vez da lista principal.</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -4888,33 +4891,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Popup rápido: pergunta se a pessoa que está prestes a ser cadastrada é
   // coadjuvante neste projeto. Retorna Promise<true|false|null> — null se
   // cancelou a criação da ficha inteira.
-  function perguntarCoadjuvante(){
-    return new Promise(resolve => {
-      const ov = document.createElement('div');
-      ov.className = 'modal-overlay confirm-overlay open';
-      ov.style.zIndex = '10002';
-      ov.innerHTML = `
-        <div class="modal confirm-modal" style="max-width:380px;">
-          <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
-          <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
-          <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 18px;">
-            Se for coadjuvante, a ficha já nasce direto na pasta "⟫ Coadjuvantes" deste projeto.
-          </p>
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" id="coadjSimBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
-            <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não, papel principal</button>
-            <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
-          </div>
-        </div>`;
-      document.body.appendChild(ov);
-      const cleanup = (resultado) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(), 200); resolve(resultado); };
-      ov.querySelector('#coadjSimBtn').addEventListener('click', () => cleanup(true));
-      ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup(false));
-      ov.querySelector('#coadjCancelBtn').addEventListener('click', () => cleanup(null));
-      fecharAoClicarFora(ov, () => cleanup(null));
-    });
-  }
-
   function confirmarDuplicataWizard(nomeDigitado, similares){
     return new Promise(resolve => {
       const ov = document.createElement('div');
@@ -5554,15 +5530,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
 
     // Se marcou "é coadjuvante" e tem um projeto de verdade (não o "sem
-    // projeto ainda"), a entrada já nasce na subpasta de coadjuvantes.
-    // Calculado ANTES da checagem de duplicata, pra o popup "Usar este"
-    // também respeitar a marcação (antes ele sempre usava o projeto normal,
-    // ignorando o checkbox de coadjuvante).
-    const marcouCoadjuvante = $('#novaFichaCoadjCheck')?.checked;
-    const projetoFinal = (marcouCoadjuvante && projetoCanonico && projetoCanonico !== SEM_PROJETO)
-      ? coadjProjectOf(projetoCanonico)
-      : projetoCanonico;
-
     // === DETECÇÃO DE FICHAS SIMILARES ===
     // Só roda quando tem projeto preenchido — o botão "Usar este" do popup
     // vincula a ficha existente a ESSE projeto, então sem projeto não faz
@@ -5582,7 +5549,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         });
 
         // Mostra popup — apresenta TODOS os similares (mesmo os que já estão no projeto)
-        const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoFinal, voz, data);
+        const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoCanonico, voz, data);
         if (escolha === 'adicionou_existente'){
           const voltarPara = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
           closeModal();
@@ -5595,7 +5562,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
 
-    const cleanEntries = projetoFinal ? [{ project: projetoFinal, voice: voz, date: data }] : [];
+    const cleanEntries = projetoCanonico ? [{ project: projetoCanonico, voice: voz, date: data }] : [];
 
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
@@ -5668,15 +5635,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!resultado.entriesOk){
       // A pessoa foi criada, mas a entrada do projeto NÃO — isso é o que
       // fazia parecer "nada aconteceu": a ficha existia, mas sem vínculo
-      // com o projeto (nem normal, nem coadjuvante), então nenhuma lista
-      // mostrava ela em lugar nenhum.
+      // com o projeto, então nenhuma lista mostrava ela em lugar nenhum.
       showToast(`⚠️ "${name}" foi criado(a), mas NÃO foi vinculado(a) ao projeto — erro: ${resultado.entriesErro}`);
     } else {
       showToast(criadasSugestoes > 0
         ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
-        : (marcouCoadjuvante && projetoFinal && projetoFinal !== projetoCanonico
-            ? '✅ Ficha salva na pasta de coadjuvantes!'
-            : '✅ Ficha salva!'));
+        : '✅ Ficha salva!');
     }
     if (voltarParaProjeto){
       // Veio de dentro de um projeto (botão "✨ Criar nova ficha") — volta
@@ -8209,10 +8173,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 <label for="wpNovaFichaVoz">Voz utilizada (opcional por agora)</label>
                 <input type="text" id="wpNovaFichaVoz" placeholder="Ex: Marcus Jr" autocomplete="off">
               </div>
-              <label style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
-                <input type="checkbox" id="wpNovaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
-                ☾ Esta pessoa é coadjuvante neste projeto
-              </label>
               <div style="display:flex;gap:8px;">
                 <button type="button" class="btn-ghost" id="wpCancelarNovaFicha" style="flex:1;justify-content:center;">Cancelar</button>
                 <button type="button" class="btn-primary" id="wpConfirmarNovaFicha" style="flex:1;justify-content:center;">Adicionar</button>
@@ -8378,7 +8338,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           const nome = (inpNome.value||'').trim();
           if (!nome){ showToast('Digite o nome do personagem.'); inpNome.focus(); return; }
           const voz = (inpVoz.value||'').trim();
-          const marcouCoadjuvante = $('#wpNovaFichaCoadjCheck')?.checked || false;
 
           // Checa nomes parecidos antes de criar (evita duplicata sem querer)
           const similares = detectarFichasSimilares(nome);
@@ -8392,12 +8351,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 personName: escolha.name,
                 hasPhoto: escolha.hasPhoto,
                 voice: (escolha.entries[0] && escolha.entries[0].voice) || '',
-                _nova: false,
-                _coadjuvante: marcouCoadjuvante
+                _nova: false
               });
               fecharBoxCriar();
               renderPessoasMarcadas();
-              showToast(`"${escolha.name}" adicionado(a)${marcouCoadjuvante?' como coadjuvante':''}.`);
+              showToast(`"${escolha.name}" adicionado(a).`);
               return;
             }
             // 'continuar' → segue criando nova, código abaixo
@@ -8409,12 +8367,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             personName: nome,
             hasPhoto: false,
             voice: voz,
-            _nova: true,
-            _coadjuvante: marcouCoadjuvante
+            _nova: true
           });
           fecharBoxCriar();
           renderPessoasMarcadas();
-          showToast(`"${nome}" será criado(a)${marcouCoadjuvante?' como coadjuvante':''} ao salvar o projeto.`);
+          showToast(`"${nome}" será criado(a) ao salvar o projeto.`);
         });
         // Enter no campo nome pula pro campo voz; Enter na voz confirma
         if (inpNome) inpNome.addEventListener('keydown', (e) => { if (e.key === 'Enter'){ e.preventDefault(); inpVoz.focus(); } });
@@ -8596,7 +8553,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 <div class="wp-marcada-item">
                   <div class="wp-marcada-ph photo-fallback" ${p.hasPhoto?`data-photo-for="${p.personId}" data-name="${escapeHtml(p.personName)}"`:''}>${iniciais}</div>
                   <div style="flex:1;min-width:0;">
-                    <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}${p._coadjuvante?' <span style="color:#7C3AED;font-size:11px;">☾ coadjuvante</span>':''}</div>
+                    <div style="font-weight:700;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.personName)}${p._nova?' <span style="color:var(--blue);font-size:11px;">✨ nova</span>':''}</div>
                     <div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🎤 ${escapeHtml(p.voice || '(voz não definida)')}</div>
                   </div>
                   <button type="button" class="wp-remover" data-remover="${p.personId}" title="Remover">✕</button>
@@ -8738,7 +8695,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             }
             const { error: errE } = await sb.from('entries').insert({
               person_id: personIdReal,
-              project: pessoa._coadjuvante ? coadjProjectOf(state.nome) : state.nome,
+              project: state.nome,
               voice: pessoa.voice || '(voz não definida)',
               date: state.dataProjeto || null
             });
@@ -10350,6 +10307,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
+                <button class="dub-copy" title="Copiar nome e voz" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">📋</button>
                 ${isAdmin?`<button class="dub-del admin-only" title="Remover" data-del-person="${pr.personId}" data-del-voice="${escapeHtml(pr.voice)}" data-del-proj="${escapeHtml(project)}">🗑️</button>`:''}
               </li>`;
             }).join('')}
@@ -10535,6 +10493,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
     });
 
+    // Botão de copiar nome + voz pra área de transferência
+    ov.querySelectorAll('[data-copy-nome]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const nome = btn.dataset.copyNome;
+      const voz = btn.dataset.copyVoz;
+      const texto = voz ? `${nome} — ${voz}` : nome;
+      try {
+        await navigator.clipboard.writeText(texto);
+        showToast(`📋 Copiado: ${texto}`);
+      } catch(err){
+        // Alguns navegadores/contextos bloqueiam a Clipboard API (ex: sem HTTPS) —
+        // avisa em vez de falhar calado
+        showToast('Não consegui copiar automaticamente. Selecione o texto manualmente.');
+      }
+    }));
+
     // clicar na voz abre o popup de "Alterar voz" (só admin pode editar de verdade,
     // mas deixamos visível pra todos verem a voz atual — o popup em si é protegido)
     ov.querySelectorAll('[data-edit-voz]').forEach(el => el.addEventListener('click', (e) => {
@@ -10637,12 +10611,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       // Botão "Criar nova ficha" — abre modal de nova ficha com projeto pré-preenchido
       const btnCriarNova = $('#btnCriarNovaFicha');
-      if (btnCriarNova) btnCriarNova.addEventListener('click', async ()=>{
-        // Pergunta logo de cara se é coadjuvante — bem mais visível que um
-        // checkbox escondido no meio do formulário.
-        const ehCoadjuvante = await perguntarCoadjuvante();
-        if (ehCoadjuvante === null) return; // cancelou tudo
-
+      if (btnCriarNova) btnCriarNova.addEventListener('click', ()=>{
         ov.classList.remove('open');
         // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
         // cadastrar, não precisa de sugestões de elenco — isso já existe
@@ -10656,9 +10625,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             projInp.value = project;
             projInp.dispatchEvent(new Event('input', {bubbles:true}));
           }
-          // Já marca o checkbox de coadjuvante de acordo com a resposta do popup
-          const coadjCheck = $('#novaFichaCoadjCheck');
-          if (coadjCheck) coadjCheck.checked = ehCoadjuvante;
           const nameInp = $('#nameInput');
           if (nameInp) nameInp.focus();
         }, 100);
