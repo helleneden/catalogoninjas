@@ -2851,12 +2851,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     <!-- SEÇÃO: Nome do projeto (opcional — pode cadastrar a ficha sem projeto ainda) -->
     <div class="field" data-only-new>
-      <label for="projMainInput">Projeto <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+      <label for="projMainInput"><span id="projMainLabelTxt">Projeto</span> <span id="projMainLabelOpc" style="color:var(--muted);font-weight:400;">(opcional)</span></label>
       <div class="ac-wrap">
         <input type="text" id="projMainInput" placeholder="Digite um projeto existente (ou deixe em branco)" autocomplete="off">
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
-      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
+      <p id="projMainHintTravado" style="display:none;font-size:11px;color:var(--blue-deep,#1E40AF);margin:6px 0 0;">🔒 Esta ficha será vinculada a este projeto automaticamente.</p>
+      <p id="projMainHint" style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -4034,22 +4035,49 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // de deixar o admin "perdido" vendo o fundo da tela (Home/Coleções/etc).
   let modalOrigemProjeto = null;
 
+  // Quando o modal é aberto com um projeto JÁ definido (botão "✨ Criar nova
+  // ficha" dentro de um projeto, ou "+ Adicionar coadjuvante"), o projeto fica
+  // guardado aqui. O campo "Projeto" vem preenchido e travado, e o Salvar usa
+  // este valor direto — sem depender de o campo ter sido preenchido a tempo,
+  // nem de o projeto aparecer no autocomplete (é o caso dos projetos de
+  // coadjuvantes, que são escondidos de todosOsProjetos() de propósito).
+  let projetoForcadoModal = null;
+
   async function openModal(personId, opts={}){
     editingId = personId || null;
     modalSemSugestoesColegas = !!opts.suprimirSugestoesColegas;
     modalOrigemProjeto = opts.origemProjeto || null;
+    projetoForcadoModal = opts.projetoForcado || null;
     const person = editingId ? people.find(p => p.id === editingId) : null;
     const isEditing = !!person;
 
-    $('#modalTitle').textContent = isEditing ? 'Editar ficha' : 'Nova ficha';
+    $('#modalTitle').textContent = isEditing ? 'Editar ficha' : (opts.titulo || 'Nova ficha');
     $('#nameInput').value = person ? person.name : '';
     pendingPhoto = undefined;
 
     // Reseta e prepara os campos únicos
     const primeira = person && person.entries[0] ? person.entries[0] : {voice:'', project:'', date:''};
     $('#voiceMainInput').value = isEditing ? '' : (primeira.voice || '');
-    $('#projMainInput').value = isEditing ? '' : (primeira.project || '');
+    $('#projMainInput').value = isEditing ? '' : (projetoForcadoModal || primeira.project || '');
     $('#dateMainInput').value = isEditing ? '' : (primeira.date || '');
+
+    // Projeto travado: evita apagar sem querer o projeto de onde o modal foi
+    // aberto — era isso que fazia a ficha nova nascer "solta", fora do projeto.
+    const projInpEl = $('#projMainInput');
+    if (projInpEl){
+      projInpEl.readOnly = !!projetoForcadoModal;
+      projInpEl.style.background = projetoForcadoModal ? 'var(--surface-soft)' : '';
+      projInpEl.style.cursor = projetoForcadoModal ? 'not-allowed' : '';
+    }
+    // Troca a ajuda embaixo do campo: com o projeto travado, a instrução
+    // "pode deixar em branco / crie o projeto em outro lugar" só confundia.
+    const hintNormal = $('#projMainHint');   if (hintNormal)  hintNormal.style.display  = projetoForcadoModal ? 'none' : '';
+    const hintTrava  = $('#projMainHintTravado'); if (hintTrava) hintTrava.style.display = projetoForcadoModal ? 'block' : 'none';
+    const lblOpc = $('#projMainLabelOpc');   if (lblOpc)      lblOpc.style.display      = projetoForcadoModal ? 'none' : '';
+    // Fecha os autocompletes de voz/projeto — eles podiam ficar abertos por
+    // cima dos campos ao reabrir o modal.
+    const projAcEl = $('#projMainAcDropdown'); if (projAcEl) projAcEl.classList.remove('open');
+    const vozAcEl  = $('#voiceMainAcDropdown'); if (vozAcEl)  vozAcEl.classList.remove('open');
     $('#voiceExistingBox').style.display = 'none';
     $('#voiceExistingBox').innerHTML = '';
     $('#sugestoesBloco').style.display = 'none';
@@ -4310,6 +4338,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     modalEntries = [];
     pendingPhoto = undefined;
     closeAcDropdown();
+    // Limpa o estado "de onde eu vim". Sem isso ele vazava pra próxima
+    // abertura do modal (quem precisa desses valores DEPOIS de fechar já os
+    // guarda numa variável local antes de chamar closeModal()).
+    modalOrigemProjeto = null;
+    modalSemSugestoesColegas = false;
+    projetoForcadoModal = null;
+    const projAcC = $('#projMainAcDropdown'); if (projAcC) projAcC.classList.remove('open');
+    const vozAcC  = $('#voiceMainAcDropdown'); if (vozAcC)  vozAcC.classList.remove('open');
+    const projInpC = $('#projMainInput');
+    if (projInpC){ projInpC.readOnly = false; projInpC.style.background = ''; projInpC.style.cursor = ''; }
   }
 
   // ---- Autocomplete de pessoa existente ----
@@ -5538,12 +5576,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // === MODO NOVA FICHA: cria a ficha, com projeto+voz opcionais (podem ser
     // preenchidos depois, quando essa pessoa entrar em algum projeto) ===
     const voz = $('#voiceMainInput').value.trim();
-    const projeto = $('#projMainInput').value.trim();
+    const projeto = projetoForcadoModal || $('#projMainInput').value.trim();
     const data = $('#dateMainInput').value.trim();
 
-    // Verifica se o projeto existe (só quando foi preenchido)
+    // Verifica se o projeto existe (só quando foi preenchido).
+    // Projeto travado (o modal foi aberto de dentro de um projeto, ou é um
+    // coadjuvante) pula a checagem: ele já existe por construção, e projeto de
+    // coadjuvante nem aparece em todosOsProjetos() de propósito — era por isso
+    // que "+ Adicionar coadjuvante" nunca conseguia salvar.
     let projetoCanonico = null;
-    if (projeto){
+    if (projetoForcadoModal){
+      projetoCanonico = projetoForcadoModal;
+    } else if (projeto){
       const todosProjs = todosOsProjetos();
       const projLower = projeto.toLowerCase();
       if (!todosProjs.some(p => p.toLowerCase() === projLower)){
@@ -5594,7 +5638,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
 
-    const cleanEntries = projetoCanonico ? [{ project: projetoCanonico, voice: voz, date: data }] : [];
+    // Voz em branco com projeto definido: grava "(voz não definida)" — o mesmo
+    // texto que o fluxo "🔍 Adicionar ficha existente" usa. Com string vazia a
+    // pessoa entrava no projeto mas aparecia como uma linha em branco na Ordem
+    // de dublagem, o que dava a impressão de que o botão não tinha funcionado.
+    const cleanEntries = projetoCanonico
+      ? [{ project: projetoCanonico, voice: voz || '(voz não definida)', date: data }]
+      : [];
 
     // Diagnóstico: se veio de dentro de um projeto (origemProjeto) mas por
     // algum motivo o campo de projeto ficou vazio, a ficha seria criada
@@ -5870,7 +5920,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const ok = await confirmarEExcluirFicha(person, { fecharModalDepois: true, btnParaDesabilitar: btn });
     if (ok) closeModal();
   });
-  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+  // Clicar no fundo fecha — mas com a proteção de mousedown/mouseup. Sem ela,
+  // selecionar texto num campo e escorregar o mouse pra fora do modal contava
+  // como clique no fundo e fechava o modal no meio do preenchimento. E se o
+  // modal veio de dentro de um projeto, volta pro modal desse projeto em vez
+  // de largar o admin na tela de fundo.
+  fecharAoClicarFora(modalOverlay, () => {
+    const voltarPara = modalOrigemProjeto;
+    closeModal();
+    if (voltarPara) openProjetoModal(voltarPara);
+  });
 
   $('#addBtn').addEventListener('click', () => openModal(null));
   $('#fabAddBtn').addEventListener('click', () => openModal(null));
@@ -6762,12 +6821,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // da borda (comum perto das bordas de campos de texto) contava como um
   // clique no fundo, fechando o modal sem querer no meio da seleção.
   function fecharAoClicarFora(overlay, aoFechar){
+    // Overlays reaproveitados (#colOverlay, #colOverlay2, #modalOverlay) passam
+    // por aqui a CADA abertura. Sem esta guarda, cada abertura pendurava mais um
+    // par de listeners no mesmo elemento e os antigos continuavam rodando com o
+    // callback velho — daí modal fechando "sozinho" e projeto errado reabrindo.
+    // Agora o listener é registrado uma única vez e só o callback mais recente
+    // vale.
+    overlay._aoFecharFora = aoFechar;
+    if (overlay._fecharForaWired) return;
+    overlay._fecharForaWired = true;
     let mousedownNoFundo = false;
     overlay.addEventListener('mousedown', (e) => {
       mousedownNoFundo = (e.target === overlay);
     });
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay && mousedownNoFundo) aoFechar();
+      const cb = overlay._aoFecharFora;
+      if (e.target === overlay && mousedownNoFundo && typeof cb === 'function') cb();
       mousedownNoFundo = false;
     });
   }
@@ -9364,15 +9433,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   // abre o modal de ficha já preparado para criar um coadjuvante do projeto
   function openModalForCoadjuvante(baseProj){
-    editingId = null;
-    $('#modalTitle').textContent = 'Novo coadjuvante';
-    $('#nameInput').value = '';
-    pendingPhoto = undefined;
-    modalEntries = [{ project: baseProj + COADJ_SUFFIX, voice:'' }];
-    renderModalEntries();
-    modalOverlay.classList.add('open');
-    setPhotoPreview(null);
-    $('#nameInput').focus();
+    // Passa pelo openModal() de propósito: ele é quem reseta TODOS os campos
+    // (voz, data, foto, sugestões, modo editar/novo) e mostra os campos
+    // [data-only-new]. A versão antiga mexia só no nome e no modalEntries — que
+    // o Salvar nem usa mais — então o modal podia abrir com os campos da ficha
+    // anterior ainda escondidos e o coadjuvante era criado sem projeto nenhum.
+    openModal(null, {
+      titulo: 'Novo coadjuvante',
+      suprimirSugestoesColegas: true,
+      origemProjeto: baseProj,
+      projetoForcado: baseProj + COADJ_SUFFIX
+    });
   }
 
   function orderedVoicesForProject(project){
@@ -10695,17 +10766,16 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         // cadastrar, não precisa de sugestões de elenco — isso já existe
         // diretamente no modal do projeto (bloco de sugestões próprio).
         // origemProjeto: se o admin cancelar, volta pro modal deste projeto.
-        openModal(null, { suprimirSugestoesColegas: true, origemProjeto: project });
-        // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
-        setTimeout(()=>{
-          const projInp = $('#projMainInput');
-          if (projInp){
-            projInp.value = project;
-            projInp.dispatchEvent(new Event('input', {bubbles:true}));
-          }
-          const nameInp = $('#nameInput');
-          if (nameInp) nameInp.focus();
-        }, 100);
+        // O projeto vai travado (projetoForcado): o campo já abre preenchido e o
+        // Salvar usa esse valor direto. Antes o preenchimento era feito num
+        // setTimeout de 100ms que disparava o autocomplete por cima do campo e,
+        // se o modal ainda não estivesse montado, nem preenchia — e a ficha
+        // nascia sem vínculo nenhum com o projeto.
+        openModal(null, {
+          suprimirSugestoesColegas: true,
+          origemProjeto: project,
+          projetoForcado: project
+        });
       });
 
       // === COLEÇÃO E FRANQUIA ===
