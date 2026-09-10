@@ -4423,8 +4423,24 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   acDropdown.addEventListener('click', (e) => {
     const item = e.target.closest('[data-ac-id]');
     if (!item) return;
-    // Selecionar pessoa existente → abre a ficha dela para adicionar entrada
-    openModal(item.dataset.acId);
+    // AQUI ESTAVA O BUG PRINCIPAL: isto chamava openModal(id), que joga o modal
+    // em "Editar ficha". E o modo Editar:
+    //   1. esconde os campos Voz / Projeto / Data (são [data-only-new]);
+    //   2. no Salvar, grava SÓ nome e foto — a voz digitada era descartada;
+    //   3. zera o "de onde eu vim", então o modal fechava pro fundo da tela.
+    // Resultado: escolher a sugestão do nome fazia perder a voz criada e o
+    // vínculo com o projeto.
+    // Agora a sugestão só ADOTA O NOME da ficha existente e continua no fluxo
+    // de nova entrada. No Salvar, o popup "Já existe ficha parecida" aparece e
+    // o botão "Usar este" vincula a voz digitada à ficha existente — que é
+    // exatamente o que se espera ao escolher a sugestão.
+    const existente = (people || []).find(x => x.id === item.dataset.acId);
+    if (existente) nameInput.value = existente.name;
+    closeAcDropdown();
+    carregarFotoPersonagemExistente();
+    renderSugestoesColegas();
+    const vozEl = $('#voiceMainInput');
+    if (vozEl && vozEl.offsetParent !== null && !vozEl.value.trim()) vozEl.focus();
   });
 
   // Botão "Buscar pessoa existente" → abre mini modal de busca
@@ -5089,7 +5105,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           const { error } = await sb.from('entries').insert({
             person_id: pid,
             project,
-            voice: voz,
+            // Mesma regra do resto do app: voz em branco vira "(voz não
+            // definida)". Com string vazia a pessoa entrava no projeto como
+            // uma linha em branco na Ordem de dublagem.
+            voice: voz || '(voz não definida)',
             date: data || null
           });
           if (error) throw error;
@@ -5544,6 +5563,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     // === MODO EDITAR: só salva nome e foto, não mexe em projetos ===
     if (isEditing){
+      // Guarda antes: closeModal() limpa o "de onde eu vim". Sem isto o modo
+      // Editar sempre fechava pro fundo da tela, mesmo tendo sido aberto de
+      // dentro de um projeto.
+      const voltarParaProjEdit = modalOrigemProjeto;
       $('#saveModalBtn').disabled = true;
       $('#saveModalBtn').textContent = 'Salvando…';
       try {
@@ -5564,6 +5587,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         await loadPeople();
         invalidarCacheSimilares();
         showToast('✅ Ficha atualizada.');
+        if (voltarParaProjEdit){
+          try { await openProjetoModal(voltarParaProjEdit); }
+          catch(errReab){ console.error('Erro ao reabrir o projeto:', errReab); }
+        }
       } catch(e){
         showToast('Erro ao salvar: '+(e.message||''));
       } finally {
