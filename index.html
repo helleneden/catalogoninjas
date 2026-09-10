@@ -3247,6 +3247,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     setTimeout(() => toastEl.classList.remove('show'), 2400);
   }
 
+  // Popup de erro que FICA na tela até a pessoa fechar — pra casos em que o
+  // toast some rápido demais pra ler ou printar (ex: erro de gravação).
+  function mostrarErroPersistente(titulo, mensagem){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '30000';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:440px;">
+        <div style="text-align:center;font-size:32px;margin-bottom:6px;">⚠️</div>
+        <h2 style="text-align:center;margin:0 0 10px;color:#DC2626;">${escapeHtml(titulo)}</h2>
+        <div style="font-size:13px;color:var(--ink);white-space:pre-wrap;line-height:1.5;background:var(--surface-soft);padding:14px;border-radius:10px;margin-bottom:16px;">${escapeHtml(mensagem)}</div>
+        <button type="button" id="erroPersistenteOk" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--blue-deep);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">Entendi</button>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#erroPersistenteOk').addEventListener('click', () => ov.remove());
+  }
+
   function visiblePeople(){
     return people.filter(p => !HIDE_PATTERN.test(p.name.trim()));
   }
@@ -5576,6 +5593,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     const cleanEntries = projetoCanonico ? [{ project: projetoCanonico, voice: voz, date: data }] : [];
 
+    // Diagnóstico: se veio de dentro de um projeto (origemProjeto) mas por
+    // algum motivo o campo de projeto ficou vazio, a ficha seria criada
+    // "solta" e não apareceria no projeto. Avisa em vez de falhar calado.
+    if (modalOrigemProjeto && !projetoCanonico){
+      showToast('⚠️ O campo "Projeto" ficou vazio — a ficha não será vinculada a "'+modalOrigemProjeto+'". Preencha o projeto e a voz.');
+    }
+
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
 
@@ -5645,10 +5669,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     await loadProjectMeta();
     invalidarCacheSimilares();
     if (!resultado.entriesOk){
-      // A pessoa foi criada, mas a entrada do projeto NÃO — isso é o que
-      // fazia parecer "nada aconteceu": a ficha existia, mas sem vínculo
-      // com o projeto, então nenhuma lista mostrava ela em lugar nenhum.
-      showToast(`⚠️ "${name}" foi criado(a), mas NÃO foi vinculado(a) ao projeto — erro: ${resultado.entriesErro}`);
+      // A pessoa foi criada, mas a entrada do projeto NÃO. Mostra um popup
+      // que FICA na tela até fechar (o toast some rápido demais pra ler/printar).
+      mostrarErroPersistente(
+        'A ficha não foi vinculada ao projeto',
+        `A pessoa "${name}" foi criada, mas a entrada no projeto "${projetoCanonico||'(nenhum)'}" foi rejeitada pelo banco de dados.\n\nMotivo técnico: ${resultado.entriesErro}`
+      );
     } else {
       showToast(criadasSugestoes > 0
         ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
