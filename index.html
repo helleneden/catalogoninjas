@@ -5670,7 +5670,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       // Veio de dentro de um projeto (botão "✨ Criar nova ficha") — volta
       // pro modal desse projeto já atualizado, em vez de deixar o admin
       // "caído" na tela de fundo sem ver a ficha nova na lista.
-      openProjetoModal(voltarParaProjeto);
+      // Usa await + try/catch: se der erro aqui, sem isso o app falhava
+      // caladinho e só parecia "não fez nada".
+      try {
+        await openProjetoModal(voltarParaProjeto);
+      } catch(errReopen){
+        console.error('Erro ao reabrir o projeto após salvar ficha:', errReopen);
+        showToast('⚠️ Ficha salva, mas não consegui reabrir o projeto automaticamente: '+(errReopen.message||'erro desconhecido'));
+      }
     }
   });
 
