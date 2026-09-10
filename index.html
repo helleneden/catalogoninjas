@@ -4426,10 +4426,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (q.length < 2){ voiceMainAc.classList.remove('open'); return; }
     voiceAcTimer = setTimeout(() => {
       const vozes = todasAsVozes();
-      const matches = vozes.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+      const matches = vozes.filter(v => v.toLowerCase().includes(q))
+        .map(v => ({ v, usos: mainPeople().filter(p => p.entries.some(e => (e.voice||'').trim().toLowerCase() === v.toLowerCase())).length }))
+        .sort((a,b) => b.usos - a.usos) // a mais usada aparece primeiro — ajuda a achar a "certa" entre nomes parecidos
+        .slice(0, 8);
       if (!matches.length){ voiceMainAc.classList.remove('open'); return; }
-      voiceMainAc.innerHTML = matches.map(v => {
-        const usos = mainPeople().filter(p => p.entries.some(e => (e.voice||'').trim().toLowerCase() === v.toLowerCase())).length;
+      voiceMainAc.innerHTML = matches.map(({v, usos}) => {
         return `<div class="ac-item" data-ac-voice="${escapeHtml(v)}">
           <div>
             <div class="ac-name">${escapeHtml(v)}</div>
@@ -5328,7 +5330,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const s = new Set(Object.keys(projectMeta || {}));
     (people||[]).forEach(p => p.entries.forEach(e => {
       const pr = (e.project||'').trim();
-      if (pr && pr !== SEM_PROJETO) s.add(pr);
+      if (pr && pr !== SEM_PROJETO && !isCoadjProject(pr)) s.add(pr);
     }));
     return [...s];
   }
@@ -6967,7 +6969,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if ($('#colCatSel')) $('#colCatSel').value = fr?fr.category_id:(presetCatId||'');
 
     // lista de projetos (todos) com checkbox; marca os já vinculados a esta franquia
-    const allProjects = [...new Set(visiblePeople().flatMap(p=>p.entries.map(e=>e.project)))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    const allProjects = [...new Set(visiblePeople().flatMap(p=>p.entries.map(e=>e.project)))]
+      .filter(pr => pr && pr !== SEM_PROJETO && !isCoadjProject(pr))
+      .sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const picker = $('#colProjPicker');
     picker.innerHTML = allProjects.map(pr=>{
       const assignedTo = projectFranchise[pr];
@@ -7880,7 +7884,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   function allProjectsList(){
     // BUG FIX: inclui projetos que existem em project_meta mesmo sem fichas cadastradas.
     // Antes: só listava projetos com fichas, então projetos recém-criados sumiam.
-    const doCatalogo = new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)).filter(p=>p!==SEM_PROJETO));
+    const doCatalogo = new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)).filter(p=>p!==SEM_PROJETO && !isCoadjProject(p)));
     const doMeta = new Set(Object.keys(projectMeta || {}));
     return [...new Set([...doCatalogo, ...doMeta])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
