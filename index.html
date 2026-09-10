@@ -10634,12 +10634,16 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }));
 
     if (isAdmin){
-      // upload de capa
+      // upload de capa (blindado: se qualquer elemento não existir, não
+      // quebra o resto do código que vem depois — isso travava os botões
+      // de adicionar ficha quando algo dava errado aqui)
       let pendingProjCover;
       const drop=$('#projCoverDrop'), file=$('#projCoverFile'), img=$('#projCoverImg'), hint=$('#projCoverHint');
-      const pick=()=>file.click();
-      $('#projCoverPick').addEventListener('click', pick); drop.addEventListener('click', pick);
-      file.addEventListener('change', async (e)=>{
+      const projCoverPickBtn = $('#projCoverPick');
+      const pick=()=>{ if(file) file.click(); };
+      if (projCoverPickBtn) projCoverPickBtn.addEventListener('click', pick);
+      if (drop) drop.addEventListener('click', pick);
+      if (file) file.addEventListener('change', async (e)=>{
         const f=e.target.files&&e.target.files[0]; if(!f)return;
         try{ const d=await shrinkImage(f,600,0.82); pendingProjCover=d; img.src=d; img.style.display='block'; img.style.width='100%'; img.style.height='100%'; img.style.objectFit='cover'; hint.style.display='none';
           // salva capa na hora
