@@ -377,13 +377,12 @@
   .dub-del:hover{ background:rgba(220,38,38,.1); color:#DC2626; }
   .dub-copy-wrap{ position:relative; flex:0 0 auto; }
   .dub-copy{
-    background:none; border:none; cursor:pointer; font-size:15px; opacity:.5;
+    background:none; border:none; cursor:pointer; font-size:15px; opacity:.7;
     padding:6px 8px; border-radius:8px;
-    transition:opacity .15s, background .15s, color .15s;
+    transition:background .15s, color .15s;
     color:var(--muted);
   }
-  .dub-item:hover .dub-copy{ opacity:1; }
-  .dub-copy:hover{ background:rgba(37,99,235,.1); color:var(--blue-deep); }
+  .dub-copy:hover{ opacity:1; background:rgba(37,99,235,.1); color:var(--blue-deep); }
   .dub-copy-menu{
     display:none; position:absolute; top:100%; right:0; margin-top:4px;
     background:var(--surface); border:1px solid var(--line); border-radius:10px;
