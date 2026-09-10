@@ -3325,21 +3325,24 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const { data, error } = await sb.from('people')
         .insert({ name: person.name, has_photo: person.hasPhoto })
         .select('id').single();
-      if (error || !data){ showToast('Erro ao salvar.'); return null; }
+      if (error || !data){ showToast('Erro ao salvar.'); return { id: null, entriesOk: false }; }
       person.id = data.id;
     } else {
       await sb.from('people').update({ name: person.name, has_photo: person.hasPhoto }).eq('id', person.id);
       await sb.from('entries').delete().eq('person_id', person.id);
     }
+    let entriesOk = true;
+    let entriesErro = '';
     if (person.entries.length){
       const rows = person.entries.map(e => ({ person_id: person.id, project: e.project, voice: e.voice, date: e.date || null }));
       const { error: errEntries } = await sb.from('entries').insert(rows);
       if (errEntries){
         console.error('Erro ao criar entradas de', person.name, ':', errEntries);
-        showToast(`⚠️ "${person.name}" foi salvo(a), mas a entrada do projeto NÃO — erro: ${errEntries.message||'desconhecido'}`);
+        entriesOk = false;
+        entriesErro = errEntries.message || 'erro desconhecido';
       }
     }
-    return person.id;
+    return { id: person.id, entriesOk, entriesErro };
   }
 
   async function deletePersonDb(personId){
@@ -5604,7 +5607,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       entries: cleanEntries,
       _existsInDb: false
     };
-    const savedId = await savePerson(person);
+    const resultado = await savePerson(person);
+    const savedId = resultado.id;
     if (!savedId){
       $('#saveModalBtn').disabled = false;
       $('#saveModalBtn').textContent = 'Salvar ficha';
@@ -5661,11 +5665,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     await loadPeople();
     await loadProjectMeta();
     invalidarCacheSimilares();
-    showToast(criadasSugestoes > 0
-      ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
-      : (marcouCoadjuvante && projetoFinal && projetoFinal !== projetoCanonico
-          ? '✅ Ficha salva na pasta de coadjuvantes!'
-          : '✅ Ficha salva!'));
+    if (!resultado.entriesOk){
+      // A pessoa foi criada, mas a entrada do projeto NÃO — isso é o que
+      // fazia parecer "nada aconteceu": a ficha existia, mas sem vínculo
+      // com o projeto (nem normal, nem coadjuvante), então nenhuma lista
+      // mostrava ela em lugar nenhum.
+      showToast(`⚠️ "${name}" foi criado(a), mas NÃO foi vinculado(a) ao projeto — erro: ${resultado.entriesErro}`);
+    } else {
+      showToast(criadasSugestoes > 0
+        ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
+        : (marcouCoadjuvante && projetoFinal && projetoFinal !== projetoCanonico
+            ? '✅ Ficha salva na pasta de coadjuvantes!'
+            : '✅ Ficha salva!'));
+    }
     if (voltarParaProjeto){
       // Veio de dentro de um projeto (botão "✨ Criar nova ficha") — volta
       // pro modal desse projeto já atualizado, em vez de deixar o admin
