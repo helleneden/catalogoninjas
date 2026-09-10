@@ -3357,7 +3357,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const { data, error } = await sb.from('people')
         .insert({ name: person.name, has_photo: person.hasPhoto })
         .select('id').single();
-      if (error || !data){ showToast('Erro ao salvar.'); return { id: null, entriesOk: false }; }
+      if (error || !data){
+        console.error('Erro ao criar pessoa:', error);
+        return { id: null, entriesOk: false, pessoaErro: (error && error.message) || 'o banco não retornou o ID da nova pessoa' };
+      }
       person.id = data.id;
     } else {
       await sb.from('people').update({ name: person.name, has_photo: person.hasPhoto }).eq('id', person.id);
@@ -5615,6 +5618,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!savedId){
       $('#saveModalBtn').disabled = false;
       $('#saveModalBtn').textContent = 'Salvar ficha';
+      // A pessoa NÃO foi criada no banco — isso é o que fazia a ficha "sumir
+      // de tudo" (nem em Todas as fichas ela aparecia). Mostra o motivo real
+      // num popup que fica na tela até fechar.
+      mostrarErroPersistente(
+        'A ficha NÃO foi criada',
+        `O banco de dados recusou criar a pessoa "${name}".\n\nMotivo técnico: ${resultado.pessoaErro||'desconhecido'}\n\nProvável causa: falta permissão de inserção na tabela "people". Rode o SQL-corrigir-permissoes-entries.sql no Supabase.`
+      );
       return;
     }
 
