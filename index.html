@@ -375,14 +375,28 @@
   }
   .dub-item:hover .dub-del{ opacity:1; }
   .dub-del:hover{ background:rgba(220,38,38,.1); color:#DC2626; }
+  .dub-copy-wrap{ position:relative; flex:0 0 auto; }
   .dub-copy{
     background:none; border:none; cursor:pointer; font-size:15px; opacity:.5;
-    padding:6px 8px; border-radius:8px; flex:0 0 auto;
+    padding:6px 8px; border-radius:8px;
     transition:opacity .15s, background .15s, color .15s;
     color:var(--muted);
   }
   .dub-item:hover .dub-copy{ opacity:1; }
   .dub-copy:hover{ background:rgba(37,99,235,.1); color:var(--blue-deep); }
+  .dub-copy-menu{
+    display:none; position:absolute; top:100%; right:0; margin-top:4px;
+    background:var(--surface); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 8px 20px rgba(15,23,42,.15); z-index:20; min-width:210px;
+    padding:5px; flex-direction:column; gap:2px;
+  }
+  .dub-copy-menu.open{ display:flex; }
+  .dub-copy-menu button{
+    background:none; border:none; text-align:left; padding:8px 10px;
+    border-radius:7px; font-size:12.5px; color:var(--ink); cursor:pointer;
+    font-family:inherit;
+  }
+  .dub-copy-menu button:hover{ background:rgba(37,99,235,.08); color:var(--blue-deep); }
 
   .empty-projeto{
     text-align:center; padding:32px 20px; background:var(--surface-soft);
@@ -3082,6 +3096,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const SEM_PROJETO = '(Sem projeto ainda)';
 
   let arrastandoDub = null;
+  let _fecharMenusCopiarListener = null; // evita acumular listeners a cada reabertura do modal
   // ==========================================================
   // Sistema de @menção dentro de um editor (contenteditable) — digitar
   // "@" seguido de letras abre uma listinha de ninjas da equipe; escolher
@@ -10307,7 +10322,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
-                <button class="dub-copy" title="Copiar nome e voz" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">📋</button>
+                <div class="dub-copy-wrap">
+                  <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
+                  <div class="dub-copy-menu" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">
+                    <button data-copy-acao="nome">Copiar nome do personagem</button>
+                    <button data-copy-acao="voz">Copiar nome da voz</button>
+                    <button data-copy-acao="ambos">Copiar os dois (nome — voz)</button>
+                  </div>
+                </div>
                 ${isAdmin?`<button class="dub-del admin-only" title="Remover" data-del-person="${pr.personId}" data-del-voice="${escapeHtml(pr.voice)}" data-del-proj="${escapeHtml(project)}">🗑️</button>`:''}
               </li>`;
             }).join('')}
@@ -10493,21 +10515,40 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
     });
 
-    // Botão de copiar nome + voz pra área de transferência
-    ov.querySelectorAll('[data-copy-nome]').forEach(btn => btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const nome = btn.dataset.copyNome;
-      const voz = btn.dataset.copyVoz;
-      const texto = voz ? `${nome} — ${voz}` : nome;
+    // Botão de copiar nome / voz / os dois pra área de transferência
+    async function copiarTexto(texto){
       try {
         await navigator.clipboard.writeText(texto);
         showToast(`📋 Copiado: ${texto}`);
       } catch(err){
-        // Alguns navegadores/contextos bloqueiam a Clipboard API (ex: sem HTTPS) —
-        // avisa em vez de falhar calado
         showToast('Não consegui copiar automaticamente. Selecione o texto manualmente.');
       }
+    }
+    // Fecha qualquer menu de copiar aberto
+    function fecharMenusCopiar(){
+      ov.querySelectorAll('.dub-copy-menu.open').forEach(m => m.classList.remove('open'));
+    }
+    ov.querySelectorAll('[data-copy-toggle]').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = btn.nextElementSibling;
+      const jaAberto = menu.classList.contains('open');
+      fecharMenusCopiar();
+      if (!jaAberto) menu.classList.add('open');
     }));
+    ov.querySelectorAll('.dub-copy-menu [data-copy-acao]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const menu = btn.closest('.dub-copy-menu');
+      const nome = menu.dataset.copyNome;
+      const voz = menu.dataset.copyVoz;
+      const acao = btn.dataset.copyAcao;
+      fecharMenusCopiar();
+      if (acao === 'nome') await copiarTexto(nome);
+      else if (acao === 'voz') await copiarTexto(voz || '(voz não definida)');
+      else await copiarTexto(voz ? `${nome} — ${voz}` : nome);
+    }));
+    if (_fecharMenusCopiarListener) document.removeEventListener('click', _fecharMenusCopiarListener);
+    _fecharMenusCopiarListener = fecharMenusCopiar;
+    document.addEventListener('click', _fecharMenusCopiarListener);
 
     // clicar na voz abre o popup de "Alterar voz" (só admin pode editar de verdade,
     // mas deixamos visível pra todos verem a voz atual — o popup em si é protegido)
