@@ -11792,6 +11792,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div class="field" style="margin:0;">
             <label>Episódio</label>
             <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:11.5px;color:var(--muted);cursor:pointer;font-weight:600;">
+              <input type="checkbox" id="prodFullVideoCheck" style="accent-color:#7C3AED;">
+              🎬 Vídeo completo (filme, sem episódio)
+            </label>
           </div>
           <div class="field" style="margin:0;">
             <label>Parte</label>
@@ -11978,7 +11982,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         }).join('');
         return `
           <div class="prod-ep-block">
-            <div class="prod-ep-title">📺 Episódio ${escapeHtml(ep)}</div>
+            <div class="prod-ep-title">${ep==='Filme' ? '🎬 Vídeo completo (filme)' : (ep==='—' ? '📌 Sem episódio' : '📺 Episódio '+escapeHtml(ep))}</div>
             ${missoes}
           </div>`;
       }).join('');
@@ -12014,7 +12018,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : 'sem prazo';
         const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
         const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
-        const titulo = [nomeProjetoExibicao(t.project), t.episode?`Ep ${t.episode}`:'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
+        const titulo = [nomeProjetoExibicao(t.project), t.episode ? (t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
         return `
           <div class="kb-card ${t.done?'feita':''} ${atrasada?'atrasada':''}">
             <div class="kb-card-title">${escapeHtml(titulo)}</div>
@@ -12065,11 +12069,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
     });
 
+    // Vídeo completo desabilita o campo de episódio
+    const fullCheck = $('#prodFullVideoCheck');
+    const epInput = $('#prodEpisodioInput');
+    if (fullCheck && epInput) fullCheck.addEventListener('change', () => {
+      epInput.disabled = fullCheck.checked;
+      epInput.style.opacity = fullCheck.checked ? '.4' : '1';
+      if (fullCheck.checked) epInput.value = '';
+    });
+
     const btnCriar = $('#prodCriarBtn');
     if (btnCriar) btnCriar.addEventListener('click', async () => {
       const userId = $('#prodMembroSel')?.value;
       const projeto = ($('#prodProjetoInput')?.value||'').trim();
-      const episodio = ($('#prodEpisodioInput')?.value||'').trim();
+      const fullVideo = $('#prodFullVideoCheck')?.checked;
+      // Se for "vídeo completo", usa "Filme" como identificador em vez do nº do episódio
+      const episodio = fullVideo ? 'Filme' : ($('#prodEpisodioInput')?.value||'').trim();
       const parte = ($('#prodParteInput')?.value||'').trim();
       const etapas = [...document.querySelectorAll('.prod-stage-check:checked')].map(c => c.value);
       const prazo = $('#prodPrazoInput')?.value || null;
@@ -12087,7 +12102,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           const taskId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
           const partesTxt = [
             nomeProjetoExibicao(projeto),
-            episodio ? `Ep ${episodio}` : '',
+            episodio ? (episodio==='Filme' ? '🎬 Filme' : `Ep ${episodio}`) : '',
             parte ? `Parte ${parte}` : '',
             stage
           ].filter(Boolean).join(' · ');
