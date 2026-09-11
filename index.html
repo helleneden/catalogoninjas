@@ -4260,13 +4260,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.innerHTML = `
       <div class="modal confirm-modal" style="max-width:480px;">
         <div class="confirm-icon" style="background:linear-gradient(135deg,#DBEAFE,#BFDBFE);">✎</div>
-        <h2 style="text-align:center; margin:8px 0 4px;">Alterar voz</h2>
+        <h2 style="text-align:center; margin:8px 0 4px;">Editar</h2>
         <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
-          Personagem: <b style="color:var(--ink);">${escapeHtml(person.name)}</b><br>
-          Projeto: <b style="color:var(--ink);">${escapeHtml(projeto)}</b>
+          Projeto: <b style="color:var(--ink);">${escapeHtml(nomeProjetoExibicao(projeto))}</b>
         </p>
         <div class="field">
-          <label for="altVozInput">Nova voz</label>
+          <label for="altNomeInput">Nome do personagem</label>
+          <input type="text" id="altNomeInput" value="${escapeHtml(person.name)}" placeholder="Nome do personagem" autocomplete="off"
+                 style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
+          <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Muda o nome desta pessoa em todo o catálogo.</p>
+        </div>
+        <div class="field">
+          <label for="altVozInput">Voz utilizada</label>
           <div class="ac-wrap">
             <input type="text" id="altVozInput" value="${escapeHtml(vozAtual)}" placeholder="Ex: Marcus Jr" autocomplete="off"
                    style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
@@ -4319,13 +4324,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     fecharAoClicarFora(ov, () => { cleanup(); });
 
     ov.querySelector('#altConfirm').addEventListener('click', async () => {
+      const nomeInput = ov.querySelector('#altNomeInput');
+      const novoNome = (nomeInput?.value || '').trim();
       const novaVoz = vozInput.value.trim();
       const novaData = dataInput.value.trim();
+      if (!novoNome){ showToast('Digite o nome do personagem.'); nomeInput.focus(); return; }
       if (!novaVoz){ showToast('Digite a voz.'); vozInput.focus(); return; }
       const btn = ov.querySelector('#altConfirm');
       btn.disabled = true;
       btn.textContent = 'Salvando…';
       try {
+        // Se o nome mudou, atualiza a pessoa (vale pra todo o catálogo)
+        if (novoNome !== person.name){
+          const { error: errNome } = await sb.from('people').update({ name: novoNome }).eq('id', person.id);
+          if (errNome) throw errNome;
+        }
+
         // Se a entrada tem id (do banco), atualiza por id. Se não, atualiza por combinação person+project+voice
         const entry = person.entries.find((e, i) => (e.id && String(e.id) === entryIdxOrId) || (!e.id && String(i) === entryIdxOrId));
         if (!entry) throw new Error('Entrada não encontrada.');
@@ -4357,7 +4371,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             renderProjetosDaFicha(personAtualizado);
           }
         }
-        showToast(`✅ Voz alterada para "${novaVoz}".`);
+        showToast(novoNome !== person.name ? `✅ Ficha atualizada.` : `✅ Voz alterada para "${novaVoz}".`);
       } catch(err){
         console.error(err);
         showToast('Erro ao alterar: '+(err.message||''));
