@@ -11830,10 +11830,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <label>Etapas da missão (marque uma ou várias)</label>
           <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
             ${PRODUCAO_STAGES.map(s => { const si = stageInfo(s); return `
-              <label class="stage-chip" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
-                <input type="checkbox" class="prod-stage-check" value="${escapeHtml(s)}">
+              <div class="stage-chip" data-stage="${escapeHtml(s)}" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
                 <span style="font-size:15px;">${si.ic}</span> ${escapeHtml(s)}
-              </label>`; }).join('')}
+              </div>`; }).join('')}
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
@@ -12071,13 +12070,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       else showToast('Erro ao salvar meta.');
     });
 
-    // Chips de etapa (visual marcado/desmarcado)
+    // Chips de etapa (clique alterna o estado "marcado")
     document.querySelectorAll('.stage-chip').forEach(chip => {
-      const inp = chip.querySelector('input');
-      chip.addEventListener('click', (e) => {
-        if (e.target !== inp){ inp.checked = !inp.checked; }
-        chip.classList.toggle('marcado', inp.checked);
-      });
+      chip.addEventListener('click', () => chip.classList.toggle('marcado'));
     });
 
     // Toggle Episódio / Filme
@@ -12104,7 +12099,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       // Se for "vídeo completo", usa "Filme" como identificador em vez do nº do episódio
       const episodio = fullVideo ? 'Filme' : ($('#prodEpisodioInput')?.value||'').trim();
       const parte = ($('#prodParteInput')?.value||'').trim();
-      const etapas = [...document.querySelectorAll('.prod-stage-check:checked')].map(c => c.value);
+      const etapas = [...document.querySelectorAll('.stage-chip.marcado')].map(c => c.dataset.stage);
       const prazo = $('#prodPrazoInput')?.value || null;
       const prioridade = parseInt($('#prodPrioridadeInput')?.value||'1', 10) || 1;
       const nota = ($('#prodNotaInput')?.value||'').trim();
