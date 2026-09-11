@@ -2696,8 +2696,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   <div class="header-tabs-row">
     <div class="view-tabs" role="tablist">
-      <button class="tab active" data-view="home" role="tab">🏠 Home</button>
-      <button class="tab" data-view="painel" role="tab">👤 Meu Painel</button>
+      <button class="tab" data-view="home" role="tab">🏠 Home</button>
+      <button class="tab active" data-view="painel" role="tab">👤 Meu Painel</button>
+      <button class="tab" data-view="producao" role="tab">🎯 Produção</button>
       <button class="tab" data-view="projetos" role="tab">🎬 Projetos</button>
       <button class="tab" data-view="audiobooks" role="tab">🎧 Audiobooks</button>
       <button class="tab" data-view="colecoes" role="tab">🗂 Coleções</button>
@@ -2733,6 +2734,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
 <main id="painelView" style="display:none;">
   <div id="painelContent"></div>
+</main>
+
+<main id="producaoView" style="display:none;">
+  <div id="producaoContent" style="max-width:1100px;margin:0 auto;padding:20px 16px;"></div>
 </main>
 
 <main id="projetosView" style="display:none;">
@@ -3252,6 +3257,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   // (Removido: passwordResetRequests — fluxo de senha agora é self-service)
   let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
+  let producaoTasks = []; // todas as tarefas de produção
+  let taskNotifs = [];    // notificações de tarefa do usuário logado
+  // As etapas de produção, na ordem típica do fluxo
+  const PRODUCAO_STAGES = ['Dublar', 'Revisar', 'Casting', 'Pós edição', 'Team Project', 'Renderizar', 'Dropbox', 'Controle de qualidade', 'Correção de qualidade', 'Finalizar'];
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -3352,6 +3361,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadChat(),
       loadBackupLog(),
       loadMinhasMencoes(),
+      loadProducaoTasks(),
+      loadTaskNotifs(),
     ]);
     projectCats = {};
     (catRes.data || []).forEach(r => { projectCats[r.project] = r.category; });
@@ -6117,7 +6128,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const rankingList = $('#rankingList');
   const rankMeta = $('#rankMeta');
   const periodNav = $('#periodNav');
-  let currentView = 'home';
+  let currentView = 'painel';
   let refDate = new Date();
 
   function parseDate(str){
@@ -6238,6 +6249,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     document.querySelectorAll('.view-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
     const home = view === 'home';
     const painel = view === 'painel';
+    const producao = view === 'producao';
     const projetos = view === 'projetos';
     const audiobooks = view === 'audiobooks';
     const colecoes = view === 'colecoes';
@@ -6246,6 +6258,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const avaliacao = view === 'avaliacao';
     $('#homeView').style.display = home ? '' : 'none';
     $('#painelView').style.display = painel ? '' : 'none';
+    $('#producaoView').style.display = producao ? '' : 'none';
     $('#projetosView').style.display = projetos ? '' : 'none';
     $('#audiobooksView').style.display = audiobooks ? '' : 'none';
     $('#colecoesView').style.display = colecoes ? '' : 'none';
@@ -6261,6 +6274,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     if (home) renderHome();
     if (painel) renderPainel();
+    if (producao) renderProducao();
     if (projetos) renderProjetos();
     if (audiobooks) renderAudiobooks();
     if (ranking) renderRanking();
@@ -7779,6 +7793,25 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ minhasMencoes = []; }
   }
 
+  // Carrega todas as tarefas de produção
+  async function loadProducaoTasks(){
+    try{
+      const { data } = await sb.from('production_tasks')
+        .select('*').order('priority', { ascending:true }).order('due_date', { ascending:true, nullsFirst:false });
+      producaoTasks = data || [];
+    }catch(e){ producaoTasks = []; }
+  }
+
+  // Carrega as notificações de tarefa do usuário logado
+  async function loadTaskNotifs(){
+    if (!myUserId){ taskNotifs = []; return; }
+    try{
+      const { data } = await sb.from('task_notifications')
+        .select('*').eq('user_id', myUserId).order('created_at', { ascending:false }).limit(80);
+      taskNotifs = data || [];
+    }catch(e){ taskNotifs = []; }
+  }
+
   // Atualiza o sino de notificação — conta menções em observações de
   // projeto (qualquer usuário pode ter). O recurso de solicitação de
   // senha pro admin foi removido (agora é 100% self-service por e-mail).
@@ -7787,7 +7820,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const badge = document.getElementById('bellBadge');
     if (!btn || !badge) return;
     btn.style.display = 'flex';
-    const total = (minhasMencoes||[]).filter(m => !m.read).length;
+    const mencoesNaoLidas = (minhasMencoes||[]).filter(m => !m.read).length;
+    const tarefasNaoLidas = (taskNotifs||[]).filter(n => !n.read).length;
+    const total = mencoesNaoLidas + tarefasNaoLidas;
     if (total > 0){
       badge.textContent = String(total);
       badge.style.display = 'flex';
@@ -11581,6 +11616,219 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>`;
   }
 
+  // ============================================================
+  // ABA PRODUÇÃO — tarefas por membro/projeto/etapa
+  // ============================================================
+  function renderProducao(){
+    const cont = $('#producaoContent');
+    if (!cont) return;
+
+    const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
+    const projetos = allProjectsList();
+
+    // Formulário de criar tarefa (só admin)
+    const formAdmin = isAdmin ? `
+      <div class="painel-card" style="margin-bottom:20px;">
+        <div class="painel-title">➕ Atribuir tarefa</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div class="field" style="margin:0;">
+            <label>Membro</label>
+            <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <option value="">— Escolher —</option>
+              ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Projeto</label>
+            <input type="text" id="prodProjetoInput" list="prodProjetoList" placeholder="Nome do projeto" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            <datalist id="prodProjetoList">${projetos.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+          </div>
+        </div>
+        <div class="field" style="margin:10px 0 0;">
+          <label>Etapas (pode marcar várias)</label>
+          <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
+            ${PRODUCAO_STAGES.map(s => `
+              <label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;cursor:pointer;">
+                <input type="checkbox" class="prod-stage-check" value="${escapeHtml(s)}" style="accent-color:var(--blue);">
+                ${escapeHtml(s)}
+              </label>`).join('')}
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+          <div class="field" style="margin:0;">
+            <label>Prazo</label>
+            <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Prioridade (1 = mais urgente)</label>
+            <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          </div>
+        </div>
+        <div class="field" style="margin:10px 0 0;">
+          <label>Observação (opcional)</label>
+          <input type="text" id="prodNotaInput" placeholder="Ex: episódio 01, foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+        </div>
+        <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">Atribuir tarefa(s)</button>
+      </div>` : '';
+
+    // Filtro: minhas tarefas / todas
+    const filtro = `
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:7px 14px;font-size:13px;">👤 Minhas tarefas</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:7px 14px;font-size:13px;">📋 Todas</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:7px 14px;font-size:13px;">⏳ Só pendentes</button>
+      </div>`;
+
+    cont.innerHTML = `
+      <h1 style="font-family:var(--font-head);font-size:24px;margin:0 0 6px;">🎯 Produção</h1>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;">Tarefas de cada membro em cada projeto — com prazo e prioridade.</p>
+      ${formAdmin}
+      ${filtro}
+      <div id="prodListaTarefas"></div>`;
+
+    wireProducaoForm();
+    renderProducaoLista('minhas'); // começa mostrando as minhas
+  }
+
+  function renderProducaoLista(filtro){
+    const box = $('#prodListaTarefas');
+    if (!box) return;
+
+    // destaca o botão de filtro ativo
+    document.querySelectorAll('.prod-filtro-btn').forEach(b => {
+      b.style.background = b.dataset.filtro === filtro ? 'var(--blue)' : '';
+      b.style.color = b.dataset.filtro === filtro ? '#fff' : '';
+    });
+
+    let tarefas = [...producaoTasks];
+    if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
+    if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
+
+    if (tarefas.length === 0){
+      box.innerHTML = `<div class="empty-state" style="padding:30px;"><p style="color:var(--muted);">Nenhuma tarefa ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p></div>`;
+      return;
+    }
+
+    // Agrupa por projeto
+    const porProjeto = {};
+    tarefas.forEach(t => { (porProjeto[t.project] = porProjeto[t.project]||[]).push(t); });
+
+    box.innerHTML = Object.entries(porProjeto).map(([proj, lista]) => {
+      // ordena por prioridade, depois prazo
+      lista.sort((a,b) => (a.priority-b.priority) || ((a.due_date||'zzz').localeCompare(b.due_date||'zzz')));
+      const linhas = lista.map(t => {
+        const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
+        const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
+        const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+        return `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;${t.done?'opacity:.55;':''}">
+            <div style="flex:0 0 auto;">
+              ${podeMarcar ? `<input type="checkbox" class="prod-done-check" data-task="${t.id}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#10B981;cursor:pointer;">` : (t.done?'✅':'⏳')}
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:700;font-size:13.5px;${t.done?'text-decoration:line-through;':''}">
+                ${escapeHtml(t.stage)}
+                <span style="font-weight:400;color:var(--muted);font-size:12px;">· ${escapeHtml(t.assignee_name||'—')}</span>
+              </div>
+              <div style="font-size:11.5px;color:${atrasada?'#DC2626':'var(--muted)'};font-weight:${atrasada?'700':'400'};">
+                ⏱ Prazo: ${prazoTxt}${atrasada?' (atrasada!)':''} · prioridade ${t.priority}
+                ${t.notes?` · ${escapeHtml(t.notes)}`:''}
+              </div>
+            </div>
+            ${isAdmin ? `<button class="prod-del-btn" data-task="${t.id}" title="Excluir tarefa" style="flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:4px 8px;">🗑️</button>` : ''}
+          </div>`;
+      }).join('');
+      return `
+        <div class="painel-card" style="margin-bottom:14px;">
+          <div style="font-weight:800;font-size:15px;margin-bottom:10px;">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+          ${linhas}
+        </div>`;
+    }).join('');
+
+    wireProducaoLista();
+  }
+
+  function wireProducaoForm(){
+    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+
+    const btnCriar = $('#prodCriarBtn');
+    if (btnCriar) btnCriar.addEventListener('click', async () => {
+      const userId = $('#prodMembroSel')?.value;
+      const projeto = ($('#prodProjetoInput')?.value||'').trim();
+      const etapas = [...document.querySelectorAll('.prod-stage-check:checked')].map(c => c.value);
+      const prazo = $('#prodPrazoInput')?.value || null;
+      const prioridade = parseInt($('#prodPrioridadeInput')?.value||'1', 10) || 1;
+      const nota = ($('#prodNotaInput')?.value||'').trim();
+
+      if (!userId){ showToast('Escolha um membro.'); return; }
+      if (!projeto){ showToast('Digite o projeto.'); return; }
+      if (etapas.length === 0){ showToast('Marque pelo menos uma etapa.'); return; }
+
+      const perfil = profilesByUser[userId] || {};
+      btnCriar.disabled = true; btnCriar.textContent = 'Atribuindo…';
+      try {
+        // Uma tarefa por etapa marcada
+        const tarefas = etapas.map(stage => ({
+          id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+          project: projeto, assignee_user_id: userId, assignee_name: perfil.display_name||'Ninja',
+          stage, due_date: prazo, priority: prioridade, notes: nota||null,
+          created_by: myEmail||null
+        }));
+        const { error } = await sb.from('production_tasks').insert(tarefas);
+        if (error) throw error;
+
+        // Notificações pro membro
+        const notifs = etapas.map(stage => ({
+          id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+          user_id: userId, project: projeto, stage,
+          message: `Nova tarefa: ${stage} em "${nomeProjetoExibicao(projeto)}"`,
+          read: false
+        }));
+        try { await sb.from('task_notifications').insert(notifs); } catch(e){}
+
+        await loadProducaoTasks();
+        await loadTaskNotifs();
+        renderProducao();
+        showToast(`✅ ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}.`);
+      } catch(err){
+        showToast('Erro ao atribuir: '+(err.message||''));
+        btnCriar.disabled = false; btnCriar.textContent = 'Atribuir tarefa(s)';
+      }
+    });
+  }
+
+  function wireProducaoLista(){
+    // marcar como feita / desmarcar
+    document.querySelectorAll('.prod-done-check').forEach(cb => cb.addEventListener('change', async () => {
+      const taskId = cb.dataset.task;
+      const feita = cb.checked;
+      try {
+        await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', taskId);
+        const t = producaoTasks.find(x => x.id === taskId);
+        if (t){ t.done = feita; t.done_at = feita?new Date().toISOString():null; }
+        showToast(feita ? '✅ Tarefa concluída!' : 'Tarefa reaberta.');
+      } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked = !feita; }
+    }));
+
+    // excluir tarefa (admin)
+    document.querySelectorAll('.prod-del-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const taskId = btn.dataset.task;
+      const ok = await confirmarBonito({
+        titulo: 'Excluir tarefa?',
+        mensagem: 'Isso remove a tarefa permanentemente.',
+        textoBotao: '🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️'
+      });
+      if (!ok) return;
+      try {
+        await sb.from('production_tasks').delete().eq('id', taskId);
+        producaoTasks = producaoTasks.filter(t => t.id !== taskId);
+        const filtroAtivo = document.querySelector('.prod-filtro-btn[style*="rgb(37"]')?.dataset.filtro || 'todas';
+        renderProducaoLista(filtroAtivo);
+        showToast('Tarefa excluída.');
+      } catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+  }
+
   function renderPainel(){
     if (!myProfile.display_name){
       painelContent.innerHTML = `<div class="empty-state"><h2 style="font-family:var(--font-head)">Configure seu perfil primeiro</h2><p>Clique no seu ninja no canto superior direito para definir nome e cor.</p></div>`;
@@ -11590,12 +11838,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const backupPanel = isAdmin ? renderBackupPanel() : '';
     const mencoesPanel = renderMencoesPanel();
     const coadjPanel = renderBuscarCoadjPanel();
+    const notifTarefasPanel = renderNotifTarefasPanel();
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
         ${renderChat()}
       </div>
       ${renderAgenda()}
+      ${notifTarefasPanel}
       ${mencoesPanel}
       ${coadjPanel}
       ${renderSegurancaPanel()}
@@ -11609,6 +11859,60 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireSegurancaPanel();
     wireMencoesPanel();
     wireBuscarCoadjPanel();
+    wireNotifTarefasPanel();
+  }
+
+  // Painel de notificações de tarefa — mostra as tarefas atribuídas ao user.
+  function renderNotifTarefasPanel(){
+    if (!taskNotifs || taskNotifs.length === 0) return '';
+    const naoLidas = taskNotifs.filter(n => !n.read);
+    const linha = (n) => `
+      <div class="prr-item" style="${n.read?'opacity:.6;':''}">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:13px;">${escapeHtml(n.stage||'Tarefa')} · ${escapeHtml(nomeProjetoExibicao(n.project||''))}</div>
+          <div style="font-size:11.5px;color:var(--muted);">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+        </div>
+        ${!n.read?`<button class="btn-ghost" data-lida-notif="${n.id}" style="padding:6px 10px;font-size:12px;">✓ Lida</button>`:''}
+      </div>`;
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🎯 Suas tarefas (${naoLidas.length} nova${naoLidas.length===1?'':'s'})</div>
+        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">Tarefas que te atribuíram. Vá na aba <b>Produção</b> pra ver detalhes e marcar como feita.</p>
+        <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;">
+          ${taskNotifs.slice(0,20).map(linha).join('')}
+        </div>
+        <button class="btn-ghost" id="limparNotifs3dias" style="width:100%;justify-content:center;margin-top:12px;font-size:12.5px;">🧹 Limpar notificações dos últimos 3 dias</button>
+      </div>`;
+  }
+
+  function wireNotifTarefasPanel(){
+    painelContent.querySelectorAll('[data-lida-notif]').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.lidaNotif;
+      try {
+        await sb.from('task_notifications').update({ read:true }).eq('id', id);
+        const n = taskNotifs.find(x => x.id === id);
+        if (n) n.read = true;
+        renderBellBadge();
+        renderPainel();
+      } catch(e){}
+    }));
+    const btnLimpar = $('#limparNotifs3dias');
+    if (btnLimpar) btnLimpar.addEventListener('click', async () => {
+      const ok = await confirmarBonito({
+        titulo: 'Limpar notificações?',
+        mensagem: 'Isso apaga as notificações de tarefa dos últimos 3 dias.',
+        textoBotao: '🧹 Limpar', corBotao:'#7C3AED', icone:'🧹'
+      });
+      if (!ok) return;
+      const tresDiasAtras = new Date(Date.now() - 3*24*60*60*1000).toISOString();
+      try {
+        await sb.from('task_notifications').delete().eq('user_id', myUserId).gte('created_at', tresDiasAtras);
+        await loadTaskNotifs();
+        renderBellBadge();
+        renderPainel();
+        showToast('✅ Notificações limpas.');
+      } catch(e){ showToast('Erro: '+(e.message||'')); }
+    });
   }
 
   // Painel "Buscar coadjuvantes" — lista os projetos que têm coadjuvantes;
