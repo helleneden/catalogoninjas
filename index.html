@@ -11857,6 +11857,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             style="flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--bg);">
           <button class="btn-primary" id="addAdminBtn" style="white-space:nowrap;padding:8px 14px;font-size:13px;">+ Conceder acesso</button>
         </div>
+      </div>
+
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🧹 Limpar fichas de teste <span style="font-size:11px;font-weight:400;color:var(--muted);">(só você vê isso)</span></div>
+        <p style="font-size:12px;color:var(--muted);margin:-6px 0 12px;">Procura fichas cujo nome contém uma palavra que você digitar (ex: "outros") e permite excluí-las de vez. Útil pra limpar duplicatas de teste. <b style="color:#DC2626;">A exclusão é permanente.</b></p>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="limparBuscaInput" placeholder='Ex: outros'
+            style="flex:1;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--bg);">
+          <button class="btn-ghost" id="limparBuscaBtn" style="white-space:nowrap;padding:8px 14px;font-size:13px;">🔍 Procurar</button>
+        </div>
+        <div id="limparResultado" style="margin-top:12px;"></div>
       </div>`;
   }
 
@@ -11902,6 +11913,49 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     // --- CLIQUES (delegados) ---
     painelContent.addEventListener('click', async (e) => {
+      // Ferramenta: procurar fichas de teste por palavra
+      if (e.target.closest('#limparBuscaBtn')){
+        const termo = ($('#limparBuscaInput')?.value||'').trim().toLowerCase();
+        const box = $('#limparResultado');
+        if (!termo){ if(box) box.innerHTML = '<p style="font-size:12px;color:var(--muted);">Digite uma palavra pra procurar.</p>'; return; }
+        const achadas = (people||[]).filter(p => (p.name||'').toLowerCase().includes(termo));
+        if (achadas.length === 0){ if(box) box.innerHTML = `<p style="font-size:12px;color:var(--muted);">Nenhuma ficha com "${escapeHtml(termo)}" no nome.</p>`; return; }
+        if (box) box.innerHTML = `
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Achei <b>${achadas.length}</b> ficha${achadas.length===1?'':'s'} com "${escapeHtml(termo)}":</div>
+          <div style="max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:4px;border:1px solid var(--line);border-radius:8px;padding:8px;">
+            ${achadas.map(p => {
+              const proj = p.entries.map(en => en.project).join(', ') || 'sem projeto';
+              return `<div style="font-size:12.5px;padding:4px 6px;border-bottom:1px solid var(--line);"><b>${escapeHtml(p.name)}</b> <span style="color:var(--muted);">— ${escapeHtml(proj)}</span></div>`;
+            }).join('')}
+          </div>
+          <button type="button" class="btn-danger-ghost" id="limparExcluirBtn" data-termo="${escapeHtml(termo)}" style="width:100%;justify-content:center;margin-top:10px;">🗑️ Excluir estas ${achadas.length} fichas permanentemente</button>`;
+        return;
+      }
+      // Ferramenta: confirmar exclusão das fichas encontradas
+      if (e.target.closest('#limparExcluirBtn')){
+        const btn = e.target.closest('#limparExcluirBtn');
+        const termo = btn.dataset.termo;
+        const achadas = (people||[]).filter(p => (p.name||'').toLowerCase().includes(termo));
+        const ok = await confirmarBonito({
+          titulo: `Excluir ${achadas.length} fichas?`,
+          mensagem: `Vai apagar PERMANENTEMENTE todas as ${achadas.length} fichas que contêm "${escapeHtml(termo)}" no nome, junto com as entradas de voz delas.`,
+          destaque: 'Esta ação não pode ser desfeita.',
+          textoBotao: `🗑️ Sim, excluir ${achadas.length} fichas`,
+          corBotao: '#DC2626',
+          icone: '🗑️'
+        });
+        if (!ok) return;
+        btn.disabled = true; btn.textContent = 'Excluindo…';
+        let excluidas = 0;
+        for (const p of achadas){
+          try { await deletePersonDb(p.id); excluidas++; } catch(err){ console.error('Erro ao excluir', p.name, err); }
+        }
+        await loadPeople();
+        invalidarCacheSimilares();
+        renderPainel();
+        showToast(`✅ ${excluidas} ficha${excluidas===1?'':'s'} excluída${excluidas===1?'':'s'}.`);
+        return;
+      }
       // calendário: navegar meses
       const nav = e.target.closest('[data-cal-nav]');
       if (nav){
