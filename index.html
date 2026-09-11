@@ -527,10 +527,10 @@
   .kb-vazio{ text-align:center; color:var(--muted); font-size:12px; padding:24px 0; }
   .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
 
-  /* Layout de 2 colunas: tarefas (larga) + chat (estreita) */
-  .prod-layout{ display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; }
+  /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
+  .prod-layout{ display:grid; grid-template-columns:1fr 400px; gap:18px; align-items:start; }
   .prod-chat-col{ position:relative; }
-  @media (max-width:900px){
+  @media (max-width:1000px){
     .prod-layout{ grid-template-columns:1fr; }
     .prod-chat-col .painel-card{ position:static !important; }
   }
@@ -7391,7 +7391,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (error) throw error;
       chatCache = data || [];
       chatLastReload = Date.now();
-      if (currentView === 'painel') rerenderChatMsgs();
+      if (currentView === 'painel' || currentView === 'producao') rerenderChatMsgs();
     }catch(e){
       // silencioso — mantém o cache anterior
     }finally{
@@ -11944,10 +11944,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div class="painel-card" style="position:sticky;top:16px;">
             <div class="painel-title">💬 Chat do dia <span style="font-size:10.5px;color:var(--muted);font-weight:400;">(some à meia-noite)</span></div>
             <div class="chat-wrap">
-              <div class="chat-msgs" id="chatMsgs" style="max-height:420px;">${renderChatMsgs()}</div>
+              <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
               <div class="chat-input-row" style="position:relative;">
-                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… @nome" rows="1"></textarea>
-                <button class="btn-primary" id="chatSend" style="padding:8px 12px;font-size:12.5px;white-space:nowrap;">↑</button>
+                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
+                <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
                 <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
               </div>
             </div>
@@ -11979,6 +11979,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const react = e.target.closest('[data-react]');
       if (react){ toggleReaction(react.dataset.react, react.dataset.emoji); return; }
     });
+    // Garante que o realtime do chat está ativo e rola até o fim
+    try { subscribeChat(); } catch(e){}
+    const box = cont.querySelector('#chatMsgs');
+    if (box) box.scrollTop = box.scrollHeight;
   }
 
   // Emoji "temático" pro projeto baseado no nome (dá personalidade a cada card)
