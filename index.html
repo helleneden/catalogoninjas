@@ -3067,6 +3067,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const isCoadjProject = (proj) => (proj||'').includes(COADJ_SUFFIX);
   const baseProject = (proj) => (proj||'').split(COADJ_SUFFIX)[0].trim();
   const coadjProjectOf = (proj) => baseProject(proj) + COADJ_SUFFIX;
+
+  // Calcula o próximo número de coadjuvante de um projeto — olha os nomes
+  // "Coadjuvante N" que já existem na pasta de coadjuvantes desse projeto e
+  // devolve o maior + 1. Assim cada coadjuvante ganha um número único DENTRO
+  // do projeto ("Coadjuvante 1", "Coadjuvante 2"...). Coadjuvantes de projetos
+  // diferentes podem repetir o número — são pessoas diferentes.
+  function proximoNumeroCoadjuvante(projetoBase){
+    const coadjProj = coadjProjectOf(projetoBase).toLowerCase();
+    let maior = 0;
+    (people||[]).forEach(p => {
+      const ehDesteProjeto = p.entries.some(e => (e.project||'').toLowerCase() === coadjProj);
+      if (!ehDesteProjeto) return;
+      const m = (p.name||'').match(/coadjuvante\s+(\d+)/i);
+      if (m){ const n = parseInt(m[1], 10); if (n > maior) maior = n; }
+    });
+    return maior + 1;
+  }
   const NINJAS = {
     azul: 'data:image/jpeg;base64,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',
     laranja: 'data:image/jpeg;base64,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',
@@ -4960,30 +4977,32 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Popup rápido: pergunta se a pessoa que está prestes a ser cadastrada é
   // coadjuvante neste projeto. Retorna Promise<true|false|null> — null se
   // cancelou a criação da ficha inteira.
-  // Popup: pergunta se a nova ficha é coadjuvante. Retorna Promise<true|false|null>
-  // (null = cancelou a criação inteira).
-  function perguntarCoadjuvante(){
+  // Popup: pergunta se a nova ficha é coadjuvante e, se for, qual nome usar.
+  // Retorna Promise<{ coadjuvante:bool, nome:string }|null> (null = cancelou).
+  function perguntarCoadjuvante(projetoBase){
     return new Promise(resolve => {
+      const proxNum = projetoBase ? proximoNumeroCoadjuvante(projetoBase) : 1;
       const ov = document.createElement('div');
       ov.className = 'modal-overlay confirm-overlay open';
       ov.style.zIndex = '10002';
       ov.innerHTML = `
-        <div class="modal confirm-modal" style="max-width:380px;">
+        <div class="modal confirm-modal" style="max-width:400px;">
           <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
           <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
-          <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 18px;">
-            Se for coadjuvante, a ficha vai direto pra pasta "⟫ Coadjuvantes" deste projeto e fica escondida de "Todas as fichas".
+          <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
+            Coadjuvantes vão pra pasta "⟫ Coadjuvantes" do projeto e ficam escondidos de "Todas as fichas".
           </p>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" id="coadjSimBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
+            <button type="button" class="coadj-opt" data-nome="Coadjuvante ${proxNum}" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim — "Coadjuvante ${proxNum}"</button>
+            <button type="button" class="coadj-opt" data-nome="Coadjuvante" style="width:100%;padding:12px;border:1.5px solid #7C3AED;border-radius:12px;background:var(--surface);color:#7C3AED;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim — só "Coadjuvante"</button>
             <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não, papel principal</button>
             <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
           </div>
         </div>`;
       document.body.appendChild(ov);
       const cleanup = (r) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(), 200); resolve(r); };
-      ov.querySelector('#coadjSimBtn').addEventListener('click', () => cleanup(true));
-      ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup(false));
+      ov.querySelectorAll('.coadj-opt').forEach(btn => btn.addEventListener('click', () => cleanup({ coadjuvante:true, nome: btn.dataset.nome })));
+      ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup({ coadjuvante:false, nome:'' }));
       ov.querySelector('#coadjCancelBtn').addEventListener('click', () => cleanup(null));
       fecharAoClicarFora(ov, () => cleanup(null));
     });
@@ -10755,14 +10774,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       // Botão "Criar nova ficha" — abre modal de nova ficha com projeto pré-preenchido
       const btnCriarNova = $('#btnCriarNovaFicha');
       if (btnCriarNova) btnCriarNova.addEventListener('click', async ()=>{
-        // Pergunta logo de cara se é coadjuvante (popup visível)
-        const ehCoadjuvante = await perguntarCoadjuvante();
-        if (ehCoadjuvante === null) return; // cancelou
+        // Pergunta se é coadjuvante e, se for, qual nome (Coadjuvante N ou só Coadjuvante)
+        const resp = await perguntarCoadjuvante(project);
+        if (resp === null) return; // cancelou
 
         ov.classList.remove('open');
-        // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
-        // cadastrar, não precisa de sugestões de elenco.
-        // origemProjeto: se o admin cancelar, volta pro modal deste projeto.
         openModal(null, { suprimirSugestoesColegas: true, origemProjeto: project });
         setTimeout(()=>{
           const projInp = $('#projMainInput');
@@ -10770,11 +10786,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             projInp.value = project;
             projInp.dispatchEvent(new Event('input', {bubbles:true}));
           }
-          // Marca o checkbox de coadjuvante conforme a resposta do popup
           const coadjCheck = $('#novaFichaCoadjCheck');
-          if (coadjCheck) coadjCheck.checked = ehCoadjuvante;
+          if (coadjCheck) coadjCheck.checked = resp.coadjuvante;
           const nameInp = $('#nameInput');
-          if (nameInp) nameInp.focus();
+          if (resp.coadjuvante && resp.nome){
+            // Preenche o nome automaticamente (Coadjuvante N) e foca na voz
+            if (nameInp) nameInp.value = resp.nome;
+            const vozInp = $('#voiceMainInput');
+            if (vozInp) vozInp.focus();
+          } else {
+            if (nameInp) nameInp.focus();
+          }
         }, 100);
       });
 
@@ -11545,6 +11567,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
     const mencoesPanel = renderMencoesPanel();
+    const coadjPanel = renderBuscarCoadjPanel();
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
@@ -11552,6 +11575,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>
       ${renderAgenda()}
       ${mencoesPanel}
+      ${coadjPanel}
       ${renderSegurancaPanel()}
       ${backupPanel}
       ${adminPanel}`;
@@ -11562,6 +11586,67 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
     wireSegurancaPanel();
     wireMencoesPanel();
+    wireBuscarCoadjPanel();
+  }
+
+  // Painel "Buscar coadjuvantes" — lista os projetos que têm coadjuvantes;
+  // ao escolher um, mostra os coadjuvantes daquele projeto.
+  function renderBuscarCoadjPanel(){
+    // Descobre quais projetos (base) têm coadjuvantes
+    const projetosComCoadj = new Set();
+    (people||[]).forEach(p => p.entries.forEach(e => {
+      if (isCoadjProject(e.project)) projetosComCoadj.add(baseProject(e.project));
+    }));
+    const lista = [...projetosComCoadj].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    if (lista.length === 0) return '';
+
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">🎭 Buscar coadjuvantes de outros projetos</div>
+        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">Escolha um projeto pra ver os coadjuvantes cadastrados nele.</p>
+        <select id="buscarCoadjSel" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;background:var(--bg);">
+          <option value="">— Escolher projeto —</option>
+          ${lista.map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}
+        </select>
+        <div id="buscarCoadjResultado" style="margin-top:12px;"></div>
+      </div>`;
+  }
+
+  function wireBuscarCoadjPanel(){
+    const sel = $('#buscarCoadjSel');
+    const box = $('#buscarCoadjResultado');
+    if (!sel || !box) return;
+    sel.addEventListener('change', () => {
+      const projetoBase = sel.value;
+      if (!projetoBase){ box.innerHTML = ''; return; }
+      const coadjs = coadjuvantesOfProject(projetoBase);
+      if (coadjs.length === 0){
+        box.innerHTML = `<p style="font-size:12.5px;color:var(--muted);">Nenhum coadjuvante neste projeto.</p>`;
+        return;
+      }
+      box.innerHTML = `
+        <div style="font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;">${coadjs.length} coadjuvante${coadjs.length===1?'':'s'} em "${escapeHtml(projetoBase)}"</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${coadjs.map(c => {
+            const initials = c.person.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+            return `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-soft);border-radius:9px;">
+                <div class="photo-fallback" ${c.hasPhoto?`data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}"`:''} style="width:30px;height:30px;border-radius:7px;font-size:11px;flex:0 0 auto;">${initials}</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:700;font-size:13px;">${escapeHtml(c.person)}</div>
+                  <div style="font-size:11.5px;color:var(--blue-deep);font-weight:600;">${escapeHtml(c.voice||'(voz não definida)')}</div>
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+        <button type="button" class="btn-ghost" id="buscarCoadjAbrirProjeto" data-proj="${escapeHtml(projetoBase)}" style="width:100%;justify-content:center;margin-top:10px;font-size:12.5px;">Abrir pasta de coadjuvantes de "${escapeHtml(projetoBase)}"</button>`;
+      hydratePhotos();
+      const btnAbrir = $('#buscarCoadjAbrirProjeto');
+      if (btnAbrir) btnAbrir.addEventListener('click', () => {
+        switchView('projetos');
+        setTimeout(() => { openProjetoModal(projetoBase); setTimeout(()=>openCoadjuvantesModal(projetoBase), 400); }, 150);
+      });
+    });
   }
 
   // Painel "Você foi marcado" — mostra observações de projeto onde o
