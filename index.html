@@ -2857,6 +2857,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
+        <input type="checkbox" id="novaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
+        ☾ Esta pessoa é coadjuvante neste projeto
+      </label>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha vai direto pra pasta "⟫ Coadjuvantes" do projeto e some de "Todas as fichas".</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -3265,7 +3270,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   function visiblePeople(){
-    return people.filter(p => !HIDE_PATTERN.test(p.name.trim()));
+    // Antes havia um filtro que escondia fichas cujo nome começava com
+    // "outros" — mas isso fazia sumir fichas legítimas como "Outros 01".
+    // Agora mostra todas.
+    return people;
   }
 
   // Pessoa é "coadjuvante puro" se TODAS as entradas são em projetos de coadjuvantes.
@@ -4952,6 +4960,35 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Popup rápido: pergunta se a pessoa que está prestes a ser cadastrada é
   // coadjuvante neste projeto. Retorna Promise<true|false|null> — null se
   // cancelou a criação da ficha inteira.
+  // Popup: pergunta se a nova ficha é coadjuvante. Retorna Promise<true|false|null>
+  // (null = cancelou a criação inteira).
+  function perguntarCoadjuvante(){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10002';
+      ov.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:380px;">
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
+          <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
+          <p style="text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 18px;">
+            Se for coadjuvante, a ficha vai direto pra pasta "⟫ Coadjuvantes" deste projeto e fica escondida de "Todas as fichas".
+          </p>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="coadjSimBtn" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
+            <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não, papel principal</button>
+            <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      const cleanup = (r) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(), 200); resolve(r); };
+      ov.querySelector('#coadjSimBtn').addEventListener('click', () => cleanup(true));
+      ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup(false));
+      ov.querySelector('#coadjCancelBtn').addEventListener('click', () => cleanup(null));
+      fecharAoClicarFora(ov, () => cleanup(null));
+    });
+  }
+
   function confirmarDuplicataWizard(nomeDigitado, similares){
     return new Promise(resolve => {
       const ov = document.createElement('div');
@@ -5591,6 +5628,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       projetoCanonico = SEM_PROJETO;
     }
 
+    // 1b) Se marcou "é coadjuvante" e tem projeto de verdade, a entrada vai
+    // direto pra pasta de coadjuvantes desse projeto (some de Todas as fichas).
+    const marcouCoadjuvante = $('#novaFichaCoadjCheck')?.checked;
+    const projetoParaEntrada = (marcouCoadjuvante && projetoCanonico && projetoCanonico !== SEM_PROJETO)
+      ? coadjProjectOf(projetoCanonico)
+      : projetoCanonico;
+
     // 2) Checagem de duplicata (só quando há projeto de verdade)
     if (projetoCanonico){
       const similares = detectarFichasSimilares(name);
@@ -5645,15 +5689,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    // 3c) Cria a entrada (voz+projeto), se houver
+    // 3c) Cria a entrada (voz+projeto), se houver.
+    // Usa projetoParaEntrada, que já tem o sufixo de coadjuvantes se marcado.
     let entradaOk = true;
     let entradaErroMsg = '';
-    if (projetoCanonico){
+    if (projetoParaEntrada){
       const novoEntryId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
       const { error: errEntry } = await sb.from('entries').insert({
         id: novoEntryId,
         person_id: novoPersonId,
-        project: projetoCanonico,
+        project: projetoParaEntrada,
         voice: voz,
         date: data || null
       });
@@ -5711,7 +5756,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     } else {
       showToast(criadasSugestoes > 0
         ? `✅ Ficha salva! +${criadasSugestoes} adicionada${criadasSugestoes===1?'':'s'} junto.`
-        : '✅ Ficha salva!');
+        : (marcouCoadjuvante && projetoParaEntrada !== projetoCanonico
+            ? '✅ Ficha salva na pasta de coadjuvantes!'
+            : '✅ Ficha salva!'));
     }
 
     if (voltarParaProjeto){
@@ -10707,20 +10754,25 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       // Botão "Criar nova ficha" — abre modal de nova ficha com projeto pré-preenchido
       const btnCriarNova = $('#btnCriarNovaFicha');
-      if (btnCriarNova) btnCriarNova.addEventListener('click', ()=>{
+      if (btnCriarNova) btnCriarNova.addEventListener('click', async ()=>{
+        // Pergunta logo de cara se é coadjuvante (popup visível)
+        const ehCoadjuvante = await perguntarCoadjuvante();
+        if (ehCoadjuvante === null) return; // cancelou
+
         ov.classList.remove('open');
         // Suprime o bloco "Colegas de cena" aqui: o admin já sabe quem quer
-        // cadastrar, não precisa de sugestões de elenco — isso já existe
-        // diretamente no modal do projeto (bloco de sugestões próprio).
+        // cadastrar, não precisa de sugestões de elenco.
         // origemProjeto: se o admin cancelar, volta pro modal deste projeto.
         openModal(null, { suprimirSugestoesColegas: true, origemProjeto: project });
-        // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
         setTimeout(()=>{
           const projInp = $('#projMainInput');
           if (projInp){
             projInp.value = project;
             projInp.dispatchEvent(new Event('input', {bubbles:true}));
           }
+          // Marca o checkbox de coadjuvante conforme a resposta do popup
+          const coadjCheck = $('#novaFichaCoadjCheck');
+          if (coadjCheck) coadjCheck.checked = ehCoadjuvante;
           const nameInp = $('#nameInput');
           if (nameInp) nameInp.focus();
         }, 100);
