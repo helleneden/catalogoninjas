@@ -11617,8 +11617,31 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   // ============================================================
-  // ABA PRODUÇÃO — tarefas por membro/projeto/etapa
+  // ABA PRODUÇÃO — v2: projeto → episódios/partes → delegar cada parte
+  // Tarefas viram itens de checklist na agenda do responsável.
   // ============================================================
+
+  // Cria um item na agenda de um usuário (usado quando o admin atribui tarefa).
+  // Retorna o id da nota criada (pra vincular à tarefa e poder apagar depois).
+  async function criarItemAgenda(userId, dataISO, texto, taskId){
+    if (!userId || !dataISO) return null;
+    const noteId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
+    try {
+      const { error } = await sb.from('agenda_notes').insert({
+        id: noteId, user_id: userId, note_date: dataISO,
+        body: texto, done: false, from_task_id: taskId || null
+      });
+      if (error){ console.error('Erro criando item de agenda:', error); return null; }
+      return noteId;
+    } catch(e){ console.error(e); return null; }
+  }
+
+  // Apaga o item de agenda vinculado a uma tarefa (usado ao excluir/reatribuir)
+  async function apagarItemAgendaDaTarefa(agendaNoteId){
+    if (!agendaNoteId) return;
+    try { await sb.from('agenda_notes').delete().eq('id', agendaNoteId); } catch(e){ console.error(e); }
+  }
+
   function renderProducao(){
     const cont = $('#producaoContent');
     if (!cont) return;
@@ -11626,26 +11649,40 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
     const projetos = allProjectsList();
 
-    // Formulário de criar tarefa (só admin)
+    // Formulário de atribuir tarefa (só admin) — agora com episódio e parte
     const formAdmin = isAdmin ? `
       <div class="painel-card" style="margin-bottom:20px;">
         <div class="painel-title">➕ Atribuir tarefa</div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:10px;">
+          <div class="field" style="margin:0;">
+            <label>Projeto</label>
+            <input type="text" id="prodProjetoInput" list="prodProjetoList" placeholder="Nome do projeto" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            <datalist id="prodProjetoList">${projetos.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Episódio</label>
+            <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          </div>
+          <div class="field" style="margin:0;">
+            <label>Parte</label>
+            <input type="text" id="prodParteInput" placeholder="Ex: 1 de 2" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          </div>
+        </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
           <div class="field" style="margin:0;">
-            <label>Membro</label>
+            <label>Responsável</label>
             <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
               <option value="">— Escolher —</option>
               ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
             </select>
           </div>
           <div class="field" style="margin:0;">
-            <label>Projeto</label>
-            <input type="text" id="prodProjetoInput" list="prodProjetoList" placeholder="Nome do projeto" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-            <datalist id="prodProjetoList">${projetos.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+            <label>Prazo final</label>
+            <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
           </div>
         </div>
         <div class="field" style="margin:10px 0 0;">
-          <label>Etapas (pode marcar várias)</label>
+          <label>Etapas (uma tarefa por etapa marcada)</label>
           <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
             ${PRODUCAO_STAGES.map(s => `
               <label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;cursor:pointer;">
@@ -11654,24 +11691,19 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               </label>`).join('')}
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:10px;">
           <div class="field" style="margin:0;">
-            <label>Prazo</label>
-            <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Prioridade (1 = mais urgente)</label>
+            <label>Prioridade (1 = urgente)</label>
             <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
           </div>
-        </div>
-        <div class="field" style="margin:10px 0 0;">
-          <label>Observação (opcional)</label>
-          <input type="text" id="prodNotaInput" placeholder="Ex: episódio 01, foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          <div class="field" style="margin:0;">
+            <label>Observação (opcional)</label>
+            <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+          </div>
         </div>
         <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">Atribuir tarefa(s)</button>
       </div>` : '';
 
-    // Filtro: minhas tarefas / todas
     const filtro = `
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
         <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:7px 14px;font-size:13px;">👤 Minhas tarefas</button>
@@ -11681,20 +11713,19 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     cont.innerHTML = `
       <h1 style="font-family:var(--font-head);font-size:24px;margin:0 0 6px;">🎯 Produção</h1>
-      <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;">Tarefas de cada membro em cada projeto — com prazo e prioridade.</p>
+      <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;">Delegue cada parte de cada episódio, com prazo. As tarefas entram na agenda de quem recebe.</p>
       ${formAdmin}
       ${filtro}
       <div id="prodListaTarefas"></div>`;
 
     wireProducaoForm();
-    renderProducaoLista('minhas'); // começa mostrando as minhas
+    renderProducaoLista('minhas');
   }
 
   function renderProducaoLista(filtro){
     const box = $('#prodListaTarefas');
     if (!box) return;
 
-    // destaca o botão de filtro ativo
     document.querySelectorAll('.prod-filtro-btn').forEach(b => {
       b.style.background = b.dataset.filtro === filtro ? 'var(--blue)' : '';
       b.style.color = b.dataset.filtro === filtro ? '#fff' : '';
@@ -11709,39 +11740,50 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       return;
     }
 
-    // Agrupa por projeto
+    // Agrupa por projeto → episódio
     const porProjeto = {};
-    tarefas.forEach(t => { (porProjeto[t.project] = porProjeto[t.project]||[]).push(t); });
+    tarefas.forEach(t => {
+      porProjeto[t.project] = porProjeto[t.project] || {};
+      const ep = t.episode || '—';
+      (porProjeto[t.project][ep] = porProjeto[t.project][ep] || []).push(t);
+    });
 
-    box.innerHTML = Object.entries(porProjeto).map(([proj, lista]) => {
-      // ordena por prioridade, depois prazo
-      lista.sort((a,b) => (a.priority-b.priority) || ((a.due_date||'zzz').localeCompare(b.due_date||'zzz')));
-      const linhas = lista.map(t => {
-        const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
-        const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
-        const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+    box.innerHTML = Object.entries(porProjeto).map(([proj, episodios]) => {
+      const blocosEp = Object.entries(episodios).map(([ep, lista]) => {
+        lista.sort((a,b) => (a.priority-b.priority) || ((a.due_date||'zzz').localeCompare(b.due_date||'zzz')));
+        const linhas = lista.map(t => {
+          const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
+          const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
+          const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+          const parteTxt = t.part ? ` · Parte ${escapeHtml(t.part)}` : '';
+          return `
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;${t.done?'opacity:.55;':''}">
+              <div style="flex:0 0 auto;">
+                ${podeMarcar ? `<input type="checkbox" class="prod-done-check" data-task="${t.id}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#10B981;cursor:pointer;">` : (t.done?'✅':'⏳')}
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13.5px;${t.done?'text-decoration:line-through;':''}">
+                  ${escapeHtml(t.stage)}${parteTxt}
+                  <span style="font-weight:400;color:var(--muted);font-size:12px;">· ${escapeHtml(t.assignee_name||'—')}</span>
+                </div>
+                <div style="font-size:11.5px;color:${atrasada?'#DC2626':'var(--muted)'};font-weight:${atrasada?'700':'400'};">
+                  ⏱ ${prazoTxt}${atrasada?' (atrasada!)':''} · prioridade ${t.priority}
+                  ${t.notes?` · ${escapeHtml(t.notes)}`:''}
+                </div>
+              </div>
+              ${isAdmin ? `<button class="prod-del-btn" data-task="${t.id}" title="Excluir tarefa" style="flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:4px 8px;">🗑️</button>` : ''}
+            </div>`;
+        }).join('');
         return `
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;${t.done?'opacity:.55;':''}">
-            <div style="flex:0 0 auto;">
-              ${podeMarcar ? `<input type="checkbox" class="prod-done-check" data-task="${t.id}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#10B981;cursor:pointer;">` : (t.done?'✅':'⏳')}
-            </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13.5px;${t.done?'text-decoration:line-through;':''}">
-                ${escapeHtml(t.stage)}
-                <span style="font-weight:400;color:var(--muted);font-size:12px;">· ${escapeHtml(t.assignee_name||'—')}</span>
-              </div>
-              <div style="font-size:11.5px;color:${atrasada?'#DC2626':'var(--muted)'};font-weight:${atrasada?'700':'400'};">
-                ⏱ Prazo: ${prazoTxt}${atrasada?' (atrasada!)':''} · prioridade ${t.priority}
-                ${t.notes?` · ${escapeHtml(t.notes)}`:''}
-              </div>
-            </div>
-            ${isAdmin ? `<button class="prod-del-btn" data-task="${t.id}" title="Excluir tarefa" style="flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:4px 8px;">🗑️</button>` : ''}
+          <div style="margin-bottom:12px;">
+            <div style="font-size:12.5px;font-weight:700;color:var(--blue-deep);margin-bottom:6px;">📺 Episódio ${escapeHtml(ep)}</div>
+            ${linhas}
           </div>`;
       }).join('');
       return `
         <div class="painel-card" style="margin-bottom:14px;">
-          <div style="font-weight:800;font-size:15px;margin-bottom:10px;">${escapeHtml(nomeProjetoExibicao(proj))}</div>
-          ${linhas}
+          <div style="font-weight:800;font-size:15px;margin-bottom:12px;">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+          ${blocosEp}
         </div>`;
     }).join('');
 
@@ -11755,39 +11797,52 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (btnCriar) btnCriar.addEventListener('click', async () => {
       const userId = $('#prodMembroSel')?.value;
       const projeto = ($('#prodProjetoInput')?.value||'').trim();
+      const episodio = ($('#prodEpisodioInput')?.value||'').trim();
+      const parte = ($('#prodParteInput')?.value||'').trim();
       const etapas = [...document.querySelectorAll('.prod-stage-check:checked')].map(c => c.value);
       const prazo = $('#prodPrazoInput')?.value || null;
       const prioridade = parseInt($('#prodPrioridadeInput')?.value||'1', 10) || 1;
       const nota = ($('#prodNotaInput')?.value||'').trim();
 
-      if (!userId){ showToast('Escolha um membro.'); return; }
+      if (!userId){ showToast('Escolha um responsável.'); return; }
       if (!projeto){ showToast('Digite o projeto.'); return; }
       if (etapas.length === 0){ showToast('Marque pelo menos uma etapa.'); return; }
 
       const perfil = profilesByUser[userId] || {};
       btnCriar.disabled = true; btnCriar.textContent = 'Atribuindo…';
       try {
-        // Uma tarefa por etapa marcada
-        const tarefas = etapas.map(stage => ({
-          id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
-          project: projeto, assignee_user_id: userId, assignee_name: perfil.display_name||'Ninja',
-          stage, due_date: prazo, priority: prioridade, notes: nota||null,
-          created_by: myEmail||null
-        }));
-        const { error } = await sb.from('production_tasks').insert(tarefas);
-        if (error) throw error;
-
-        // Notificações pro membro
-        const notifs = etapas.map(stage => ({
-          id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
-          user_id: userId, project: projeto, stage,
-          message: `Nova tarefa: ${stage} em "${nomeProjetoExibicao(projeto)}"`,
-          read: false
-        }));
-        try { await sb.from('task_notifications').insert(notifs); } catch(e){}
+        for (const stage of etapas){
+          const taskId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
+          // Texto que vai pra agenda do responsável
+          const partesTxt = [
+            nomeProjetoExibicao(projeto),
+            episodio ? `Ep ${episodio}` : '',
+            parte ? `Parte ${parte}` : '',
+            stage
+          ].filter(Boolean).join(' · ');
+          // Cria o item na agenda do responsável (se tiver prazo)
+          const agendaId = prazo ? await criarItemAgenda(userId, prazo, `🎬 ${partesTxt}`, taskId) : null;
+          // Cria a tarefa
+          const { error } = await sb.from('production_tasks').insert({
+            id: taskId, project: projeto, episode: episodio||null, part: parte||null,
+            assignee_user_id: userId, assignee_name: perfil.display_name||'Ninja',
+            stage, due_date: prazo, priority: prioridade, notes: nota||null,
+            created_by: myEmail||null, agenda_note_id: agendaId
+          });
+          if (error) throw error;
+          // Notificação
+          try {
+            await sb.from('task_notifications').insert({
+              id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+              user_id: userId, task_id: taskId, project: projeto, stage,
+              message: `Nova tarefa: ${stage} — ${partesTxt}`, read: false
+            });
+          } catch(e){}
+        }
 
         await loadProducaoTasks();
         await loadTaskNotifs();
+        if (userId === myUserId) await loadAgenda();
         renderProducao();
         showToast(`✅ ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}.`);
       } catch(err){
@@ -11798,37 +11853,47 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   function wireProducaoLista(){
-    // marcar como feita / desmarcar
+    // marcar como feita / desmarcar — também marca o item na agenda
     document.querySelectorAll('.prod-done-check').forEach(cb => cb.addEventListener('change', async () => {
       const taskId = cb.dataset.task;
       const feita = cb.checked;
+      const t = producaoTasks.find(x => x.id === taskId);
       try {
         await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', taskId);
-        const t = producaoTasks.find(x => x.id === taskId);
-        if (t){ t.done = feita; t.done_at = feita?new Date().toISOString():null; }
+        if (t){
+          t.done = feita; t.done_at = feita?new Date().toISOString():null;
+          // reflete na agenda (marca o checklist como feito também)
+          if (t.agenda_note_id){
+            try { await sb.from('agenda_notes').update({ done: feita }).eq('id', t.agenda_note_id); } catch(e){}
+            if (t.assignee_user_id === myUserId) await loadAgenda();
+          }
+        }
         showToast(feita ? '✅ Tarefa concluída!' : 'Tarefa reaberta.');
       } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked = !feita; }
     }));
 
-    // excluir tarefa (admin)
+    // excluir tarefa (admin) — também apaga o item da agenda do responsável
     document.querySelectorAll('.prod-del-btn').forEach(btn => btn.addEventListener('click', async () => {
       const taskId = btn.dataset.task;
+      const t = producaoTasks.find(x => x.id === taskId);
       const ok = await confirmarBonito({
         titulo: 'Excluir tarefa?',
-        mensagem: 'Isso remove a tarefa permanentemente.',
+        mensagem: 'Isso remove a tarefa e o item dela na agenda do responsável.',
         textoBotao: '🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️'
       });
       if (!ok) return;
       try {
+        // apaga o item de agenda vinculado
+        if (t && t.agenda_note_id) await apagarItemAgendaDaTarefa(t.agenda_note_id);
         await sb.from('production_tasks').delete().eq('id', taskId);
-        producaoTasks = producaoTasks.filter(t => t.id !== taskId);
+        producaoTasks = producaoTasks.filter(x => x.id !== taskId);
+        if (t && t.assignee_user_id === myUserId) await loadAgenda();
         const filtroAtivo = document.querySelector('.prod-filtro-btn[style*="rgb(37"]')?.dataset.filtro || 'todas';
         renderProducaoLista(filtroAtivo);
         showToast('Tarefa excluída.');
       } catch(err){ showToast('Erro: '+(err.message||'')); }
     }));
   }
-
   function renderPainel(){
     if (!myProfile.display_name){
       painelContent.innerHTML = `<div class="empty-state"><h2 style="font-family:var(--font-head)">Configure seu perfil primeiro</h2><p>Clique no seu ninja no canto superior direito para definir nome e cor.</p></div>`;
