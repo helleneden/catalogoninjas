@@ -2861,7 +2861,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <input type="checkbox" id="novaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
         ☾ Esta pessoa é coadjuvante neste projeto
       </label>
-      <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha vai direto pra pasta "⟫ Coadjuvantes" do projeto e some de "Todas as fichas".</p>
+      <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha vai direto pra pasta de coadjuvantes do projeto e some de "Todas as fichas".</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -3067,6 +3067,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const isCoadjProject = (proj) => (proj||'').includes(COADJ_SUFFIX);
   const baseProject = (proj) => (proj||'').split(COADJ_SUFFIX)[0].trim();
   const coadjProjectOf = (proj) => baseProject(proj) + COADJ_SUFFIX;
+
+  // Nome do projeto formatado pra EXIBIÇÃO — troca o sufixo interno com
+  // símbolo "⟫" por um texto limpo "(Coadjuvantes)". O valor real no banco
+  // continua com o símbolo (não mexer nele quebraria os coadjuvantes).
+  const nomeProjetoExibicao = (proj) => {
+    if (!proj) return proj;
+    if (isCoadjProject(proj)) return baseProject(proj) + ' (Coadjuvantes)';
+    return proj;
+  };
 
   // Calcula o próximo número de coadjuvante de um projeto — olha os nomes
   // "Coadjuvante N" que já existem na pasta de coadjuvantes desse projeto e
@@ -3751,7 +3760,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     const entryRows = p.entries.map(e => `
       <div class="entry-row">
-        <span class="proj">${escapeHtml(e.project)}</span>
+        <span class="proj">${escapeHtml(nomeProjetoExibicao(e.project))}</span>
         <span class="vname">${escapeHtml(e.voice)}</span>
       </div>
     `).join('') || `<div class="entry-row"><span class="proj" style="color:var(--muted)">Nenhum projeto registrado ainda</span></div>`;
@@ -4485,7 +4494,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="ac-item" data-bid="${p.id}">
             <div>
               <div class="ac-name">${escapeHtml(p.name)}</div>
-              <div class="ac-sub">${p.entries.map(e=>escapeHtml(e.project)).slice(0,2).join(', ')}${p.entries.length>2?'…':''}</div>
+              <div class="ac-sub">${p.entries.map(e=>escapeHtml(nomeProjetoExibicao(e.project))).slice(0,2).join(', ')}${p.entries.length>2?'…':''}</div>
             </div>
           </div>`).join('');
         drop.classList.add('open');
@@ -4977,7 +4986,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Popup rápido: pergunta se a pessoa que está prestes a ser cadastrada é
   // coadjuvante neste projeto. Retorna Promise<true|false|null> — null se
   // cancelou a criação da ficha inteira.
-  // Popup: pergunta se a nova ficha é coadjuvante e, se for, qual nome usar.
+  // Popup: pergunta se a nova ficha é coadjuvante.
   // Retorna Promise<{ coadjuvante:bool, nome:string }|null> (null = cancelou).
   function perguntarCoadjuvante(projetoBase){
     return new Promise(resolve => {
@@ -4990,18 +4999,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
           <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
           <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
-            Coadjuvantes vão pra pasta "⟫ Coadjuvantes" do projeto e ficam escondidos de "Todas as fichas".
+            Se for coadjuvante, vai pra pasta de coadjuvantes do projeto com o nome <b>"Coadjuvante ${proxNum}"</b> automaticamente, e fica escondida de "Todas as fichas".
           </p>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" class="coadj-opt" data-nome="Coadjuvante ${proxNum}" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim — "Coadjuvante ${proxNum}"</button>
-            <button type="button" class="coadj-opt" data-nome="Coadjuvante" style="width:100%;padding:12px;border:1.5px solid #7C3AED;border-radius:12px;background:var(--surface);color:#7C3AED;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim — só "Coadjuvante"</button>
-            <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não, papel principal</button>
+            <button type="button" id="coadjSimBtn" data-nome="Coadjuvante ${proxNum}" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
+            <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não é coadjuvante</button>
             <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
           </div>
         </div>`;
       document.body.appendChild(ov);
       const cleanup = (r) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(), 200); resolve(r); };
-      ov.querySelectorAll('.coadj-opt').forEach(btn => btn.addEventListener('click', () => cleanup({ coadjuvante:true, nome: btn.dataset.nome })));
+      ov.querySelector('#coadjSimBtn').addEventListener('click', (ev) => cleanup({ coadjuvante:true, nome: ev.currentTarget.dataset.nome }));
       ov.querySelector('#coadjNaoBtn').addEventListener('click', () => cleanup({ coadjuvante:false, nome:'' }));
       ov.querySelector('#coadjCancelBtn').addEventListener('click', () => cleanup(null));
       fecharAoClicarFora(ov, () => cleanup(null));
@@ -6008,7 +6016,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (!person) return;
       const ok = await confirmarBonito({
         titulo: 'Marcar como coadjuvante?',
-        mensagem: `<b style="color:var(--ink);">"${escapeHtml(person.name)}"</b><br><span style="font-size:12px;">As entradas serão movidas para a subpasta "⟫ Coadjuvantes" de cada projeto. A pessoa deixa de aparecer na lista principal.</span>`,
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(person.name)}"</b><br><span style="font-size:12px;">As entradas serão movidas para a pasta de coadjuvantes de cada projeto. A pessoa deixa de aparecer na lista principal.</span>`,
         textoBotao: '☾ Sim, marcar como coadjuvante',
         corBotao: '#7C3AED',
         icone: '☾'
@@ -11132,7 +11140,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
         const ok = await confirmarBonito({
           titulo: `Marcar ${selecionados.length} pessoa${selecionados.length===1?'':'s'} como coadjuvante?`,
-          mensagem: `<span style="font-size:12px;">${selecionados.map(s=>escapeHtml(s.nome)).join(', ')}</span><br><br><span style="font-size:12px;">A entrada de cada um NESTE projeto vai pra subpasta "⟫ Coadjuvantes" e some da lista principal de dublagem.</span>`,
+          mensagem: `<span style="font-size:12px;">${selecionados.map(s=>escapeHtml(s.nome)).join(', ')}</span><br><br><span style="font-size:12px;">A entrada de cada um NESTE projeto vai pra pasta de coadjuvantes e some da lista principal de dublagem.</span>`,
           textoBotao: '☾ Sim, marcar como coadjuvante',
           corBotao: '#7C3AED',
           icone: '☾'
