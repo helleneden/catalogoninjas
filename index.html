@@ -2851,13 +2851,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     <!-- SEÇÃO: Nome do projeto (opcional — pode cadastrar a ficha sem projeto ainda) -->
     <div class="field" data-only-new>
-      <label for="projMainInput"><span id="projMainLabelTxt">Projeto</span> <span id="projMainLabelOpc" style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+      <label for="projMainInput">Projeto <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
       <div class="ac-wrap">
         <input type="text" id="projMainInput" placeholder="Digite um projeto existente (ou deixe em branco)" autocomplete="off">
         <div class="ac-dropdown" id="projMainAcDropdown"></div>
       </div>
-      <p id="projMainHintTravado" style="display:none;font-size:11px;color:var(--blue-deep,#1E40AF);margin:6px 0 0;">🔒 Esta ficha será vinculada a este projeto automaticamente.</p>
-      <p id="projMainHint" style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
+      <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
     </div>
 
     <!-- Data(s) opcional(is) -->
@@ -3341,10 +3340,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   async function seedInitialData(){
     for (const s of SEED_DATA){
-      const { data: pr, error } = await sb.from('people').insert({ name: s.name, has_photo: false }).select('id').single();
-      if (error || !pr) continue;
+      const novoPid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      const { error } = await sb.from('people').insert({ id: novoPid, name: s.name, has_photo: false });
+      if (error) continue;
       const rows = s.entries.map(([project, voice]) => ({
-        person_id: pr.id, project, voice, date: PROJECT_DATES[project] || null
+        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
+        person_id: novoPid, project, voice, date: PROJECT_DATES[project] || null
       }));
       await sb.from('entries').insert(rows);
     }
@@ -3352,25 +3353,43 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // Salva/atualiza uma pessoa e suas entradas (chamado ao gravar a ficha).
+  // Salva/atualiza uma pessoa e suas entradas.
+  // ARQUITETURA ROBUSTA: gera o UUID no próprio app (crypto.randomUUID)
+  // em vez de depender do banco retornar o id via .select().single().
+  // Isso é mais confiável — o .select() de volta pode falhar por vários
+  // motivos (RLS de leitura, latência) mesmo quando o INSERT funciona.
+  // Verificamos o sucesso pelo campo "error" de cada operação, que é a
+  // fonte de verdade do Supabase.
   async function savePerson(person){
     const isNew = !person._existsInDb;
+
     if (isNew){
-      const { data, error } = await sb.from('people')
-        .insert({ name: person.name, has_photo: person.hasPhoto })
-        .select('id').single();
-      if (error || !data){
+      // Gera o ID aqui — não dependemos do banco devolver
+      const novoId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      const { error } = await sb.from('people')
+        .insert({ id: novoId, name: person.name, has_photo: person.hasPhoto });
+      if (error){
         console.error('Erro ao criar pessoa:', error);
-        return { id: null, entriesOk: false, pessoaErro: (error && error.message) || 'o banco não retornou o ID da nova pessoa' };
+        return { id: null, entriesOk: false, pessoaErro: error.message || String(error) };
       }
-      person.id = data.id;
+      person.id = novoId;
     } else {
-      await sb.from('people').update({ name: person.name, has_photo: person.hasPhoto }).eq('id', person.id);
+      const { error: errUp } = await sb.from('people')
+        .update({ name: person.name, has_photo: person.hasPhoto }).eq('id', person.id);
+      if (errUp){
+        return { id: null, entriesOk: false, pessoaErro: 'Erro ao atualizar: '+(errUp.message||'') };
+      }
       await sb.from('entries').delete().eq('person_id', person.id);
     }
+
     let entriesOk = true;
     let entriesErro = '';
     if (person.entries.length){
-      const rows = person.entries.map(e => ({ person_id: person.id, project: e.project, voice: e.voice, date: e.date || null }));
+      // Gera um id pra cada entrada também
+      const rows = person.entries.map(e => ({
+        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
+        person_id: person.id, project: e.project, voice: e.voice, date: e.date || null
+      }));
       const { error: errEntries } = await sb.from('entries').insert(rows);
       if (errEntries){
         console.error('Erro ao criar entradas de', person.name, ':', errEntries);
@@ -3379,6 +3398,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
     return { id: person.id, entriesOk, entriesErro };
+  }
+
+  // Gerador de UUID de reserva, caso crypto.randomUUID não exista (navegadores muito antigos)
+  function gerarUuidFallback(){
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
   async function deletePersonDb(personId){
@@ -4035,49 +4063,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // de deixar o admin "perdido" vendo o fundo da tela (Home/Coleções/etc).
   let modalOrigemProjeto = null;
 
-  // Quando o modal é aberto com um projeto JÁ definido (botão "✨ Criar nova
-  // ficha" dentro de um projeto, ou "+ Adicionar coadjuvante"), o projeto fica
-  // guardado aqui. O campo "Projeto" vem preenchido e travado, e o Salvar usa
-  // este valor direto — sem depender de o campo ter sido preenchido a tempo,
-  // nem de o projeto aparecer no autocomplete (é o caso dos projetos de
-  // coadjuvantes, que são escondidos de todosOsProjetos() de propósito).
-  let projetoForcadoModal = null;
-
   async function openModal(personId, opts={}){
     editingId = personId || null;
     modalSemSugestoesColegas = !!opts.suprimirSugestoesColegas;
     modalOrigemProjeto = opts.origemProjeto || null;
-    projetoForcadoModal = opts.projetoForcado || null;
     const person = editingId ? people.find(p => p.id === editingId) : null;
     const isEditing = !!person;
 
-    $('#modalTitle').textContent = isEditing ? 'Editar ficha' : (opts.titulo || 'Nova ficha');
+    $('#modalTitle').textContent = isEditing ? 'Editar ficha' : 'Nova ficha';
     $('#nameInput').value = person ? person.name : '';
     pendingPhoto = undefined;
 
     // Reseta e prepara os campos únicos
     const primeira = person && person.entries[0] ? person.entries[0] : {voice:'', project:'', date:''};
     $('#voiceMainInput').value = isEditing ? '' : (primeira.voice || '');
-    $('#projMainInput').value = isEditing ? '' : (projetoForcadoModal || primeira.project || '');
+    $('#projMainInput').value = isEditing ? '' : (primeira.project || '');
     $('#dateMainInput').value = isEditing ? '' : (primeira.date || '');
-
-    // Projeto travado: evita apagar sem querer o projeto de onde o modal foi
-    // aberto — era isso que fazia a ficha nova nascer "solta", fora do projeto.
-    const projInpEl = $('#projMainInput');
-    if (projInpEl){
-      projInpEl.readOnly = !!projetoForcadoModal;
-      projInpEl.style.background = projetoForcadoModal ? 'var(--surface-soft)' : '';
-      projInpEl.style.cursor = projetoForcadoModal ? 'not-allowed' : '';
-    }
-    // Troca a ajuda embaixo do campo: com o projeto travado, a instrução
-    // "pode deixar em branco / crie o projeto em outro lugar" só confundia.
-    const hintNormal = $('#projMainHint');   if (hintNormal)  hintNormal.style.display  = projetoForcadoModal ? 'none' : '';
-    const hintTrava  = $('#projMainHintTravado'); if (hintTrava) hintTrava.style.display = projetoForcadoModal ? 'block' : 'none';
-    const lblOpc = $('#projMainLabelOpc');   if (lblOpc)      lblOpc.style.display      = projetoForcadoModal ? 'none' : '';
-    // Fecha os autocompletes de voz/projeto — eles podiam ficar abertos por
-    // cima dos campos ao reabrir o modal.
-    const projAcEl = $('#projMainAcDropdown'); if (projAcEl) projAcEl.classList.remove('open');
-    const vozAcEl  = $('#voiceMainAcDropdown'); if (vozAcEl)  vozAcEl.classList.remove('open');
     $('#voiceExistingBox').style.display = 'none';
     $('#voiceExistingBox').innerHTML = '';
     $('#sugestoesBloco').style.display = 'none';
@@ -4338,16 +4339,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     modalEntries = [];
     pendingPhoto = undefined;
     closeAcDropdown();
-    // Limpa o estado "de onde eu vim". Sem isso ele vazava pra próxima
-    // abertura do modal (quem precisa desses valores DEPOIS de fechar já os
-    // guarda numa variável local antes de chamar closeModal()).
-    modalOrigemProjeto = null;
-    modalSemSugestoesColegas = false;
-    projetoForcadoModal = null;
-    const projAcC = $('#projMainAcDropdown'); if (projAcC) projAcC.classList.remove('open');
-    const vozAcC  = $('#voiceMainAcDropdown'); if (vozAcC)  vozAcC.classList.remove('open');
-    const projInpC = $('#projMainInput');
-    if (projInpC){ projInpC.readOnly = false; projInpC.style.background = ''; projInpC.style.cursor = ''; }
   }
 
   // ---- Autocomplete de pessoa existente ----
@@ -4423,24 +4414,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   acDropdown.addEventListener('click', (e) => {
     const item = e.target.closest('[data-ac-id]');
     if (!item) return;
-    // AQUI ESTAVA O BUG PRINCIPAL: isto chamava openModal(id), que joga o modal
-    // em "Editar ficha". E o modo Editar:
-    //   1. esconde os campos Voz / Projeto / Data (são [data-only-new]);
-    //   2. no Salvar, grava SÓ nome e foto — a voz digitada era descartada;
-    //   3. zera o "de onde eu vim", então o modal fechava pro fundo da tela.
-    // Resultado: escolher a sugestão do nome fazia perder a voz criada e o
-    // vínculo com o projeto.
-    // Agora a sugestão só ADOTA O NOME da ficha existente e continua no fluxo
-    // de nova entrada. No Salvar, o popup "Já existe ficha parecida" aparece e
-    // o botão "Usar este" vincula a voz digitada à ficha existente — que é
-    // exatamente o que se espera ao escolher a sugestão.
-    const existente = (people || []).find(x => x.id === item.dataset.acId);
-    if (existente) nameInput.value = existente.name;
-    closeAcDropdown();
-    carregarFotoPersonagemExistente();
-    renderSugestoesColegas();
-    const vozEl = $('#voiceMainInput');
-    if (vozEl && vozEl.offsetParent !== null && !vozEl.value.trim()) vozEl.focus();
+    // Selecionar pessoa existente → abre a ficha dela para adicionar entrada
+    openModal(item.dataset.acId);
   });
 
   // Botão "Buscar pessoa existente" → abre mini modal de busca
@@ -5103,12 +5078,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         const pname = btn.dataset.name;
         try {
           const { error } = await sb.from('entries').insert({
+            id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
             person_id: pid,
             project,
-            // Mesma regra do resto do app: voz em branco vira "(voz não
-            // definida)". Com string vazia a pessoa entrava no projeto como
-            // uma linha em branco na Ordem de dublagem.
-            voice: voz || '(voz não definida)',
+            voice: voz,
             date: data || null
           });
           if (error) throw error;
@@ -5563,10 +5536,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     // === MODO EDITAR: só salva nome e foto, não mexe em projetos ===
     if (isEditing){
-      // Guarda antes: closeModal() limpa o "de onde eu vim". Sem isto o modo
-      // Editar sempre fechava pro fundo da tela, mesmo tendo sido aberto de
-      // dentro de um projeto.
-      const voltarParaProjEdit = modalOrigemProjeto;
       $('#saveModalBtn').disabled = true;
       $('#saveModalBtn').textContent = 'Salvando…';
       try {
@@ -5587,10 +5556,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         await loadPeople();
         invalidarCacheSimilares();
         showToast('✅ Ficha atualizada.');
-        if (voltarParaProjEdit){
-          try { await openProjetoModal(voltarParaProjEdit); }
-          catch(errReab){ console.error('Erro ao reabrir o projeto:', errReab); }
-        }
       } catch(e){
         showToast('Erro ao salvar: '+(e.message||''));
       } finally {
@@ -5600,185 +5565,158 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
 
-    // === MODO NOVA FICHA: cria a ficha, com projeto+voz opcionais (podem ser
-    // preenchidos depois, quando essa pessoa entrar em algum projeto) ===
+    // ============================================================
+    // === MODO NOVA FICHA — REESCRITO DO ZERO ===
+    // Arquitetura: gera o ID no app, insere, e DEPOIS relê do banco pra
+    // CONFIRMAR que gravou de verdade. Todo erro aparece num popup que
+    // fica na tela (sem depender do Console).
+    // ============================================================
     const voz = $('#voiceMainInput').value.trim();
-    const projeto = projetoForcadoModal || $('#projMainInput').value.trim();
+    const projeto = $('#projMainInput').value.trim();
     const data = $('#dateMainInput').value.trim();
 
-    // Verifica se o projeto existe (só quando foi preenchido).
-    // Projeto travado (o modal foi aberto de dentro de um projeto, ou é um
-    // coadjuvante) pula a checagem: ele já existe por construção, e projeto de
-    // coadjuvante nem aparece em todosOsProjetos() de propósito — era por isso
-    // que "+ Adicionar coadjuvante" nunca conseguia salvar.
+    // 1) Resolve o projeto (se preenchido, precisa existir)
     let projetoCanonico = null;
-    if (projetoForcadoModal){
-      projetoCanonico = projetoForcadoModal;
-    } else if (projeto){
+    if (projeto){
       const todosProjs = todosOsProjetos();
       const projLower = projeto.toLowerCase();
-      if (!todosProjs.some(p => p.toLowerCase() === projLower)){
+      const achado = todosProjs.find(p => p.toLowerCase() === projLower);
+      if (!achado){
         showToast('Projeto não existe. Crie em: Projetos → + Novo projeto');
         $('#projMainInput').focus();
         return;
       }
-      // Usa o nome canônico (caso o admin tenha digitado com case diferente)
-      projetoCanonico = todosProjs.find(p => p.toLowerCase() === projLower);
+      projetoCanonico = achado;
     } else if (voz){
-      // Preencheu a voz mas não o projeto — marca sozinho como "sem projeto
-      // ainda", sem pedir nada a mais pro admin. Fica visível na ficha da
-      // pessoa, e quando ela entrar num projeto de verdade essa entrada
-      // pode virar a de verdade (ou ficar como está, sem problema).
       projetoCanonico = SEM_PROJETO;
     }
 
-    // Se marcou "é coadjuvante" e tem um projeto de verdade (não o "sem
-    // === DETECÇÃO DE FICHAS SIMILARES ===
-    // Só roda quando tem projeto preenchido — o botão "Usar este" do popup
-    // vincula a ficha existente a ESSE projeto, então sem projeto não faz
-    // sentido mostrar o popup (a pessoa está só cadastrando uma ficha solta,
-    // sem vínculo ainda).
+    // 2) Checagem de duplicata (só quando há projeto de verdade)
     if (projetoCanonico){
       const similares = detectarFichasSimilares(name);
       if (similares.length > 0){
-        // Marca cada similar com info se já está no projeto atual (pra o admin ver o contexto)
         const projLower2 = projetoCanonico.toLowerCase();
         const similaresComContexto = similares.map(s => {
           const pessoa = mainPeople().find(p => p.id === s.id);
-          const jaNoProjeto = !!(pessoa && pessoa.entries.some(e =>
-            (e.project||'').trim().toLowerCase() === projLower2
-          ));
+          const jaNoProjeto = !!(pessoa && pessoa.entries.some(e => (e.project||'').trim().toLowerCase() === projLower2));
           return { ...s, jaNoProjeto };
         });
-
-        // Mostra popup — apresenta TODOS os similares (mesmo os que já estão no projeto)
         const escolha = await confirmarDuplicataFicha(name, similaresComContexto, projetoCanonico, voz, data);
         if (escolha === 'adicionou_existente'){
-          const voltarPara = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
+          const voltarPara = modalOrigemProjeto;
           closeModal();
           if (voltarPara) openProjetoModal(voltarPara);
           return;
         } else if (escolha === 'cancelou'){
           return;
         }
-        // 'continuar' → segue com o cadastro normal abaixo
       }
     }
 
-    // Voz em branco com projeto definido: grava "(voz não definida)" — o mesmo
-    // texto que o fluxo "🔍 Adicionar ficha existente" usa. Com string vazia a
-    // pessoa entrava no projeto mas aparecia como uma linha em branco na Ordem
-    // de dublagem, o que dava a impressão de que o botão não tinha funcionado.
-    const cleanEntries = projetoCanonico
-      ? [{ project: projetoCanonico, voice: voz || '(voz não definida)', date: data }]
-      : [];
-
-    // Diagnóstico: se veio de dentro de um projeto (origemProjeto) mas por
-    // algum motivo o campo de projeto ficou vazio, a ficha seria criada
-    // "solta" e não apareceria no projeto. Avisa em vez de falhar calado.
-    if (modalOrigemProjeto && !projetoCanonico){
-      showToast('⚠️ O campo "Projeto" ficou vazio — a ficha não será vinculada a "'+modalOrigemProjeto+'". Preencha o projeto e a voz.');
-    }
-
+    // 3) Grava — gerando IDs no app (não depende do banco devolver nada)
     $('#saveModalBtn').disabled = true;
     $('#saveModalBtn').textContent = 'Salvando…';
 
-    const person = {
-      id: null,
-      name,
-      hasPhoto: false,
-      entries: cleanEntries,
-      _existsInDb: false
-    };
-    const resultado = await savePerson(person);
-    const savedId = resultado.id;
-    if (!savedId){
+    const novoPersonId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+
+    // 3a) Cria a pessoa
+    const { error: errPessoa } = await sb.from('people')
+      .insert({ id: novoPersonId, name: name, has_photo: false });
+
+    if (errPessoa){
       $('#saveModalBtn').disabled = false;
       $('#saveModalBtn').textContent = 'Salvar ficha';
-      // A pessoa NÃO foi criada no banco — isso é o que fazia a ficha "sumir
-      // de tudo" (nem em Todas as fichas ela aparecia). Mostra o motivo real
-      // num popup que fica na tela até fechar.
       mostrarErroPersistente(
-        'A ficha NÃO foi criada',
-        `O banco de dados recusou criar a pessoa "${name}".\n\nMotivo técnico: ${resultado.pessoaErro||'desconhecido'}\n\nProvável causa: falta permissão de inserção na tabela "people". Rode o SQL-corrigir-permissoes-entries.sql no Supabase.`
+        'Não foi possível criar a ficha',
+        `O banco recusou criar a pessoa "${name}".\n\nMotivo: ${errPessoa.message || JSON.stringify(errPessoa)}\n\nCódigo: ${errPessoa.code || '—'}`
       );
       return;
     }
 
-    // Aplica a mudança de foto da pessoa
-    if (pendingPhoto === null){
-      await deletePhoto(savedId);
-      await sb.from('people').update({ has_photo: false }).eq('id', savedId);
-    } else if (typeof pendingPhoto === 'string'){
-      const ok = await savePhoto(savedId, pendingPhoto);
-      await sb.from('people').update({ has_photo: ok }).eq('id', savedId);
+    // 3b) Verifica DE VERDADE se a pessoa foi criada (relê do banco)
+    const { data: confPessoa } = await sb.from('people').select('id').eq('id', novoPersonId).maybeSingle();
+    if (!confPessoa){
+      $('#saveModalBtn').disabled = false;
+      $('#saveModalBtn').textContent = 'Salvar ficha';
+      mostrarErroPersistente(
+        'A ficha não foi gravada',
+        `O comando de criar "${name}" foi aceito, mas ao reler do banco a ficha não estava lá.\n\nIsso é típico de bloqueio de permissão (RLS) silencioso. Rode o SQL-seguranca-completa.sql no Supabase e confirme que você está logado como admin.`
+      );
+      return;
     }
 
-    // Cria as SUGESTÕES marcadas — colegas de cena + pessoas extras
-    let criadasSugestoes = 0;
-    if (sugestoesMarcadas.size > 0){
-      for (const chave of sugestoesMarcadas){
-        let sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave);
-        if (!sug){
-          sug = pessoasExtras.find(s => `${s.personId}||__extra__` === chave);
-        }
-        if (!sug) continue;
-
-        try {
-          let personIdReal = sug.personId;
-          if (sug._nova){
-            const { data: novaPessoa, error: errNova } = await sb.from('people')
-              .insert({ name: sug.personName, has_photo: false })
-              .select('id')
-              .single();
-            if (errNova || !novaPessoa){ console.error('Erro ao criar pessoa nova:', errNova); continue; }
-            personIdReal = novaPessoa.id;
-          }
-          const { error: errSug } = await sb.from('entries').insert({
-            person_id: personIdReal,
-            project: projetoCanonico,
-            voice: sug.voice || voz,
-            date: data || null
-          });
-          if (errSug){ console.error('Erro criando entrada da sugestão:', errSug); continue; }
-          criadasSugestoes++;
-        } catch(e){
-          console.error('Erro criando sugestão:', e);
-        }
+    // 3c) Cria a entrada (voz+projeto), se houver
+    let entradaOk = true;
+    let entradaErroMsg = '';
+    if (projetoCanonico){
+      const novoEntryId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      const { error: errEntry } = await sb.from('entries').insert({
+        id: novoEntryId,
+        person_id: novoPersonId,
+        project: projetoCanonico,
+        voice: voz,
+        date: data || null
+      });
+      if (errEntry){
+        entradaOk = false;
+        entradaErroMsg = errEntry.message || JSON.stringify(errEntry);
       }
     }
 
-    const voltarParaProjeto = modalOrigemProjeto; // guarda antes, pois closeModal() não mexe nisso
+    // 3d) Aplica foto (se houver)
+    if (typeof pendingPhoto === 'string'){
+      const okFoto = await savePhoto(novoPersonId, pendingPhoto);
+      if (okFoto) await sb.from('people').update({ has_photo: true }).eq('id', novoPersonId);
+    }
+
+    // 4) Cria as sugestões marcadas (colegas de cena / extras)
+    let criadasSugestoes = 0;
+    if (sugestoesMarcadas.size > 0){
+      for (const chave of sugestoesMarcadas){
+        let sug = sugestoesDisponiveis.find(s => `${s.personId}||${s.projetoOrigem}` === chave)
+               || pessoasExtras.find(s => `${s.personId}||__extra__` === chave);
+        if (!sug) continue;
+        try {
+          let pid = sug.personId;
+          if (sug._nova){
+            const npid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+            const { error: e1 } = await sb.from('people').insert({ id: npid, name: sug.personName, has_photo: false });
+            if (e1){ continue; }
+            pid = npid;
+          }
+          const { error: e2 } = await sb.from('entries').insert({
+            id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
+            person_id: pid, project: projetoCanonico, voice: sug.voice || voz, date: data || null
+          });
+          if (!e2) criadasSugestoes++;
+        } catch(e){}
+      }
+    }
+
+    // 5) Recarrega e fecha
+    const voltarParaProjeto = modalOrigemProjeto;
     $('#saveModalBtn').disabled = false;
     $('#saveModalBtn').textContent = 'Salvar ficha';
     closeModal();
     await loadPeople();
     await loadProjectMeta();
     invalidarCacheSimilares();
-    if (!resultado.entriesOk){
-      // A pessoa foi criada, mas a entrada do projeto NÃO. Mostra um popup
-      // que FICA na tela até fechar (o toast some rápido demais pra ler/printar).
+
+    // 6) Feedback final
+    if (!entradaOk){
       mostrarErroPersistente(
-        'A ficha não foi vinculada ao projeto',
-        `A pessoa "${name}" foi criada, mas a entrada no projeto "${projetoCanonico||'(nenhum)'}" foi rejeitada pelo banco de dados.\n\nMotivo técnico: ${resultado.entriesErro}`
+        'Ficha criada, mas sem vínculo ao projeto',
+        `A pessoa "${name}" foi criada e aparece em "Todas as fichas", mas a entrada no projeto "${projetoCanonico}" falhou.\n\nMotivo: ${entradaErroMsg}`
       );
     } else {
       showToast(criadasSugestoes > 0
-        ? `✅ Ficha salva! +${criadasSugestoes} personagem${criadasSugestoes===1?'':'s'} adicionado${criadasSugestoes===1?'':'s'} juntos.`
+        ? `✅ Ficha salva! +${criadasSugestoes} adicionada${criadasSugestoes===1?'':'s'} junto.`
         : '✅ Ficha salva!');
     }
+
     if (voltarParaProjeto){
-      // Veio de dentro de um projeto (botão "✨ Criar nova ficha") — volta
-      // pro modal desse projeto já atualizado, em vez de deixar o admin
-      // "caído" na tela de fundo sem ver a ficha nova na lista.
-      // Usa await + try/catch: se der erro aqui, sem isso o app falhava
-      // caladinho e só parecia "não fez nada".
-      try {
-        await openProjetoModal(voltarParaProjeto);
-      } catch(errReopen){
-        console.error('Erro ao reabrir o projeto após salvar ficha:', errReopen);
-        showToast('⚠️ Ficha salva, mas não consegui reabrir o projeto automaticamente: '+(errReopen.message||'erro desconhecido'));
-      }
+      try { await openProjetoModal(voltarParaProjeto); }
+      catch(err){ showToast('Ficha salva, mas não consegui reabrir o projeto.'); }
     }
   });
 
@@ -5947,16 +5885,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const ok = await confirmarEExcluirFicha(person, { fecharModalDepois: true, btnParaDesabilitar: btn });
     if (ok) closeModal();
   });
-  // Clicar no fundo fecha — mas com a proteção de mousedown/mouseup. Sem ela,
-  // selecionar texto num campo e escorregar o mouse pra fora do modal contava
-  // como clique no fundo e fechava o modal no meio do preenchimento. E se o
-  // modal veio de dentro de um projeto, volta pro modal desse projeto em vez
-  // de largar o admin na tela de fundo.
-  fecharAoClicarFora(modalOverlay, () => {
-    const voltarPara = modalOrigemProjeto;
-    closeModal();
-    if (voltarPara) openProjetoModal(voltarPara);
-  });
+  modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
 
   $('#addBtn').addEventListener('click', () => openModal(null));
   $('#fabAddBtn').addEventListener('click', () => openModal(null));
@@ -6848,22 +6777,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // da borda (comum perto das bordas de campos de texto) contava como um
   // clique no fundo, fechando o modal sem querer no meio da seleção.
   function fecharAoClicarFora(overlay, aoFechar){
-    // Overlays reaproveitados (#colOverlay, #colOverlay2, #modalOverlay) passam
-    // por aqui a CADA abertura. Sem esta guarda, cada abertura pendurava mais um
-    // par de listeners no mesmo elemento e os antigos continuavam rodando com o
-    // callback velho — daí modal fechando "sozinho" e projeto errado reabrindo.
-    // Agora o listener é registrado uma única vez e só o callback mais recente
-    // vale.
-    overlay._aoFecharFora = aoFechar;
-    if (overlay._fecharForaWired) return;
-    overlay._fecharForaWired = true;
     let mousedownNoFundo = false;
     overlay.addEventListener('mousedown', (e) => {
       mousedownNoFundo = (e.target === overlay);
     });
     overlay.addEventListener('click', (e) => {
-      const cb = overlay._aoFecharFora;
-      if (e.target === overlay && mousedownNoFundo && typeof cb === 'function') cb();
+      if (e.target === overlay && mousedownNoFundo) aoFechar();
       mousedownNoFundo = false;
     });
   }
@@ -8831,13 +8750,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           try {
             let personIdReal = pessoa.personId;
             if (pessoa._nova){
-              const { data: nova, error: errN } = await sb.from('people')
-                .insert({ name: pessoa.personName, has_photo: false })
-                .select('id').single();
-              if (errN || !nova){ console.error(errN); falhas.push(pessoa.personName); continue; }
-              personIdReal = nova.id;
+              const novoPid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+              const { error: errN } = await sb.from('people')
+                .insert({ id: novoPid, name: pessoa.personName, has_photo: false });
+              if (errN){ console.error(errN); falhas.push(pessoa.personName); continue; }
+              personIdReal = novoPid;
             }
             const { error: errE } = await sb.from('entries').insert({
+              id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
               person_id: personIdReal,
               project: state.nome,
               voice: pessoa.voice || '(voz não definida)',
@@ -9460,17 +9380,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   // abre o modal de ficha já preparado para criar um coadjuvante do projeto
   function openModalForCoadjuvante(baseProj){
-    // Passa pelo openModal() de propósito: ele é quem reseta TODOS os campos
-    // (voz, data, foto, sugestões, modo editar/novo) e mostra os campos
-    // [data-only-new]. A versão antiga mexia só no nome e no modalEntries — que
-    // o Salvar nem usa mais — então o modal podia abrir com os campos da ficha
-    // anterior ainda escondidos e o coadjuvante era criado sem projeto nenhum.
-    openModal(null, {
-      titulo: 'Novo coadjuvante',
-      suprimirSugestoesColegas: true,
-      origemProjeto: baseProj,
-      projetoForcado: baseProj + COADJ_SUFFIX
-    });
+    editingId = null;
+    $('#modalTitle').textContent = 'Novo coadjuvante';
+    $('#nameInput').value = '';
+    pendingPhoto = undefined;
+    modalEntries = [{ project: baseProj + COADJ_SUFFIX, voice:'' }];
+    renderModalEntries();
+    modalOverlay.classList.add('open');
+    setPhotoPreview(null);
+    $('#nameInput').focus();
   }
 
   function orderedVoicesForProject(project){
@@ -9698,6 +9616,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       card.style.pointerEvents = 'none';
       try {
         const { error } = await sb.from('entries').insert({
+          id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
           person_id: id,
           project,
           voice: vozPadrao,
@@ -10006,13 +9925,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         try {
           let personIdReal = pessoa.personId;
           if (pessoa._nova){
-            const { data: nova, error: errN } = await sb.from('people')
-              .insert({ name: pessoa.personName, has_photo: false })
-              .select('id').single();
-            if (errN || !nova){ console.error(errN); continue; }
-            personIdReal = nova.id;
+            const novoPid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+            const { error: errN } = await sb.from('people')
+              .insert({ id: novoPid, name: pessoa.personName, has_photo: false });
+            if (errN){ console.error(errN); continue; }
+            personIdReal = novoPid;
           }
           const { error: errE } = await sb.from('entries').insert({
+            id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
             person_id: personIdReal,
             project,
             voice: pessoa.voice || '(voz não definida)',
@@ -10793,16 +10713,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         // cadastrar, não precisa de sugestões de elenco — isso já existe
         // diretamente no modal do projeto (bloco de sugestões próprio).
         // origemProjeto: se o admin cancelar, volta pro modal deste projeto.
-        // O projeto vai travado (projetoForcado): o campo já abre preenchido e o
-        // Salvar usa esse valor direto. Antes o preenchimento era feito num
-        // setTimeout de 100ms que disparava o autocomplete por cima do campo e,
-        // se o modal ainda não estivesse montado, nem preenchia — e a ficha
-        // nascia sem vínculo nenhum com o projeto.
-        openModal(null, {
-          suprimirSugestoesColegas: true,
-          origemProjeto: project,
-          projetoForcado: project
-        });
+        openModal(null, { suprimirSugestoesColegas: true, origemProjeto: project });
+        // Pré-preenche o campo de projeto no modal Nova ficha (já disponível no novo formato)
+        setTimeout(()=>{
+          const projInp = $('#projMainInput');
+          if (projInp){
+            projInp.value = project;
+            projInp.dispatchEvent(new Event('input', {bubbles:true}));
+          }
+          const nameInp = $('#nameInput');
+          if (nameInp) nameInp.focus();
+        }, 100);
       });
 
       // === COLEÇÃO E FRANQUIA ===
