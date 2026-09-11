@@ -422,6 +422,96 @@
   .painel-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media(max-width:640px){ .painel-grid{ grid-template-columns:1fr; } }
   .painel-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
+
+  /* ===== PAINEL DE PRODUÇÃO — estilo missões/jogo ===== */
+  .prod-hero{
+    background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 45%,#3B82F6 100%);
+    border-radius:20px; padding:24px 26px; color:#fff; margin-bottom:22px;
+    position:relative; overflow:hidden; box-shadow:0 12px 30px rgba(37,99,235,.28);
+  }
+  .prod-hero::after{
+    content:''; position:absolute; top:-40px; right:-30px; width:180px; height:180px;
+    background:radial-gradient(circle, rgba(255,255,255,.16), transparent 70%); border-radius:50%;
+  }
+  .prod-hero h1{ font-family:var(--font-head); font-size:26px; margin:0 0 4px; font-weight:800; position:relative; z-index:1; }
+  .prod-hero p{ margin:0; font-size:13.5px; opacity:.92; position:relative; z-index:1; }
+  .prod-hero-stats{ display:flex; gap:22px; margin-top:16px; position:relative; z-index:1; flex-wrap:wrap; }
+  .prod-hero-stat{ display:flex; flex-direction:column; }
+  .prod-hero-stat b{ font-size:24px; font-family:var(--font-head); font-weight:800; line-height:1; }
+  .prod-hero-stat span{ font-size:11px; opacity:.85; text-transform:uppercase; letter-spacing:.4px; margin-top:3px; }
+
+  .prod-filtro-btn{ transition:all .15s; }
+
+  /* Card de projeto (missão) */
+  .prod-proj-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:0; margin-bottom:18px; overflow:hidden; box-shadow:0 4px 16px rgba(15,23,42,.06);
+    transition:transform .18s, box-shadow .18s;
+  }
+  .prod-proj-card:hover{ transform:translateY(-2px); box-shadow:0 10px 26px rgba(15,23,42,.12); }
+  .prod-proj-head{
+    display:flex; align-items:center; gap:14px; padding:16px 18px;
+    background:linear-gradient(135deg, rgba(37,99,235,.06), rgba(37,99,235,.02));
+    border-bottom:1px solid var(--line);
+  }
+  .prod-proj-emoji{ font-size:30px; flex:0 0 auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,.1)); }
+  .prod-proj-title{ font-family:var(--font-head); font-weight:800; font-size:17px; flex:1; min-width:0; }
+  .prod-proj-progress-wrap{ flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+  .prod-ring{ position:relative; width:52px; height:52px; }
+  .prod-ring svg{ transform:rotate(-90deg); }
+  .prod-ring-txt{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:var(--blue-deep); font-family:var(--font-head);
+  }
+  .prod-ep-block{ padding:12px 18px; }
+  .prod-ep-title{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800;
+    color:var(--blue-deep); background:rgba(37,99,235,.08); padding:4px 12px; border-radius:20px;
+    margin-bottom:10px;
+  }
+
+  /* Card de missão (tarefa) */
+  .prod-mission{
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    border-radius:14px; margin-bottom:8px; border:1.5px solid var(--line);
+    background:var(--surface); transition:all .15s; position:relative;
+  }
+  .prod-mission:hover{ border-color:var(--stage-cor,#2563EB); }
+  .prod-mission.feita{ opacity:.6; }
+  .prod-mission.feita .prod-mission-stage{ text-decoration:line-through; }
+  .prod-mission.atrasada{ border-color:#FCA5A5; background:#FEF2F2; }
+  .prod-mission-icon{
+    width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    background:var(--stage-bg,#F1F5F9);
+  }
+  .prod-mission-body{ flex:1; min-width:0; }
+  .prod-mission-stage{ font-weight:800; font-size:14px; color:var(--ink); }
+  .prod-mission-meta{ font-size:11.5px; color:var(--muted); margin-top:2px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .prod-badge{ display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
+  .prod-badge.pessoa{ background:var(--stage-bg,#F1F5F9); color:var(--stage-cor,#334155); }
+  .prod-badge.prazo{ background:#F1F5F9; color:#475569; }
+  .prod-badge.atraso{ background:#FEE2E2; color:#DC2626; }
+  .prod-badge.parte{ background:#FEF3C7; color:#92400E; }
+  .prod-check{
+    width:26px; height:26px; border-radius:50%; border:2.5px solid var(--line);
+    flex:0 0 auto; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:15px; color:#fff; transition:all .15s; background:var(--surface);
+  }
+  .prod-check.on{ background:#10B981; border-color:#10B981; }
+  .prod-check:hover{ border-color:#10B981; }
+  .prod-del-mission{ background:none; border:none; cursor:pointer; font-size:14px; opacity:.4; padding:4px 6px; flex:0 0 auto; transition:opacity .15s; }
+  .prod-del-mission:hover{ opacity:1; }
+
+  /* Etapas do formulário viram "chips" clicáveis */
+  .stage-chip{
+    display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:12px;
+    border:2px solid var(--line); font-size:12.5px; font-weight:600; cursor:pointer;
+    transition:all .15s; user-select:none; background:var(--surface);
+  }
+  .stage-chip input{ display:none; }
+  .stage-chip:hover{ border-color:var(--chip-cor,#2563EB); }
+  .stage-chip.marcado{ border-color:var(--chip-cor,#2563EB); background:var(--chip-bg,#DBEAFE); color:var(--chip-cor,#2563EB); }
   .painel-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
   .backup-status{
     padding: 10px 14px;
@@ -3261,6 +3351,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let taskNotifs = [];    // notificações de tarefa do usuário logado
   // As etapas de produção, na ordem típica do fluxo
   const PRODUCAO_STAGES = ['Dublar', 'Revisar', 'Casting', 'Pós edição', 'Team Project', 'Renderizar', 'Dropbox', 'Controle de qualidade', 'Correção de qualidade', 'Finalizar'];
+  // Identidade visual de cada etapa (ícone + cor) — dá a "cara de missão"
+  const STAGE_INFO = {
+    'Dublar':                { ic:'🎙️', cor:'#2563EB', bg:'#DBEAFE' },
+    'Revisar':               { ic:'🔍', cor:'#7C3AED', bg:'#EDE9FE' },
+    'Casting':               { ic:'🎭', cor:'#DB2777', bg:'#FCE7F3' },
+    'Pós edição':            { ic:'✂️', cor:'#EA580C', bg:'#FFEDD5' },
+    'Team Project':          { ic:'🤝', cor:'#0891B2', bg:'#CFFAFE' },
+    'Renderizar':            { ic:'⚙️', cor:'#4F46E5', bg:'#E0E7FF' },
+    'Dropbox':               { ic:'☁️', cor:'#0284C7', bg:'#E0F2FE' },
+    'Controle de qualidade': { ic:'🛡️', cor:'#16A34A', bg:'#DCFCE7' },
+    'Correção de qualidade': { ic:'🔧', cor:'#CA8A04', bg:'#FEF9C3' },
+    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#D1FAE5' }
+  };
+  const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#64748B', bg:'#F1F5F9' };
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -11649,10 +11753,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
     const projetos = allProjectsList();
 
-    // Formulário de atribuir tarefa (só admin) — agora com episódio e parte
+    // Estatísticas gerais (pro hero)
+    const total = producaoTasks.length;
+    const feitas = producaoTasks.filter(t => t.done).length;
+    const minhas = producaoTasks.filter(t => t.assignee_user_id === myUserId && !t.done).length;
+    const pct = total ? Math.round(feitas/total*100) : 0;
+
     const formAdmin = isAdmin ? `
       <div class="painel-card" style="margin-bottom:20px;">
-        <div class="painel-title">➕ Atribuir tarefa</div>
+        <div class="painel-title">➕ Nova missão</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:10px;">
           <div class="field" style="margin:0;">
             <label>Projeto</label>
@@ -11681,17 +11790,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
           </div>
         </div>
-        <div class="field" style="margin:10px 0 0;">
-          <label>Etapas (uma tarefa por etapa marcada)</label>
-          <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-            ${PRODUCAO_STAGES.map(s => `
-              <label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;cursor:pointer;">
-                <input type="checkbox" class="prod-stage-check" value="${escapeHtml(s)}" style="accent-color:var(--blue);">
-                ${escapeHtml(s)}
-              </label>`).join('')}
+        <div class="field" style="margin:12px 0 0;">
+          <label>Etapas da missão (marque uma ou várias)</label>
+          <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+            ${PRODUCAO_STAGES.map(s => { const si = stageInfo(s); return `
+              <label class="stage-chip" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
+                <input type="checkbox" class="prod-stage-check" value="${escapeHtml(s)}">
+                <span style="font-size:15px;">${si.ic}</span> ${escapeHtml(s)}
+              </label>`; }).join('')}
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
           <div class="field" style="margin:0;">
             <label>Prioridade (1 = urgente)</label>
             <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
@@ -11701,25 +11810,46 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
           </div>
         </div>
-        <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">Atribuir tarefa(s)</button>
+        <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">🚀 Atribuir missão(ões)</button>
       </div>` : '';
 
-    const filtro = `
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:7px 14px;font-size:13px;">👤 Minhas tarefas</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:7px 14px;font-size:13px;">📋 Todas</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:7px 14px;font-size:13px;">⏳ Só pendentes</button>
-      </div>`;
-
     cont.innerHTML = `
-      <h1 style="font-family:var(--font-head);font-size:24px;margin:0 0 6px;">🎯 Produção</h1>
-      <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;">Delegue cada parte de cada episódio, com prazo. As tarefas entram na agenda de quem recebe.</p>
+      <div class="prod-hero">
+        <h1>🎯 Central de Produção</h1>
+        <p>Cada missão é uma etapa de um episódio. Complete-as e acompanhe o progresso da equipe.</p>
+        <div class="prod-hero-stats">
+          <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
+          <div class="prod-hero-stat"><b>${feitas}</b><span>concluídas</span></div>
+          <div class="prod-hero-stat"><b>${minhas}</b><span>suas pendentes</span></div>
+          <div class="prod-hero-stat"><b>${pct}%</b><span>progresso geral</span></div>
+        </div>
+      </div>
       ${formAdmin}
-      ${filtro}
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:8px 16px;font-size:13px;">⏳ Pendentes</button>
+      </div>
       <div id="prodListaTarefas"></div>`;
 
     wireProducaoForm();
     renderProducaoLista('minhas');
+  }
+
+  // Emoji "temático" pro projeto baseado no nome (dá personalidade a cada card)
+  function emojiDoProjeto(nome){
+    const n = (nome||'').toLowerCase();
+    if (/hero|herói|super/.test(n)) return '🦸';
+    if (/trilha|selva|aventura|jungle/.test(n)) return '🌴';
+    if (/discipl|estudo|bíbli|biblia|fé|deus/.test(n)) return '📖';
+    if (/infan|criança|kids/.test(n)) return '🧸';
+    if (/document|real/.test(n)) return '🎥';
+    if (/amor|romance|coração/.test(n)) return '💕';
+    if (/guerra|batalha|luta/.test(n)) return '⚔️';
+    if (/natal|festa/.test(n)) return '🎄';
+    const emojis = ['🎬','🎞️','🎦','📽️','🎪','🎨','🌟','🚀'];
+    let h=0; for (let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0;
+    return emojis[h % emojis.length];
   }
 
   function renderProducaoLista(filtro){
@@ -11727,8 +11857,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (!box) return;
 
     document.querySelectorAll('.prod-filtro-btn').forEach(b => {
-      b.style.background = b.dataset.filtro === filtro ? 'var(--blue)' : '';
-      b.style.color = b.dataset.filtro === filtro ? '#fff' : '';
+      const on = b.dataset.filtro === filtro;
+      b.style.background = on ? 'var(--blue)' : '';
+      b.style.color = on ? '#fff' : '';
+      b.style.borderColor = on ? 'var(--blue)' : '';
     });
 
     let tarefas = [...producaoTasks];
@@ -11736,7 +11868,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
 
     if (tarefas.length === 0){
-      box.innerHTML = `<div class="empty-state" style="padding:30px;"><p style="color:var(--muted);">Nenhuma tarefa ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p></div>`;
+      box.innerHTML = `
+        <div style="text-align:center;padding:50px 20px;background:var(--surface);border-radius:16px;border:2px dashed var(--line);">
+          <div style="font-size:48px;margin-bottom:10px;">🗂️</div>
+          <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
+          ${isAdmin && filtro!=='minhas' ? '<p style="color:var(--muted);font-size:12.5px;">Use o formulário acima pra criar a primeira!</p>' : ''}
+        </div>`;
       return;
     }
 
@@ -11749,40 +11886,58 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
 
     box.innerHTML = Object.entries(porProjeto).map(([proj, episodios]) => {
+      // progresso do projeto
+      const todasProj = Object.values(episodios).flat();
+      const feitasProj = todasProj.filter(t=>t.done).length;
+      const pctProj = todasProj.length ? Math.round(feitasProj/todasProj.length*100) : 0;
+      const circ = 2 * Math.PI * 22; // raio 22
+      const dash = circ * (pctProj/100);
+
       const blocosEp = Object.entries(episodios).map(([ep, lista]) => {
         lista.sort((a,b) => (a.priority-b.priority) || ((a.due_date||'zzz').localeCompare(b.due_date||'zzz')));
-        const linhas = lista.map(t => {
+        const missoes = lista.map(t => {
+          const si = stageInfo(t.stage);
           const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
           const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
           const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
-          const parteTxt = t.part ? ` · Parte ${escapeHtml(t.part)}` : '';
           return `
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;${t.done?'opacity:.55;':''}">
-              <div style="flex:0 0 auto;">
-                ${podeMarcar ? `<input type="checkbox" class="prod-done-check" data-task="${t.id}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#10B981;cursor:pointer;">` : (t.done?'✅':'⏳')}
-              </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:13.5px;${t.done?'text-decoration:line-through;':''}">
-                  ${escapeHtml(t.stage)}${parteTxt}
-                  <span style="font-weight:400;color:var(--muted);font-size:12px;">· ${escapeHtml(t.assignee_name||'—')}</span>
-                </div>
-                <div style="font-size:11.5px;color:${atrasada?'#DC2626':'var(--muted)'};font-weight:${atrasada?'700':'400'};">
-                  ⏱ ${prazoTxt}${atrasada?' (atrasada!)':''} · prioridade ${t.priority}
-                  ${t.notes?` · ${escapeHtml(t.notes)}`:''}
+            <div class="prod-mission ${t.done?'feita':''} ${atrasada?'atrasada':''}" style="--stage-cor:${si.cor};--stage-bg:${si.bg};">
+              <div class="prod-mission-icon">${si.ic}</div>
+              <div class="prod-mission-body">
+                <div class="prod-mission-stage">${escapeHtml(t.stage)}</div>
+                <div class="prod-mission-meta">
+                  <span class="prod-badge pessoa">${escapeHtml(t.assignee_name||'—')}</span>
+                  ${t.part?`<span class="prod-badge parte">📑 Parte ${escapeHtml(t.part)}</span>`:''}
+                  <span class="prod-badge ${atrasada?'atraso':'prazo'}">⏱ ${prazoTxt}${atrasada?' • atrasada':''}</span>
+                  ${t.notes?`<span style="color:var(--muted);">• ${escapeHtml(t.notes)}</span>`:''}
                 </div>
               </div>
-              ${isAdmin ? `<button class="prod-del-btn" data-task="${t.id}" title="Excluir tarefa" style="flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:4px 8px;">🗑️</button>` : ''}
+              ${podeMarcar ? `<div class="prod-check ${t.done?'on':''}" data-task="${t.id}" title="${t.done?'Concluída':'Marcar como feita'}">${t.done?'✓':''}</div>` : (t.done?'<div style="font-size:20px;">✅</div>':'<div style="font-size:18px;opacity:.5;">⏳</div>')}
+              ${isAdmin ? `<button class="prod-del-mission" data-task="${t.id}" title="Excluir missão">🗑️</button>` : ''}
             </div>`;
         }).join('');
         return `
-          <div style="margin-bottom:12px;">
-            <div style="font-size:12.5px;font-weight:700;color:var(--blue-deep);margin-bottom:6px;">📺 Episódio ${escapeHtml(ep)}</div>
-            ${linhas}
+          <div class="prod-ep-block">
+            <div class="prod-ep-title">📺 Episódio ${escapeHtml(ep)}</div>
+            ${missoes}
           </div>`;
       }).join('');
+
       return `
-        <div class="painel-card" style="margin-bottom:14px;">
-          <div style="font-weight:800;font-size:15px;margin-bottom:12px;">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+        <div class="prod-proj-card">
+          <div class="prod-proj-head">
+            <div class="prod-proj-emoji">${emojiDoProjeto(proj)}</div>
+            <div class="prod-proj-title">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+            <div class="prod-proj-progress-wrap">
+              <div class="prod-ring">
+                <svg width="52" height="52">
+                  <circle cx="26" cy="26" r="22" fill="none" stroke="var(--line)" stroke-width="5"/>
+                  <circle cx="26" cy="26" r="22" fill="none" stroke="${pctProj===100?'#10B981':'#2563EB'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/>
+                </svg>
+                <div class="prod-ring-txt">${pctProj}%</div>
+              </div>
+            </div>
+          </div>
           ${blocosEp}
         </div>`;
     }).join('');
@@ -11792,6 +11947,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   function wireProducaoForm(){
     document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+
+    // Chips de etapa (visual marcado/desmarcado)
+    document.querySelectorAll('.stage-chip').forEach(chip => {
+      const inp = chip.querySelector('input');
+      chip.addEventListener('click', (e) => {
+        if (e.target !== inp){ inp.checked = !inp.checked; }
+        chip.classList.toggle('marcado', inp.checked);
+      });
+    });
 
     const btnCriar = $('#prodCriarBtn');
     if (btnCriar) btnCriar.addEventListener('click', async () => {
@@ -11813,16 +11977,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       try {
         for (const stage of etapas){
           const taskId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
-          // Texto que vai pra agenda do responsável
           const partesTxt = [
             nomeProjetoExibicao(projeto),
             episodio ? `Ep ${episodio}` : '',
             parte ? `Parte ${parte}` : '',
             stage
           ].filter(Boolean).join(' · ');
-          // Cria o item na agenda do responsável (se tiver prazo)
           const agendaId = prazo ? await criarItemAgenda(userId, prazo, `🎬 ${partesTxt}`, taskId) : null;
-          // Cria a tarefa
           const { error } = await sb.from('production_tasks').insert({
             id: taskId, project: projeto, episode: episodio||null, part: parte||null,
             assignee_user_id: userId, assignee_name: perfil.display_name||'Ninja',
@@ -11830,67 +11991,62 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             created_by: myEmail||null, agenda_note_id: agendaId
           });
           if (error) throw error;
-          // Notificação
           try {
             await sb.from('task_notifications').insert({
               id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
               user_id: userId, task_id: taskId, project: projeto, stage,
-              message: `Nova tarefa: ${stage} — ${partesTxt}`, read: false
+              message: `Nova missão: ${stage} — ${partesTxt}`, read: false
             });
           } catch(e){}
         }
-
         await loadProducaoTasks();
         await loadTaskNotifs();
         if (userId === myUserId) await loadAgenda();
         renderProducao();
-        showToast(`✅ ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}.`);
+        showToast(`🚀 ${etapas.length} missão${etapas.length===1?'':'ões'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}!`);
       } catch(err){
         showToast('Erro ao atribuir: '+(err.message||''));
-        btnCriar.disabled = false; btnCriar.textContent = 'Atribuir tarefa(s)';
+        btnCriar.disabled = false; btnCriar.textContent = '🚀 Atribuir missão(ões)';
       }
     });
   }
 
   function wireProducaoLista(){
-    // marcar como feita / desmarcar — também marca o item na agenda
-    document.querySelectorAll('.prod-done-check').forEach(cb => cb.addEventListener('change', async () => {
-      const taskId = cb.dataset.task;
-      const feita = cb.checked;
+    // marcar/desmarcar (clique no círculo)
+    document.querySelectorAll('.prod-check[data-task]').forEach(ck => ck.addEventListener('click', async () => {
+      const taskId = ck.dataset.task;
       const t = producaoTasks.find(x => x.id === taskId);
+      if (!t) return;
+      const feita = !t.done;
       try {
         await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', taskId);
-        if (t){
-          t.done = feita; t.done_at = feita?new Date().toISOString():null;
-          // reflete na agenda (marca o checklist como feito também)
-          if (t.agenda_note_id){
-            try { await sb.from('agenda_notes').update({ done: feita }).eq('id', t.agenda_note_id); } catch(e){}
-            if (t.assignee_user_id === myUserId) await loadAgenda();
-          }
+        t.done = feita; t.done_at = feita?new Date().toISOString():null;
+        if (t.agenda_note_id){
+          try { await sb.from('agenda_notes').update({ done: feita }).eq('id', t.agenda_note_id); } catch(e){}
+          if (t.assignee_user_id === myUserId) await loadAgenda();
         }
-        showToast(feita ? '✅ Tarefa concluída!' : 'Tarefa reaberta.');
-      } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked = !feita; }
+        renderProducao();
+        showToast(feita ? '✅ Missão concluída!' : 'Missão reaberta.');
+      } catch(err){ showToast('Erro: '+(err.message||'')); }
     }));
 
-    // excluir tarefa (admin) — também apaga o item da agenda do responsável
-    document.querySelectorAll('.prod-del-btn').forEach(btn => btn.addEventListener('click', async () => {
+    // excluir (admin)
+    document.querySelectorAll('.prod-del-mission[data-task]').forEach(btn => btn.addEventListener('click', async () => {
       const taskId = btn.dataset.task;
       const t = producaoTasks.find(x => x.id === taskId);
       const ok = await confirmarBonito({
-        titulo: 'Excluir tarefa?',
-        mensagem: 'Isso remove a tarefa e o item dela na agenda do responsável.',
+        titulo: 'Excluir missão?',
+        mensagem: 'Isso remove a missão e o item dela na agenda do responsável.',
         textoBotao: '🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️'
       });
       if (!ok) return;
       try {
-        // apaga o item de agenda vinculado
         if (t && t.agenda_note_id) await apagarItemAgendaDaTarefa(t.agenda_note_id);
         await sb.from('production_tasks').delete().eq('id', taskId);
         producaoTasks = producaoTasks.filter(x => x.id !== taskId);
         if (t && t.assignee_user_id === myUserId) await loadAgenda();
-        const filtroAtivo = document.querySelector('.prod-filtro-btn[style*="rgb(37"]')?.dataset.filtro || 'todas';
-        renderProducaoLista(filtroAtivo);
-        showToast('Tarefa excluída.');
+        renderProducao();
+        showToast('Missão excluída.');
       } catch(err){ showToast('Erro: '+(err.message||'')); }
     }));
   }
