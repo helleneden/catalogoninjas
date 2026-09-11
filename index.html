@@ -527,6 +527,14 @@
   .kb-vazio{ text-align:center; color:var(--muted); font-size:12px; padding:24px 0; }
   .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
 
+  /* Layout de 2 colunas: tarefas (larga) + chat (estreita) */
+  .prod-layout{ display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; }
+  .prod-chat-col{ position:relative; }
+  @media (max-width:900px){
+    .prod-layout{ grid-template-columns:1fr; }
+    .prod-chat-col .painel-card{ position:static !important; }
+  }
+
   /* Toggle Episódio / Filme */
   .ep-toggle{ display:inline-flex; background:var(--bg); border-radius:8px; padding:2px; gap:1px; }
   .ep-toggle-opt{
@@ -7921,7 +7929,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     try{
       const { data } = await sb.from('production_tasks')
         .select('*').order('priority', { ascending:true }).order('due_date', { ascending:true, nullsFirst:false });
-      producaoTasks = data || [];
+      producaoTasks = (data || []).map(t => {
+        // Se o nome do responsável não veio salvo, busca do perfil pelo user_id
+        if (!t.assignee_name && t.assignee_user_id){
+          const perfil = profilesByUser[t.assignee_user_id];
+          if (perfil) t.assignee_name = perfil.display_name;
+        }
+        return t;
+      });
     }catch(e){ producaoTasks = []; }
   }
 
@@ -9233,6 +9248,34 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       conf.querySelector('#cbYes').addEventListener('click', () => cleanup(true));
       conf.addEventListener('click', (e) => { if (e.target === conf) cleanup(false); });
       const escHandler = (e) => { if (e.key === 'Escape') cleanup(false); };
+      document.addEventListener('keydown', escHandler);
+    });
+  }
+
+  // Popup pra pedir um texto (usado na observação da tarefa). Retorna
+  // Promise<string|null> — null se cancelou.
+  function pedirTextoBonito({titulo='Escreva algo', placeholder='', valorInicial='', textoBotao='Salvar'}={}){
+    return new Promise(resolve => {
+      const conf = document.createElement('div');
+      conf.className = 'modal-overlay confirm-overlay open';
+      conf.style.zIndex = '10005';
+      conf.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:420px;">
+          <h2 style="text-align:center; margin:4px 0 14px;">${escapeHtml(titulo)}</h2>
+          <textarea id="ptbInput" placeholder="${escapeHtml(placeholder)}" style="width:100%;min-height:90px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;resize:vertical;box-sizing:border-box;">${escapeHtml(valorInicial)}</textarea>
+          <div class="confirm-actions" style="margin-top:14px;">
+            <button class="btn-ghost" id="ptbCancel">Cancelar</button>
+            <button class="btn-primary" id="ptbYes">${escapeHtml(textoBotao)}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(conf);
+      const ta = conf.querySelector('#ptbInput');
+      setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 50);
+      const cleanup = (r) => { conf.classList.remove('open'); setTimeout(() => conf.remove(), 200); document.removeEventListener('keydown', escHandler); resolve(r); };
+      conf.querySelector('#ptbCancel').addEventListener('click', () => cleanup(null));
+      conf.querySelector('#ptbYes').addEventListener('click', () => cleanup(ta.value.trim()));
+      conf.addEventListener('click', (e) => { if (e.target === conf) cleanup(null); });
+      const escHandler = (e) => { if (e.key === 'Escape') cleanup(null); };
       document.addEventListener('keydown', escHandler);
     });
   }
@@ -11895,10 +11938,47 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <button class="prod-vista-btn" data-vista="kanban" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:none;font-weight:700;color:var(--muted);">📋 Kanban</button>
         </div>
       </div>
-      <div id="prodListaTarefas"></div>`;
+      <div class="prod-layout">
+        <div id="prodListaTarefas"></div>
+        <div class="prod-chat-col">
+          <div class="painel-card" style="position:sticky;top:16px;">
+            <div class="painel-title">💬 Chat do dia <span style="font-size:10.5px;color:var(--muted);font-weight:400;">(some à meia-noite)</span></div>
+            <div class="chat-wrap">
+              <div class="chat-msgs" id="chatMsgs" style="max-height:420px;">${renderChatMsgs()}</div>
+              <div class="chat-input-row" style="position:relative;">
+                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… @nome" rows="1"></textarea>
+                <button class="btn-primary" id="chatSend" style="padding:8px 12px;font-size:12.5px;white-space:nowrap;">↑</button>
+                <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
 
     wireProducaoForm();
+    wireChatProducao(); // liga o chat que está agora dentro da produção
     renderProducaoLista('minhas');
+  }
+
+  // Liga os eventos do chat quando ele está dentro da aba Produção
+  // (o chat do Meu Painel usa delegação no painelContent; aqui é separado).
+  function wireChatProducao(){
+    const cont = $('#producaoContent');
+    if (!cont) return;
+    const send = cont.querySelector('#chatSend');
+    const input = cont.querySelector('#chatInput');
+    if (send) send.addEventListener('click', () => sendChatMsg());
+    if (input){
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMsg(); }
+      });
+      input.addEventListener('input', (e) => { try { handleChatMention(e); } catch(err){} });
+    }
+    // reações e emoji: delegação dentro do container de produção
+    cont.addEventListener('click', (e) => {
+      const react = e.target.closest('[data-react]');
+      if (react){ toggleReaction(react.dataset.react, react.dataset.emoji); return; }
+    });
   }
 
   // Emoji "temático" pro projeto baseado no nome (dá personalidade a cada card)
@@ -11973,19 +12053,23 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           const si = stageInfo(t.stage);
           const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
           const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
-          const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+          const podeMarcar = t.assignee_user_id === myUserId; // só o responsável marca
+          const perfil = profilesByUser[t.assignee_user_id] || {};
+          const ninjaImg = NINJAS[perfil.ninja_color||'azul'] || NINJAS.azul;
+          const temComentario = t.assignee_comment && t.assignee_comment.trim();
           return `
-            <div class="prod-mission ${t.done?'feita':''} ${atrasada?'atrasada':''}" style="--stage-cor:${si.cor};--stage-bg:${si.bg};">
+            <div class="prod-mission ${t.done?'feita':''} ${atrasada?'atrasada':''}" style="--stage-cor:${si.cor};--stage-bg:${si.bg};" ${temComentario?`title="💬 ${escapeHtml(t.assignee_comment)}"`:''}>
               <div class="prod-mission-icon">${si.ic}</div>
               <div class="prod-mission-body">
-                <div class="prod-mission-stage">${escapeHtml(t.stage)}</div>
+                <div class="prod-mission-stage">${escapeHtml(t.stage)}${t.part?` <span style="font-weight:600;color:var(--stage-cor);font-size:12.5px;">· Parte ${escapeHtml(t.part)}</span>`:''}</div>
                 <div class="prod-mission-meta">
-                  <span class="prod-badge pessoa">${escapeHtml(t.assignee_name||'—')}</span>
-                  ${t.part?`<span class="prod-badge parte">📑 Parte ${escapeHtml(t.part)}</span>`:''}
+                  <span class="prod-badge pessoa" style="padding-left:3px;"><img src="${ninjaImg}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;">${escapeHtml(t.assignee_name||'—')}</span>
                   <span class="prod-badge ${atrasada?'atraso':'prazo'}">⏱ ${prazoTxt}${atrasada?' • atrasada':''}</span>
-                  ${t.notes?`<span style="color:var(--muted);">• ${escapeHtml(t.notes)}</span>`:''}
+                  ${t.notes?`<span style="color:var(--muted);">📋 ${escapeHtml(t.notes)}</span>`:''}
+                  ${temComentario?`<span class="prod-badge" style="background:#FEF9C3;color:#854D0E;">💬 tem observação</span>`:''}
                 </div>
               </div>
+              ${podeMarcar ? `<button class="prod-comment-btn" data-comment="${t.id}" title="Adicionar observação" style="background:none;border:none;cursor:pointer;font-size:15px;opacity:${temComentario?'1':'.4'};padding:4px 6px;">💬</button>` : ''}
               ${podeMarcar ? `<div class="prod-check ${t.done?'on':''}" data-task="${t.id}" title="${t.done?'Concluída':'Marcar como feita'}">${t.done?'✓':''}</div>` : (t.done?'<div style="font-size:20px;">✅</div>':'<div style="font-size:18px;opacity:.5;">⏳</div>')}
               ${isAdmin ? `<button class="prod-del-mission" data-task="${t.id}" title="Excluir missão">🗑️</button>` : ''}
             </div>`;
@@ -12027,7 +12111,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const cards = doStage.map(t => {
         const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : 'sem prazo';
         const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
-        const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+        const podeMarcar = t.assignee_user_id === myUserId; // só o responsável marca
         const titulo = [nomeProjetoExibicao(t.project), t.episode ? (t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
         return `
           <div class="kb-card ${t.done?'feita':''} ${atrasada?'atrasada':''}">
@@ -12148,6 +12232,26 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   function wireProducaoLista(){
+    // botão de observação do responsável
+    document.querySelectorAll('.prod-comment-btn[data-comment]').forEach(btn => btn.addEventListener('click', async () => {
+      const taskId = btn.dataset.comment;
+      const t = producaoTasks.find(x => x.id === taskId);
+      if (!t) return;
+      const novo = await pedirTextoBonito({
+        titulo: '💬 Sua observação',
+        placeholder: 'Escreva uma observação sobre esta tarefa...',
+        valorInicial: t.assignee_comment || '',
+        textoBotao: 'Salvar'
+      });
+      if (novo === null) return; // cancelou
+      try {
+        await sb.from('production_tasks').update({ assignee_comment: novo||null }).eq('id', taskId);
+        t.assignee_comment = novo;
+        renderProducao();
+        showToast('💬 Observação salva.');
+      } catch(err){ showToast('Erro ao salvar observação: '+(err.message||'')); }
+    }));
+
     // marcar/desmarcar (clique no círculo)
     document.querySelectorAll('.prod-check[data-task]').forEach(ck => ck.addEventListener('click', async () => {
       const taskId = ck.dataset.task;
@@ -12198,7 +12302,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     painelContent.innerHTML = `
       <div class="painel-grid">
         ${renderPodio()}
-        ${renderChat()}
       </div>
       ${renderAgenda()}
       ${notifTarefasPanel}
