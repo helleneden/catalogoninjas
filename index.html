@@ -512,6 +512,20 @@
   .stage-chip input{ display:none; }
   .stage-chip:hover{ border-color:var(--chip-cor,#2563EB); }
   .stage-chip.marcado{ border-color:var(--chip-cor,#2563EB); background:var(--chip-bg,#DBEAFE); color:var(--chip-cor,#2563EB); }
+
+  /* ===== Kanban ===== */
+  .kb-wrap{ display:flex; gap:14px; overflow-x:auto; padding-bottom:12px; }
+  .kb-col{ flex:0 0 260px; background:var(--bg); border-radius:14px; padding:12px; min-height:120px; }
+  .kb-col-head{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:13.5px; margin-bottom:12px; padding:9px 12px; border-radius:10px; }
+  .kb-count{ margin-left:auto; background:rgba(255,255,255,.7); border-radius:20px; padding:2px 10px; font-size:12.5px; }
+  .kb-card{ background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,.04); transition:transform .12s; }
+  .kb-card:hover{ transform:translateY(-1px); }
+  .kb-card.feita{ opacity:.55; }
+  .kb-card.atrasada{ border-color:#FCA5A5; }
+  .kb-card-title{ font-weight:700; font-size:12.5px; margin-bottom:7px; color:var(--ink); }
+  .kb-card-foot{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .kb-vazio{ text-align:center; color:var(--muted); font-size:12px; padding:24px 0; }
+  .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
   .painel-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
   .backup-status{
     padding: 10px 14px;
@@ -2789,7 +2803,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <button class="tab" data-view="home" role="tab">🏠 Home</button>
       <button class="tab active" data-view="painel" role="tab">👤 Meu Painel</button>
       <button class="tab" data-view="producao" role="tab">🎯 Produção</button>
-      <button class="tab" data-view="projetos" role="tab">🎬 Projetos</button>
       <button class="tab" data-view="audiobooks" role="tab">🎧 Audiobooks</button>
       <button class="tab" data-view="colecoes" role="tab">🗂 Coleções</button>
       <button class="tab" data-view="fichas" role="tab">📇 Todas as fichas</button>
@@ -6354,7 +6367,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const home = view === 'home';
     const painel = view === 'painel';
     const producao = view === 'producao';
-    const projetos = view === 'projetos';
     const audiobooks = view === 'audiobooks';
     const colecoes = view === 'colecoes';
     const fichas = view === 'fichas';
@@ -6363,7 +6375,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#homeView').style.display = home ? '' : 'none';
     $('#painelView').style.display = painel ? '' : 'none';
     $('#producaoView').style.display = producao ? '' : 'none';
-    $('#projetosView').style.display = projetos ? '' : 'none';
     $('#audiobooksView').style.display = audiobooks ? '' : 'none';
     $('#colecoesView').style.display = colecoes ? '' : 'none';
     mainContent.style.display = fichas ? '' : 'none';
@@ -6376,10 +6387,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (fichas){
       requestAnimationFrame(() => posicionarAzRail());
     }
-    if (home) renderHome();
+    if (home) renderProjetos(); // Home unificada com Projetos
     if (painel) renderPainel();
     if (producao) renderProducao();
-    if (projetos) renderProjetos();
     if (audiobooks) renderAudiobooks();
     if (ranking) renderRanking();
     if (colecoes) renderColecoes();
@@ -7836,16 +7846,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   async function loadProjectMeta(){
     try{
       let pmRes = await sb.from('project_meta')
-        .select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+        .select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at, meta_total');
 
-      // Se as colunas novas (notes_*) ainda não existirem no banco (SQL
-      // de menções ainda não rodado), essa busca falha inteira. Em vez de
-      // perder TODOS os projetos por causa disso, tenta de novo só com as
-      // colunas básicas — assim o app continua funcionando normalmente,
-      // só sem o recurso novo até o SQL ser rodado.
+      // Se as colunas novas ainda não existirem no banco, tenta de novo com
+      // um conjunto menor, pra não perder TODOS os projetos.
       if (pmRes.error){
-        console.warn('Colunas novas de project_meta indisponíveis, usando busca básica:', pmRes.error.message);
-        pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
+        console.warn('Colunas novas de project_meta indisponíveis:', pmRes.error.message);
+        pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+        if (pmRes.error){
+          pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
+        }
       }
 
       const doRes = await sb.from('dub_order').select('project, entry_id, position').order('position');
@@ -7854,7 +7864,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       (pmRes.data||[]).forEach(r => { projectMeta[r.project] = {
         in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived,
         notes:r.notes||'', notes_author_id:r.notes_author_id||null,
-        notes_author_name:r.notes_author_name||'', notes_updated_at:r.notes_updated_at||null
+        notes_author_name:r.notes_author_name||'', notes_updated_at:r.notes_updated_at||null,
+        meta_total: (r.meta_total!=null?r.meta_total:null)
       }; });
       dubOrder = {};
       (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
@@ -8158,7 +8169,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // BUG FIX: inclui projetos que existem em project_meta mesmo sem fichas cadastradas.
     // Antes: só listava projetos com fichas, então projetos recém-criados sumiam.
     const doCatalogo = new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)).filter(p=>p!==SEM_PROJETO && !isCoadjProject(p)));
-    const doMeta = new Set(Object.keys(projectMeta || {}));
+    // Exclui chaves especiais (ex: "__meta__2026-09" que guarda a meta mensal)
+    const doMeta = new Set(Object.keys(projectMeta || {}).filter(k => !k.startsWith('__meta__')));
     return [...new Set([...doCatalogo, ...doMeta])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
   function peopleCountForProject(project){
@@ -8167,50 +8179,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   function renderHome(){
-    const emProducao = allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].in_production);
-    const cards = emProducao.map(pr => {
-      const url = projCoverUrl(pr);
-      const cover = url
-        ? `<div class="prod-cover"><img src="${escapeHtml(url)}" alt="" onerror="this.parentNode.innerHTML='<span class=&quot;ic&quot;>🎬</span>';"></div>`
-        : `<div class="prod-cover"><span class="ic">🎬</span></div>`;
-      const n = peopleCountForProject(pr);
-      return `
-        <div class="prod-card" data-proj="${escapeHtml(pr)}">
-          <span class="prod-badge">em produção</span>
-          ${cover}
-          <div class="prod-body">
-            <div class="prod-title">${escapeHtml(pr)}</div>
-            <div class="prod-sub">${n} voz${n===1?'':'es'} · toque para ver a ordem</div>
-          </div>
-        </div>`;
-    }).join('');
-
-    homeContent.innerHTML = `
-      <div class="home-hero">
-        <h1>Olá, Ninjas! 🥷</h1>
-        <p>${isAdmin?'Você é administrador — pode destacar projetos e ordenar as vozes.':'Projetos em produção neste período.'}</p>
-      </div>
-      <div class="home-section-title">🎬 Projetos em produção
-        ${isAdmin?`<button class="btn-ghost admin-only" id="gerenciarProd" style="margin-left:auto; padding:6px 12px; font-size:12.5px;">Gerenciar projetos da home</button>`:''}
-      </div>
-      ${emProducao.length? `<div class="prod-grid">${cards}</div>`
-        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nenhum projeto em produção</h2><p>${isAdmin?'Clique em “Gerenciar projetos da home” para destacar projetos.':'O administrador ainda não destacou projetos.'}</p></div>`}`;
-
-    const gp = $('#gerenciarProd');
-    if (gp) gp.addEventListener('click', openGerenciarProducao);
+    // Home e Projetos foram unificadas — a Home agora mostra a grade
+    // completa de projetos (com filtros de produção/concluídos/arquivados,
+    // busca e botão de novo projeto). Toda a lógica vive em renderProjetos.
+    renderProjetos();
   }
-
-  // clique num projeto da home abre a ordem de dublagem
-  homeContent.addEventListener('click', (e) => {
-    const card = e.target.closest('.prod-card[data-proj]');
-    if (card) openProjetoModal(card.dataset.proj);
-  });
-  // botão direito: menu de contexto pra excluir o projeto direto
-  homeContent.addEventListener('contextmenu', (e) => {
-    if (!isAdmin) return;
-    const card = e.target.closest('.prod-card[data-proj]');
-    if (card) showProjectContextMenu(e, card.dataset.proj);
-  });
 
   // ---- Modal: gerenciar quais projetos estão em produção (admin) ----
   async function openGerenciarProducao(){
@@ -8251,7 +8224,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   // ============================================================
   //  ABA PROJETOS — grade com filtro produção/concluídos
   // ============================================================
-  const projetosContent = $('#projetosContent');
+  // Home e Projetos foram unificadas: tudo é renderizado no container da Home.
+  const projetosContent = homeContent;
 
   let projetosSearch = '';
 
@@ -11746,12 +11720,51 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     try { await sb.from('agenda_notes').delete().eq('id', agendaNoteId); } catch(e){ console.error(e); }
   }
 
+  // Meta mensal — guardada em project_meta com uma chave especial por mês.
+  // Ex: "__meta__2026-09" guarda o total de projetos previstos pra setembro/26.
+  let prodVistaAtual = 'projeto'; // 'projeto' ou 'kanban'
+  function chaveMetaMes(){ const d=new Date(); return `__meta__${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  function getMetaMensal(){
+    const k = chaveMetaMes();
+    const m = projectMeta[k];
+    return m && m.meta_total ? Number(m.meta_total) : 0;
+  }
+  async function salvarMetaMensal(valor){
+    const k = chaveMetaMes();
+    try {
+      await sb.from('project_meta').upsert({ project:k, meta_total:valor, updated_at:new Date().toISOString() }, { onConflict:'project' });
+      projectMeta[k] = { ...(projectMeta[k]||{}), meta_total:valor };
+      return true;
+    } catch(e){ console.error('Erro salvando meta:', e); return false; }
+  }
+  // Conta projetos concluídos no mês: projetos que estavam em produção e foram
+  // marcados como concluídos (não in_production) com todas as tarefas feitas.
+  // Simplificação: conta projetos que têm todas as tarefas do mês concluídas.
+  function contarProjetosConcluidosMes(){
+    const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0);
+    const projetosComTarefa = {};
+    producaoTasks.forEach(t => {
+      if (!t.due_date) return;
+      const d = new Date(t.due_date+'T00:00:00');
+      if (d < inicioMes) return; // só tarefas com prazo neste mês em diante
+      projetosComTarefa[t.project] = projetosComTarefa[t.project] || { total:0, feitas:0 };
+      projetosComTarefa[t.project].total++;
+      if (t.done) projetosComTarefa[t.project].feitas++;
+    });
+    return Object.values(projetosComTarefa).filter(p => p.total>0 && p.total===p.feitas).length;
+  }
+
   function renderProducao(){
     const cont = $('#producaoContent');
     if (!cont) return;
 
     const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
-    const projetos = allProjectsList();
+    // Projetos ordenados: em produção primeiro, depois o resto
+    const emProdSet = new Set(allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].in_production));
+    const projetos = [...allProjectsList()].sort((a,b) => {
+      const pa = emProdSet.has(a)?0:1, pb = emProdSet.has(b)?0:1;
+      return pa-pb || a.localeCompare(b,'pt-BR');
+    });
 
     // Estatísticas gerais (pro hero)
     const total = producaoTasks.length;
@@ -11759,14 +11772,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const minhas = producaoTasks.filter(t => t.assignee_user_id === myUserId && !t.done).length;
     const pct = total ? Math.round(feitas/total*100) : 0;
 
+    // Meta mensal (contador manual guardado local + banco via project_meta especial)
+    const metaMes = getMetaMensal();
+    const projsConcluidosMes = contarProjetosConcluidosMes();
+    const pctMeta = metaMes > 0 ? Math.round(projsConcluidosMes/metaMes*100) : 0;
+
     const formAdmin = isAdmin ? `
       <div class="painel-card" style="margin-bottom:20px;">
         <div class="painel-title">➕ Nova missão</div>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:10px;">
           <div class="field" style="margin:0;">
             <label>Projeto</label>
-            <input type="text" id="prodProjetoInput" list="prodProjetoList" placeholder="Nome do projeto" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-            <datalist id="prodProjetoList">${projetos.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
+            <select id="prodProjetoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <option value="">— Escolher projeto —</option>
+              ${emProdSet.size ? `<optgroup label="Em produção">${projetos.filter(p=>emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+              ${projetos.some(p=>!emProdSet.has(p)) ? `<optgroup label="Outros projetos">${projetos.filter(p=>!emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+            </select>
           </div>
           <div class="field" style="margin:0;">
             <label>Episódio</label>
@@ -11824,11 +11845,41 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div class="prod-hero-stat"><b>${pct}%</b><span>progresso geral</span></div>
         </div>
       </div>
+
+      <div class="painel-card" style="margin-bottom:20px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-color:#86EFAC;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+          <div style="flex:0 0 auto;">
+            <div class="prod-ring" style="width:64px;height:64px;">
+              <svg width="64" height="64" style="transform:rotate(-90deg);">
+                <circle cx="32" cy="32" r="27" fill="none" stroke="#BBF7D0" stroke-width="6"/>
+                <circle cx="32" cy="32" r="27" fill="none" stroke="${pctMeta>=100?'#059669':'#16A34A'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${2*Math.PI*27*Math.min(pctMeta,100)/100} ${2*Math.PI*27}"/>
+              </svg>
+              <div class="prod-ring-txt" style="color:#059669;font-size:14px;">${pctMeta}%</div>
+            </div>
+          </div>
+          <div style="flex:1;min-width:180px;">
+            <div style="font-weight:800;font-size:15px;color:#166534;">🎯 Meta do mês</div>
+            <div style="font-size:12.5px;color:#15803D;margin-top:2px;">
+              <b>${projsConcluidosMes}</b> de <b>${metaMes||'?'}</b> projetos concluídos este mês
+            </div>
+          </div>
+          ${isAdmin?`<div style="flex:0 0 auto;display:flex;align-items:center;gap:8px;">
+            <label style="font-size:12px;color:#166534;font-weight:600;">Meta:</label>
+            <input type="number" id="metaMensalInput" min="0" value="${metaMes||''}" placeholder="0" style="width:70px;padding:7px 9px;border:1.5px solid #86EFAC;border-radius:8px;font-size:13px;background:#fff;">
+            <button class="btn-ghost" id="salvarMetaBtn" style="padding:7px 12px;font-size:12.5px;">Salvar</button>
+          </div>`:''}
+        </div>
+      </div>
+
       ${formAdmin}
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
         <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
         <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:8px 16px;font-size:13px;">⏳ Pendentes</button>
+        <div style="margin-left:auto;display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px;">
+          <button class="prod-vista-btn" data-vista="projeto" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:var(--surface);font-weight:700;">🎬 Por projeto</button>
+          <button class="prod-vista-btn" data-vista="kanban" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:none;font-weight:700;color:var(--muted);">📋 Kanban</button>
+        </div>
       </div>
       <div id="prodListaTarefas"></div>`;
 
@@ -11852,7 +11903,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     return emojis[h % emojis.length];
   }
 
+  let prodFiltroAtual = 'minhas';
   function renderProducaoLista(filtro){
+    if (filtro) prodFiltroAtual = filtro; else filtro = prodFiltroAtual;
     const box = $('#prodListaTarefas');
     if (!box) return;
 
@@ -11862,6 +11915,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       b.style.color = on ? '#fff' : '';
       b.style.borderColor = on ? 'var(--blue)' : '';
     });
+    document.querySelectorAll('.prod-vista-btn').forEach(b => b.classList.toggle('on', b.dataset.vista === prodVistaAtual));
 
     let tarefas = [...producaoTasks];
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
@@ -11874,6 +11928,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
           ${isAdmin && filtro!=='minhas' ? '<p style="color:var(--muted);font-size:12.5px;">Use o formulário acima pra criar a primeira!</p>' : ''}
         </div>`;
+      return;
+    }
+
+    // Vista Kanban: colunas por etapa
+    if (prodVistaAtual === 'kanban'){
+      renderProducaoKanban(box, tarefas);
       return;
     }
 
@@ -11945,8 +12005,56 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireProducaoLista();
   }
 
+  // Renderiza a vista Kanban: uma coluna por etapa
+  function renderProducaoKanban(box, tarefas){
+    const colunas = PRODUCAO_STAGES.map(stage => {
+      const si = stageInfo(stage);
+      const doStage = tarefas.filter(t => t.stage === stage);
+      const cards = doStage.map(t => {
+        const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : 'sem prazo';
+        const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
+        const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
+        const titulo = [nomeProjetoExibicao(t.project), t.episode?`Ep ${t.episode}`:'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
+        return `
+          <div class="kb-card ${t.done?'feita':''} ${atrasada?'atrasada':''}">
+            <div class="kb-card-title">${escapeHtml(titulo)}</div>
+            <div class="kb-card-foot">
+              ${podeMarcar ? `<div class="prod-check ${t.done?'on':''}" data-task="${t.id}" style="width:20px;height:20px;font-size:12px;">${t.done?'✓':''}</div>` : (t.done?'✅':'⏳')}
+              <span class="prod-badge pessoa" style="--stage-bg:${si.bg};--stage-cor:${si.cor};">${escapeHtml(t.assignee_name||'—')}</span>
+              <span class="prod-badge ${atrasada?'atraso':'prazo'}">⏱ ${prazoTxt}</span>
+              ${isAdmin?`<button class="prod-del-mission" data-task="${t.id}" title="Excluir" style="margin-left:auto;">🗑️</button>`:''}
+            </div>
+          </div>`;
+      }).join('') || `<div class="kb-vazio">—</div>`;
+      return `
+        <div class="kb-col">
+          <div class="kb-col-head" style="background:${si.bg};color:${si.cor};">${si.ic} ${escapeHtml(stage)} <span class="kb-count">${doStage.length}</span></div>
+          ${cards}
+        </div>`;
+    }).join('');
+    box.innerHTML = `<div class="kb-wrap">${colunas}</div>`;
+    wireProducaoLista();
+  }
+
   function wireProducaoForm(){
     document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+
+    // Botões de alternar vista (por projeto / kanban)
+    document.querySelectorAll('.prod-vista-btn').forEach(b => b.addEventListener('click', () => {
+      prodVistaAtual = b.dataset.vista;
+      renderProducaoLista();
+    }));
+
+    // Salvar meta mensal (admin)
+    const btnMeta = $('#salvarMetaBtn');
+    if (btnMeta) btnMeta.addEventListener('click', async () => {
+      const val = parseInt($('#metaMensalInput')?.value||'0', 10) || 0;
+      btnMeta.disabled = true; btnMeta.textContent = '…';
+      const ok = await salvarMetaMensal(val);
+      btnMeta.disabled = false; btnMeta.textContent = 'Salvar';
+      if (ok){ renderProducao(); showToast('🎯 Meta do mês salva.'); }
+      else showToast('Erro ao salvar meta.');
+    });
 
     // Chips de etapa (visual marcado/desmarcado)
     document.querySelectorAll('.stage-chip').forEach(chip => {
