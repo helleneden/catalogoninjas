@@ -579,8 +579,8 @@
   /* Trava o container do kanban pra não empurrar a tela */
   #prodListaTarefas{ min-width:0; max-width:100%; overflow:hidden; }
   .kb-col{
-    flex:0 0 200px; background:var(--bg); border-radius:14px; padding:10px;
-    min-height:560px; max-height:calc(100vh - 200px); overflow-y:auto; scroll-snap-align:start;
+    flex:0 0 210px; background:var(--bg); border-radius:14px; padding:10px;
+    min-height:600px; max-height:calc(100vh - 190px); overflow-y:auto; scroll-snap-align:start;
   }
   .kb-col::-webkit-scrollbar{ width:6px; }
   .kb-col::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
@@ -611,11 +611,11 @@
   .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
 
   /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
-  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px; align-items:start; }
+  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
   .prod-chat-col{ position:relative; min-width:0; }
   /* Modo kanban: mantém o chat na lateral, mas o quadro fica mais alto */
-  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 340px; }
-  .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:calc(100vh - 320px) !important; min-height:440px !important; }
+  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 300px; }
+  .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:calc(100vh - 300px) !important; min-height:490px !important; }
   @media (max-width:1000px){
     .prod-layout{ grid-template-columns:minmax(0,1fr); }
     .prod-chat-col .painel-card{ position:static !important; }
@@ -751,6 +751,7 @@
   .chat-edit-msg:hover{ color:var(--blue-deep); }
   .chat-input-row{ display:flex; gap:6px; align-items:flex-end; }
   .chat-input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; font-family:var(--font-body); resize:none; min-height:42px; max-height:100px; background:var(--bg); }
+  .chat-input::placeholder{ font-size:12.5px; color:var(--muted); }
   .chat-input:focus{ outline:none; border-color:var(--blue); }
   .chat-mention-drop{ position:absolute; background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:0 4px 16px rgba(30,58,138,.12); z-index:400; max-height:180px; overflow-y:auto; min-width:180px; }
   .chat-mention-item{ padding:9px 14px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:10px; }
@@ -12025,7 +12026,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="chat-wrap">
           <div class="chat-msgs" id="chatMsgs">${renderChatMsgs()}</div>
           <div class="chat-input-row" style="position:relative;">
-            <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
+            <textarea class="chat-input" id="chatInput" placeholder="Mensagem… (@ menciona)" rows="1"></textarea>
             <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
             <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
           </div>
@@ -12588,7 +12589,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="chat-wrap">
               <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
               <div class="chat-input-row" style="position:relative;">
-                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
+                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… (@ menciona)" rows="1"></textarea>
                 <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
                 <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
               </div>
