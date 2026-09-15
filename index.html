@@ -232,6 +232,34 @@
   }
   .home-task-chip:hover{ transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.15); }
   .home-task-chip b{ font-size:14px; }
+
+  /* Versículo/citação do dia */
+  .versiculo-card{
+    background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);
+    color:#fff; border-radius:16px; padding:20px 24px; margin-bottom:20px;
+    position:relative; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2);
+  }
+  .versiculo-quote{
+    position:absolute; top:-10px; left:14px; font-size:80px; opacity:.12;
+    font-family:Georgia,serif; line-height:1;
+  }
+  .versiculo-texto{
+    font-size:16px; line-height:1.5; margin:0 0 8px; font-style:italic;
+    position:relative; z-index:1; font-family:var(--font-head); font-weight:600;
+  }
+  .versiculo-ref{
+    font-size:12.5px; opacity:.75; margin:0; text-align:right; position:relative; z-index:1; font-weight:600;
+  }
+
+  /* Chips do painel Minhas Tarefas */
+  .mt-chip{
+    display:inline-flex; align-items:center; gap:5px; background:var(--bg,#F1F5F9); color:var(--c,#334155);
+    border:1.5px solid transparent; border-radius:10px; padding:7px 13px; font-size:12.5px; font-weight:600;
+    cursor:pointer; transition:all .12s; font-family:inherit;
+  }
+  .mt-chip:hover{ transform:translateY(-1px); }
+  .mt-chip.mt-on{ border-color:var(--c,#334155); box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .mt-chip b{ font-size:14px; }
   .home-hero h1{ font-family:var(--font-head); font-weight:800; font-size:22px; margin:0 0 4px; }
   .home-hero p{ margin:0; color:var(--muted); font-size:13.5px; }
   .home-section-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:20px 0 12px; display:flex; align-items:center; gap:8px; }
@@ -3416,6 +3444,42 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#D1FAE5' }
   };
   const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#64748B', bg:'#F1F5F9' };
+
+  // Versículos bíblicos + citações de reformadores e puritanos.
+  // Um por dia (rotaciona pelo dia do ano). Sempre com a referência.
+  const VERSICULOS_CITACOES = [
+    { texto:'O Senhor é o meu pastor; nada me faltará.', ref:'Salmo 23:1' },
+    { texto:'Posso todas as coisas naquele que me fortalece.', ref:'Filipenses 4:13' },
+    { texto:'Tudo quanto te vier à mão para fazer, faze-o conforme as tuas forças.', ref:'Eclesiastes 9:10' },
+    { texto:'O coração do homem planeja o seu caminho, mas o Senhor lhe dirige os passos.', ref:'Provérbios 16:9' },
+    { texto:'Sede fortes e corajosos; não temais. O Senhor, teu Deus, é quem vai contigo.', ref:'Deuteronômio 31:6' },
+    { texto:'E sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus.', ref:'Romanos 8:28' },
+    { texto:'Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.', ref:'1 Pedro 5:7' },
+    { texto:'A glória de Deus é o homem plenamente vivo; e a vida do homem é a visão de Deus.', ref:'Irineu de Lyon' },
+    { texto:'Não há um só centímetro em todo o domínio da nossa existência sobre o qual Cristo não clame: "Meu!"', ref:'Abraham Kuyper' },
+    { texto:'A fé que não perturba não é fé verdadeira; a fé que não muda não é fé real.', ref:'Martinho Lutero' },
+    { texto:'Aqui estou; não posso fazer de outra maneira. Que Deus me ajude.', ref:'Martinho Lutero, Dieta de Worms (1521)' },
+    { texto:'O coração humano é uma fábrica de ídolos.', ref:'João Calvino' },
+    { texto:'Não sabemos o que devemos pedir; mas o próprio Espírito intercede por nós.', ref:'Romanos 8:26' },
+    { texto:'Buscai primeiro o reino de Deus e a sua justiça, e todas essas coisas vos serão acrescentadas.', ref:'Mateus 6:33' },
+    { texto:'A oração é a respiração da alma renascida.', ref:'Thomas Watson' },
+    { texto:'Deus não tem prazer no sacrifício de quem oferece a Deus o que não lhe custa nada.', ref:'John Owen' },
+    { texto:'Seja o pecado morto em você, ou ele matará você.', ref:'John Owen' },
+    { texto:'A Palavra de Deus é uma lâmpada para os meus pés e luz para o meu caminho.', ref:'Salmo 119:105' },
+    { texto:'O trabalho feito para Deus, por menor que seja, tem grande dignidade.', ref:'Richard Baxter' },
+    { texto:'O tempo é curto demais para gastá-lo com coisas pequenas.', ref:'Jonathan Edwards' },
+    { texto:'Resolvo viver com todas as minhas forças enquanto viver.', ref:'Jonathan Edwards, Resoluções' },
+    { texto:'Bem-aventurados os que choram, porque serão consolados.', ref:'Mateus 5:4' },
+    { texto:'O Senhor é a minha luz e a minha salvação; a quem temerei?', ref:'Salmo 27:1' },
+    { texto:'A graça é o favor imerecido de Deus para com os que merecem o contrário.', ref:'Charles Spurgeon' },
+    { texto:'Nenhuma oração é feita na terra sem que seja ouvida no céu.', ref:'Charles Spurgeon' },
+    { texto:'Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.', ref:'Provérbios 3:5' },
+    { texto:'Aquele que começou a boa obra em vós há de completá-la até o Dia de Cristo Jesus.', ref:'Filipenses 1:6' },
+    { texto:'A santidade não é o caminho para Cristo; Cristo é o caminho para a santidade.', ref:'Adaptado de John Owen' },
+    { texto:'Deus é maior que o nosso coração e conhece todas as coisas.', ref:'1 João 3:20' },
+    { texto:'O justo viverá pela fé.', ref:'Romanos 1:17 / Habacuque 2:4' },
+    { texto:'Ensina-nos a contar os nossos dias, para que alcancemos coração sábio.', ref:'Salmo 90:12' }
+  ];
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -8398,35 +8462,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const sd = saudacaoHora();
     const nome = myProfile.display_name || 'Ninja';
     const r = meuResumoTarefas();
-    // Monta os "cartões-resumo" clicáveis (só aparecem os que têm algo)
-    const chips = [];
-    if (r.atrasadas.length) chips.push(`<button class="home-task-chip" data-resumo="atrasadas" style="--c:#DC2626;--bg:#FEE2E2;">🔴 <b>${r.atrasadas.length}</b> atrasada${r.atrasadas.length>1?'s':''}</button>`);
-    if (r.hoje.length) chips.push(`<button class="home-task-chip" data-resumo="hoje" style="--c:#2563EB;--bg:#DBEAFE;">📅 <b>${r.hoje.length}</b> pra hoje</button>`);
-    if (r.urgentes.length) chips.push(`<button class="home-task-chip" data-resumo="urgentes" style="--c:#CA8A04;--bg:#FEF9C3;">⚡ <b>${r.urgentes.length}</b> urgente${r.urgentes.length>1?'s':''}</button>`);
-    if (r.semana.length) chips.push(`<button class="home-task-chip" data-resumo="semana" style="--c:#7C3AED;--bg:#EDE9FE;">🗓️ <b>${r.semana.length}</b> esta semana</button>`);
-
-    const resumoHtml = r.totalPendentes > 0
-      ? `<div class="home-greet-tasks">
-           <p style="margin:0 0 10px;font-size:13.5px;opacity:.95;">Você tem <b>${r.totalPendentes}</b> tarefa${r.totalPendentes>1?'s':''} pendente${r.totalPendentes>1?'s':''}. Quer dar uma olhada?</p>
-           <div class="home-task-chips">${chips.join('')}
-             <button class="home-task-chip" data-resumo="todas" style="--c:#fff;--bg:rgba(255,255,255,.18);">📋 Ver todas na agenda</button>
-           </div>
-         </div>`
-      : `<p style="margin:8px 0 0;font-size:13.5px;opacity:.92;">🎉 Você está em dia — nenhuma tarefa pendente!</p>`;
+    const temTarefas = r.totalPendentes > 0;
 
     projetosContent.innerHTML = `
       <div class="home-greeting">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
           <div style="flex:1;min-width:200px;">
             <h1 style="margin:0 0 2px;">${sd.ic} ${sd.txt}, ${escapeHtml(nome)}!</h1>
-            ${resumoHtml}
+            ${temTarefas
+              ? `<p style="margin:6px 0 0;font-size:13.5px;opacity:.95;">Você tem <b>${r.totalPendentes}</b> tarefa${r.totalPendentes>1?'s':''} pendente${r.totalPendentes>1?'s':''}. <button id="verMinhasTarefas" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:4px 12px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12.5px;margin-left:4px;">Ver no Meu Painel →</button></p>`
+              : `<p style="margin:6px 0 0;font-size:13.5px;opacity:.92;">🎉 Você está em dia — nenhuma tarefa pendente!</p>`}
           </div>
           ${isAdmin?`<div class="admin-only" style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn-primary" id="btnNovoProjeto" style="white-space:nowrap;">+ Novo projeto</button>
           </div>`:''}
         </div>
       </div>
-      <div id="homeResumoDetalhe"></div>
       <div class="home-section-title" style="margin-top:8px;">🎬 Projetos</div>
       <div class="seg-filter">
         <button class="${projetosFilter==='producao'?'on':''}" data-filter="producao">Em produção</button>
@@ -8442,10 +8493,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       ${lista.length? `<div class="prod-grid">${cards}</div>`
         : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>${projetosSearch ? `Nenhum projeto ${rotuloFiltro} com "${escapeHtml(projetosSearch)}".` : `Nenhum projeto ${rotuloFiltro}. ${isAdmin && !ehArquivados ?'Use o botão acima para criar.':''}`}</p></div>`}`;
 
-    // Handlers dos chips de resumo
-    projetosContent.querySelectorAll('.home-task-chip[data-resumo]').forEach(chip => chip.addEventListener('click', () => {
-      mostrarResumoTarefas(chip.dataset.resumo);
-    }));
+    // Botão "Ver no Meu Painel"
+    const btnVerTarefas = $('#verMinhasTarefas');
+    if (btnVerTarefas) btnVerTarefas.addEventListener('click', () => switchView('painel'));
 
     projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{
       projetosFilter = b.dataset.filter;
@@ -12538,10 +12588,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const backupPanel = isAdmin ? renderBackupPanel() : '';
     const mencoesPanel = renderMencoesPanel();
     const notifTarefasPanel = renderNotifTarefasPanel();
+    const minhasTarefasPanel = renderMinhasTarefasPanel();
+    const versiculoPanel = renderVersiculoDia();
     painelContent.innerHTML = `
+      ${versiculoPanel}
       <div class="painel-grid">
         ${renderPodio()}
       </div>
+      ${minhasTarefasPanel}
       ${renderAgenda()}
       ${notifTarefasPanel}
       ${mencoesPanel}
@@ -12556,6 +12610,95 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireSegurancaPanel();
     wireMencoesPanel();
     wireNotifTarefasPanel();
+    wireMinhasTarefasPanel();
+  }
+
+  // Painel "Minhas tarefas" no Meu Painel — resumo com filtros (hoje, atrasadas, etc.)
+  function renderMinhasTarefasPanel(){
+    const r = meuResumoTarefas();
+    if (r.totalPendentes === 0){
+      return `<div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">✅ Minhas tarefas</div>
+        <p style="color:var(--muted);font-size:13px;margin:0;">🎉 Você está em dia — nenhuma tarefa pendente!</p>
+      </div>`;
+    }
+    const chips = [];
+    if (r.atrasadas.length) chips.push(`<button class="mt-chip" data-mt="atrasadas" style="--c:#DC2626;--bg:#FEE2E2;">🔴 <b>${r.atrasadas.length}</b> atrasada${r.atrasadas.length>1?'s':''}</button>`);
+    if (r.hoje.length) chips.push(`<button class="mt-chip" data-mt="hoje" style="--c:#2563EB;--bg:#DBEAFE;">📅 <b>${r.hoje.length}</b> pra hoje</button>`);
+    if (r.urgentes.length) chips.push(`<button class="mt-chip" data-mt="urgentes" style="--c:#CA8A04;--bg:#FEF9C3;">⚡ <b>${r.urgentes.length}</b> urgente${r.urgentes.length>1?'s':''}</button>`);
+    if (r.semana.length) chips.push(`<button class="mt-chip" data-mt="semana" style="--c:#7C3AED;--bg:#EDE9FE;">🗓️ <b>${r.semana.length}</b> esta semana</button>`);
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">📋 Minhas tarefas <span style="color:var(--muted);font-weight:400;font-size:12.5px;">(${r.totalPendentes} pendente${r.totalPendentes>1?'s':''})</span></div>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px;">Toque num filtro pra ver os detalhes:</p>
+        <div class="mt-chips" style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${chips.join('')}
+          <button class="mt-chip" data-mt="todas" style="--c:#334155;--bg:#F1F5F9;">📋 Todas</button>
+        </div>
+        <div id="mtDetalhe" style="margin-top:12px;"></div>
+      </div>`;
+  }
+
+  function wireMinhasTarefasPanel(){
+    painelContent.querySelectorAll('.mt-chip[data-mt]').forEach(chip => chip.addEventListener('click', () => {
+      painelContent.querySelectorAll('.mt-chip').forEach(c => c.classList.remove('mt-on'));
+      chip.classList.add('mt-on');
+      mostrarMinhasTarefasDetalhe(chip.dataset.mt);
+    }));
+  }
+
+  function mostrarMinhasTarefasDetalhe(tipo){
+    const box = $('#mtDetalhe');
+    if (!box) return;
+    const r = meuResumoTarefas();
+    let tarefas;
+    switch(tipo){
+      case 'atrasadas': tarefas = r.atrasadas; break;
+      case 'hoje': tarefas = r.hoje; break;
+      case 'urgentes': tarefas = r.urgentes; break;
+      case 'semana': tarefas = r.semana; break;
+      default: tarefas = (producaoTasks||[]).filter(t => t.assignee_user_id === myUserId && !t.done)
+        .sort((a,b)=>(a.due_date||'zzz').localeCompare(b.due_date||'zzz'));
+    }
+    if (!tarefas || tarefas.length === 0){
+      box.innerHTML = `<p style="color:var(--muted);font-size:12.5px;">Nenhuma tarefa nesse filtro. 🎉</p>`;
+      return;
+    }
+    box.innerHTML = tarefas.map(t => {
+      const si = stageInfo(t.stage);
+      const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : 'sem prazo';
+      const atrasada = t.due_date && new Date(t.due_date+'T23:59:59') < new Date();
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;">
+          <div style="width:34px;height:34px;border-radius:9px;background:${si.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto;">${si.ic}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;">${escapeHtml(t.stage)}</div>
+            <div style="font-size:11px;color:var(--muted);">${escapeHtml(partesTxt)}</div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto;">
+            <div style="font-size:11px;font-weight:700;color:${atrasada?'#DC2626':'var(--muted)'};">⏱ ${prazoTxt}</div>
+            ${t.priority===1?'<div style="font-size:10px;color:#CA8A04;font-weight:700;">⚡ urgente</div>':''}
+          </div>
+        </div>`;
+    }).join('') + `<button class="btn-ghost" onclick="void 0" id="mtIrProducao" style="width:100%;justify-content:center;margin-top:6px;font-size:12px;">Abrir aba Produção →</button>`;
+    const ir = $('#mtIrProducao');
+    if (ir) ir.addEventListener('click', () => switchView('producao'));
+  }
+
+  // Versículo/citação do dia — escolhe um item da lista baseado no dia do ano,
+  // então todo mundo vê o mesmo no mesmo dia, e muda a cada dia.
+  function renderVersiculoDia(){
+    const hoje = new Date();
+    const inicioAno = new Date(hoje.getFullYear(), 0, 0);
+    const diaDoAno = Math.floor((hoje - inicioAno) / (1000*60*60*24));
+    const item = VERSICULOS_CITACOES[diaDoAno % VERSICULOS_CITACOES.length];
+    return `
+      <div class="versiculo-card">
+        <div class="versiculo-quote">"</div>
+        <p class="versiculo-texto">${escapeHtml(item.texto)}</p>
+        <p class="versiculo-ref">— ${escapeHtml(item.ref)}</p>
+      </div>`;
   }
 
   // Painel de notificações de tarefa — mostra as tarefas atribuídas ao user.
