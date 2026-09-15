@@ -13451,13 +13451,56 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   // Sincronização automática: recarrega quando alguém da equipe altera algo.
   let realtimeReady = false;
+  let _rtTimer = null;
+  // Re-renderiza a aba atual depois de recarregar os dados. Usa um pequeno
+  // atraso (debounce) pra agrupar várias mudanças que chegam juntas e evitar
+  // re-renderizar 10 vezes seguidas. Não re-renderiza se um modal de edição
+  // estiver aberto (pra não atrapalhar quem está no meio de uma edição).
+  function agendarRerender(){
+    clearTimeout(_rtTimer);
+    _rtTimer = setTimeout(() => {
+      // Se tiver um modal de edição de ficha aberto, não mexe (evita perder o que a pessoa digita)
+      const editando = document.querySelector('#modalOverlay.open, .modal-overlay.open input:focus, .modal-overlay.open textarea:focus');
+      if (currentView === 'home') renderProjetos();
+      else if (currentView === 'painel'){ if(!editando) renderPainel(); }
+      else if (currentView === 'producao'){ if(!editando) renderProducao(); }
+      else if (currentView === 'projetos') renderProjetos();
+      else if (currentView === 'audiobooks') renderAudiobooks();
+      else if (currentView === 'colecoes') renderColecoes();
+      else if (currentView === 'ranking') renderRanking();
+      else if (currentView === 'avaliacao') renderAvaliacao();
+      else if (currentView === 'fichas'){ if(!editando) render(); }
+    }, 400);
+  }
+
   function subscribeRealtime(){
     if (realtimeReady || !sb) return;
     realtimeReady = true;
-    sb.channel('catalogo-vozes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'people' }, () => loadPeople())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, () => loadPeople())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_meta' }, async () => { await loadProjectMeta(); if(currentView==='home') renderHome(); })
+    sb.channel('catalogo-vozes-full')
+      // Catálogo (fichas, vozes, projetos) — loadPeople recarrega o conjunto principal
+      .on('postgres_changes', { event:'*', schema:'public', table:'people' },   async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'entries' },  async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_meta' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_categories' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'dub_order' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
+      // Coleções / franquias / temporadas (recarregados via loadPeople no conjunto geral)
+      .on('postgres_changes', { event:'*', schema:'public', table:'franchises' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'seasons' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      // Audiobooks
+      .on('postgres_changes', { event:'*', schema:'public', table:'audiobooks' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'audiobook_voices' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
+      // Produção (tarefas) + agenda
+      .on('postgres_changes', { event:'*', schema:'public', table:'production_tasks' }, async ()=>{ await loadProducaoTasks(); await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
+      // Avaliações e comentários de voz
+      .on('postgres_changes', { event:'*', schema:'public', table:'voice_user_ratings' }, async ()=>{ await loadRatings(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'voice_comments' }, async ()=>{ await loadComments(); agendarRerender(); })
+      // Participantes de projeto + menções + perfis
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_participants' }, async ()=>{ await loadParticipants(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_note_mentions' }, async ()=>{ await loadMinhasMencoes(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'profiles' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'admins' }, async ()=>{ await loadAdmins(); })
       .subscribe();
   }
 
