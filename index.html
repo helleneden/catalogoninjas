@@ -9922,7 +9922,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         : `<div class="photo-fallback">${initials}</div>`;
       return `
         <div class="voice-card" data-id="${c.personId}" style="cursor:pointer;position:relative;">
-          ${isAdmin?`<button class="btn-ghost" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Tirar de coadjuvante — volta pro projeto principal" style="position:absolute;top:8px;right:8px;padding:4px 9px;font-size:11px;z-index:2;">↩ Tirar</button>`:''}
+          ${isAdmin?`<div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2;">
+            <button class="btn-ghost" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}" title="Editar nome e voz" style="padding:4px 9px;font-size:11px;">✎ Editar</button>
+            <button class="btn-ghost" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Tirar de coadjuvante — volta pro projeto principal" style="padding:4px 9px;font-size:11px;">↩ Tirar</button>
+          </div>`:''}
           <div class="card-top">
             ${photo}
             <div class="card-name-block">
@@ -9947,6 +9950,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     $('#coadjClose').addEventListener('click', ()=>ov.classList.remove('open'));
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
+
+    // Editar nome e voz do coadjuvante (abre o mesmo modal de editar do projeto)
+    ov.querySelectorAll('[data-editar-coadj]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const entryId = btn.dataset.editarCoadj;
+        const pid = btn.dataset.editarPid;
+        const nome = btn.dataset.editarNome;
+        const voz = btn.dataset.editarVoz;
+        const pessoa = people.find(p => p.id === pid);
+        if (!pessoa) return;
+        // usa o projeto de coadjuvantes como contexto (pra manter na pasta)
+        const projCoadj = coadjProjectOf(project);
+        abrirAlterarVozData(pessoa, entryId, projCoadj, voz, '', () => {
+          openCoadjuvantesModal(project); // reabre a pasta atualizada
+        });
+      });
+    });
 
     // Tirar de coadjuvante — volta a entrada pro projeto principal (base,
     // sem o sufixo "⟫ Coadjuvantes"), fazendo a pessoa reaparecer na
@@ -9982,6 +10003,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       card.addEventListener('click', (e)=>{
         if (e.target.closest('img.photo, [data-photo-for]')) return; // foto amplia
         if (e.target.closest('[data-remover-coadj]')) return; // botão de tirar
+        if (e.target.closest('[data-editar-coadj]')) return; // botão de editar
         openModal(card.dataset.id);
       });
     });
