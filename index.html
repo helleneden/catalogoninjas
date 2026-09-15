@@ -480,6 +480,17 @@
   .notif-txt{ font-size:12.5px; font-weight:600; line-height:1.35; }
   .notif-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
 
+  /* Dropdown de notificações (abre no sininho) */
+  #notifDropdown{
+    position:fixed; z-index:10020; width:360px; max-width:calc(100vw - 24px);
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 16px 40px rgba(15,23,42,.22); overflow:hidden;
+    animation:notifPop .16s ease;
+  }
+  @keyframes notifPop{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .notif-drop-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .notif-drop-body{ max-height:400px; overflow:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+
   /* ===== PAINEL DE PRODUÇÃO — estilo missões/jogo ===== */
   .prod-hero{
     background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 45%,#3B82F6 100%);
@@ -11844,18 +11855,123 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   document.addEventListener('click', (e)=>{
     if (e.target.closest('#profileBtn')) openProfileModal(false);
     if (e.target.closest('#bellBtn')){
-      switchView('painel');
-      setTimeout(() => {
-        const cards = document.querySelectorAll('.painel-title');
-        for (const c of cards){
-          if (c.textContent.includes('Você foi marcado')){
-            c.scrollIntoView({behavior:'smooth', block:'center'});
-            break;
-          }
-        }
-      }, 150);
+      e.stopPropagation();
+      toggleNotifDropdown();
+    } else if (!e.target.closest('#notifDropdown')){
+      // clicar fora fecha o dropdown
+      fecharNotifDropdown();
     }
   });
+
+  // Monta a lista de notificações (mesma lógica dos 3 tipos) pra exibir no dropdown
+  function montarListaNotificacoes(){
+    const naoLidasTask = (taskNotifs||[]).filter(n => !n.read);
+    const mencoes = (minhasMencoes||[]).filter(m => !m.read);
+    const prazos = (typeof prazosTerminando === 'function') ? prazosTerminando() : [];
+    const itens = [];
+
+    prazos.forEach(t => {
+      const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${cor};">
+          <div class="notif-ic" style="background:${cor}22;">⏰</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)}</div>
+            <div class="notif-sub">${escapeHtml(partesTxt)}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    naoLidasTask.forEach(n => {
+      const ehChat = n.project === '__chat__';
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
+          <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
+            <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    mencoes.forEach(m => {
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid #7C3AED;">
+          <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    return itens;
+  }
+
+  function fecharNotifDropdown(){
+    const d = document.getElementById('notifDropdown');
+    if (d) d.remove();
+  }
+
+  function toggleNotifDropdown(){
+    const existente = document.getElementById('notifDropdown');
+    if (existente){ existente.remove(); return; }
+
+    const bell = document.getElementById('bellBtn');
+    if (!bell) return;
+    const itens = montarListaNotificacoes();
+
+    const drop = document.createElement('div');
+    drop.id = 'notifDropdown';
+    drop.innerHTML = `
+      <div class="notif-drop-head">
+        <span style="font-weight:800;font-size:14px;">🔔 Notificações</span>
+        ${itens.length?`<span style="font-size:11px;color:var(--muted);">${itens.length} nova${itens.length>1?'s':''}</span>`:''}
+      </div>
+      <div class="notif-drop-body">
+        ${itens.length ? itens.join('') : `<div style="text-align:center;padding:30px 16px;color:var(--muted);"><div style="font-size:36px;">🎉</div><p style="font-size:13px;margin:8px 0 0;">Nenhuma notificação nova!</p></div>`}
+      </div>
+      ${itens.length?`<button class="btn-ghost" id="notifLimparDrop" style="width:100%;justify-content:center;font-size:12px;border-top:1px solid var(--line);border-radius:0;padding:10px;">🧹 Limpar dos últimos 3 dias</button>`:''}`;
+    document.body.appendChild(drop);
+
+    // Posiciona logo abaixo do sininho
+    const r = bell.getBoundingClientRect();
+    drop.style.top = (r.bottom + 8) + 'px';
+    drop.style.right = (window.innerWidth - r.right) + 'px';
+
+    // Handlers dos botões "Conferir"
+    drop.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
+      const destino = btn.dataset.conf;
+      if (btn.dataset.lidaTask){
+        try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
+      }
+      if (btn.dataset.lidaMencao){
+        try { await sb.from('project_note_mentions').update({ read:true }).eq('id', btn.dataset.lidaMencao); const m = minhasMencoes.find(x=>x.id===btn.dataset.lidaMencao); if(m) m.read=true; } catch(e){}
+      }
+      renderBellBadge();
+      fecharNotifDropdown();
+      if (destino === 'producao'){ switchView('producao'); }
+      else if (destino === 'mencao'){
+        const proj = btn.dataset.mencaoProj;
+        switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+      }
+    }));
+
+    // Limpar dos últimos 3 dias
+    const btnLimpar = drop.querySelector('#notifLimparDrop');
+    if (btnLimpar) btnLimpar.addEventListener('click', async () => {
+      const tresDiasAtras = new Date(Date.now() - 3*24*60*60*1000).toISOString();
+      try {
+        await sb.from('task_notifications').delete().eq('user_id', myUserId).gte('created_at', tresDiasAtras);
+        await loadTaskNotifs();
+        renderBellBadge();
+        fecharNotifDropdown();
+        showToast('✅ Notificações limpas.');
+      } catch(e){ showToast('Erro: '+(e.message||'')); }
+    });
+  }
 
 
   // ============================================================
@@ -12653,8 +12769,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <p>Acompanhe o que cada um está fazendo e o progresso da equipe.</p>
           </div>
           <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="abrirMuralBtn" style="background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">📎 Mural${muralFiles.length?` (${muralFiles.length})`:''}</button>
-            ${isAdmin?`<button id="abrirGestaoBtn" style="background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">⚙️ Painel de Gestão</button>`:''}
+            <button id="abrirMuralBtn" style="background:#fff;border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
+            ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:#78350F;font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
           </div>
         </div>
         <div class="prod-hero-stats">
@@ -13104,12 +13220,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
-    const notifTarefasPanel = renderNotifTarefasPanel();
     const minhasTarefasPanel = renderMinhasTarefasPanel();
     const versiculoPanel = renderVersiculoDia();
     painelContent.innerHTML = `
       ${versiculoPanel}
-      ${notifTarefasPanel}
       <div class="painel-grid">
         ${renderPodio()}
       </div>
@@ -13124,7 +13238,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const btnBackup = $('#btnFazerBackup');
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
     wireSegurancaPanel();
-    wireNotifTarefasPanel();
     wireMinhasTarefasPanel();
   }
 
