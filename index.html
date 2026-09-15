@@ -8400,7 +8400,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const si = stageInfo(t.stage);
       const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : 'sem prazo';
       const atrasada = t.due_date && new Date(t.due_date+'T23:59:59') < new Date();
-      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);">
           <div style="width:36px;height:36px;border-radius:10px;background:${si.bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;">${si.ic}</div>
@@ -12185,7 +12185,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 <label style="margin:0;">Episódio</label>
                 <div class="ep-toggle" id="epToggle">
                   <button type="button" class="ep-toggle-opt on" data-modo="ep">Ep</button>
-                  <button type="button" class="ep-toggle-opt" data-modo="filme">🎬 Filme</button>
+                  <button type="button" class="ep-toggle-opt" data-modo="filme">🎬 Único</button>
                 </div>
               </div>
               <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
@@ -12515,7 +12515,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         }).join('');
         return `
           <div class="prod-ep-block">
-            <div class="prod-ep-title">${ep==='Filme' ? '🎬 Vídeo completo (filme)' : (ep==='—' ? '📌 Sem episódio' : '📺 Episódio '+escapeHtml(ep))}</div>
+            <div class="prod-ep-title">${ep==='Filme' ? '🎬 Vídeo único' : (ep==='—' ? '📌 Sem episódio' : '📺 Episódio '+escapeHtml(ep))}</div>
             ${missoes}
           </div>`;
       }).join('');
@@ -12550,7 +12550,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : 'sem prazo';
         const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
         const podeMarcar = t.assignee_user_id === myUserId; // só o responsável marca
-        const titulo = [nomeProjetoExibicao(t.project), t.episode ? (t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
+        const titulo = [nomeProjetoExibicao(t.project), t.episode ? (t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
         return `
           <div class="kb-card ${t.done?'feita':''} ${atrasada?'atrasada':''}">
             <div class="kb-card-title">${escapeHtml(titulo)}</div>
@@ -12635,7 +12635,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           const taskId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
           const partesTxt = [
             nomeProjetoExibicao(projeto),
-            episodio ? (episodio==='Filme' ? '🎬 Filme' : `Ep ${episodio}`) : '',
+            episodio ? (episodio==='Filme' ? '🎬 Único' : `Ep ${episodio}`) : '',
             parte ? `Parte ${parte}` : '',
             stage
           ].filter(Boolean).join(' · ');
@@ -12687,7 +12687,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         // 2) Sincroniza com a agenda do responsável:
         const partesTxt = [
           nomeProjetoExibicao(t.project),
-          t.episode ? (t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`) : '',
+          t.episode ? (t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`) : '',
           t.part ? `Parte ${t.part}` : '',
           t.stage
         ].filter(Boolean).join(' · ');
@@ -12866,7 +12866,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const si = stageInfo(t.stage);
       const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : 'sem prazo';
       const atrasada = t.due_date && new Date(t.due_date+'T23:59:59') < new Date();
-      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Filme':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
       return `
         <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;">
           <div style="width:34px;height:34px;border-radius:9px;background:${si.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto;">${si.ic}</div>
