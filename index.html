@@ -12381,9 +12381,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     const btnGestao = $('#abrirGestaoBtn');
     if (btnGestao) btnGestao.addEventListener('click', openPainelGestao);
-    wireProducaoLista('minhas');
-    wireChatProducao(); // liga o chat que está agora dentro da produção
     wireVistaEfiltros();
+    wireChatProducao(); // liga o chat que está agora dentro da produção
+    renderProducaoLista('todas'); // começa mostrando todas — cada um vê o que os outros fazem
   }
 
   // Liga só os filtros e botões de vista (o form de delegar foi pro modal de gestão)
