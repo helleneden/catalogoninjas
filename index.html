@@ -566,7 +566,18 @@
   .stage-chip.marcado{ border-color:var(--chip-cor,#2563EB); background:var(--chip-bg,#DBEAFE); color:var(--chip-cor,#2563EB); }
 
   /* ===== Kanban ===== */
-  .kb-wrap{ display:flex; gap:10px; overflow-x:auto; padding-bottom:12px; scroll-snap-type:x proximity; }
+  .kb-wrap{
+    display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:14px;
+    scroll-snap-type:x proximity; width:100%; max-width:100%;
+  }
+  /* Barra de rolagem sempre visível e destacada, só pro kanban */
+  .kb-wrap::-webkit-scrollbar{ height:12px; }
+  .kb-wrap::-webkit-scrollbar-track{ background:var(--bg); border-radius:10px; }
+  .kb-wrap::-webkit-scrollbar-thumb{ background:var(--blue); border-radius:10px; border:2px solid var(--bg); }
+  .kb-wrap::-webkit-scrollbar-thumb:hover{ background:var(--blue-deep); }
+  .kb-wrap{ scrollbar-width:thin; scrollbar-color:var(--blue) var(--bg); }
+  /* Trava o container do kanban pra não empurrar a tela */
+  #prodListaTarefas{ min-width:0; max-width:100%; overflow:hidden; }
   .kb-col{ flex:0 0 200px; background:var(--bg); border-radius:14px; padding:10px; min-height:120px; scroll-snap-align:start; }
   .kb-col-head{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:13.5px; margin-bottom:12px; padding:9px 12px; border-radius:10px; }
   .kb-count{ margin-left:auto; background:rgba(255,255,255,.7); border-radius:20px; padding:2px 10px; font-size:12.5px; }
@@ -595,14 +606,14 @@
   .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
 
   /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
-  .prod-layout{ display:grid; grid-template-columns:1fr 400px; gap:18px; align-items:start; }
-  .prod-chat-col{ position:relative; }
+  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 400px; gap:18px; align-items:start; }
+  .prod-chat-col{ position:relative; min-width:0; }
   /* Modo kanban: coluna única — o quadro usa a largura toda, chat vai pra baixo */
-  .prod-layout.kanban-mode{ grid-template-columns:1fr; }
+  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr); }
   .prod-layout.kanban-mode .prod-chat-col .painel-card{ position:static !important; }
   .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:300px !important; min-height:200px !important; }
   @media (max-width:1000px){
-    .prod-layout{ grid-template-columns:1fr; }
+    .prod-layout{ grid-template-columns:minmax(0,1fr); }
     .prod-chat-col .painel-card{ position:static !important; }
   }
 
