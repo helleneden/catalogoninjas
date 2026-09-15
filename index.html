@@ -611,10 +611,10 @@
   .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
 
   /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
-  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:16px; align-items:start; }
+  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:start; }
   .prod-chat-col{ position:relative; min-width:0; }
   /* Modo kanban: mantém o chat na lateral, mas o quadro fica mais alto */
-  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 300px; }
+  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 420px; }
   .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:calc(100vh - 300px) !important; min-height:490px !important; }
   @media (max-width:1000px){
     .prod-layout{ grid-template-columns:minmax(0,1fr); }
@@ -12026,7 +12026,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="chat-wrap">
           <div class="chat-msgs" id="chatMsgs">${renderChatMsgs()}</div>
           <div class="chat-input-row" style="position:relative;">
-            <textarea class="chat-input" id="chatInput" placeholder="Mensagem… (@ menciona)" rows="1"></textarea>
+            <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
             <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
             <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
           </div>
@@ -12589,7 +12589,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="chat-wrap">
               <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
               <div class="chat-input-row" style="position:relative;">
-                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… (@ menciona)" rows="1"></textarea>
+                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
                 <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
                 <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
               </div>
