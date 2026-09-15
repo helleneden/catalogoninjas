@@ -474,6 +474,12 @@
   @media(max-width:640px){ .painel-grid{ grid-template-columns:1fr; } }
   .painel-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
 
+  /* Itens da central de notificações */
+  .notif-item{ display:flex; align-items:center; gap:10px; padding:9px 11px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+  .notif-ic{ width:34px; height:34px; border-radius:9px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .notif-txt{ font-size:12.5px; font-weight:600; line-height:1.35; }
+  .notif-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
   /* ===== PAINEL DE PRODUÇÃO — estilo missões/jogo ===== */
   .prod-hero{
     background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 45%,#3B82F6 100%);
@@ -3279,6 +3285,57 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const baseProject = (proj) => (proj||'').split(COADJ_SUFFIX)[0].trim();
   const coadjProjectOf = (proj) => baseProject(proj) + COADJ_SUFFIX;
 
+  // Verifica se uma voz já está usada em algum lugar do projeto (lista
+  // principal OU coadjuvantes). Retorna a lista de pessoas que já usam essa
+  // voz naquele projeto (excluindo a própria pessoa, se ignorarPersonId).
+  function vozJaUsadaNoProjeto(projeto, voz, ignorarPersonId){
+    const base = baseProject(projeto);
+    const alvos = new Set([base.toLowerCase(), coadjProjectOf(base).toLowerCase()]);
+    const vozNorm = (voz||'').trim().toLowerCase();
+    if (!vozNorm || vozNorm === '(voz não definida)') return []; // voz vazia não conta como duplicata
+    const encontrados = [];
+    (people||[]).forEach(p => {
+      if (ignorarPersonId && p.id === ignorarPersonId) return;
+      p.entries.forEach(e => {
+        if (alvos.has((e.project||'').toLowerCase()) && (e.voice||'').trim().toLowerCase() === vozNorm){
+          encontrados.push({ nome: p.name, ehCoadj: isCoadjProject(e.project) });
+        }
+      });
+    });
+    return encontrados;
+  }
+
+  // Popup de aviso de voz duplicada. Retorna Promise<'trocar'|'usar'|'cancelar'>.
+  // 'trocar' = admin quer escolher outra voz; 'usar' = adicionar mesmo assim; 'cancelar' = desistir.
+  function avisarVozDuplicada(voz, projeto, quemUsa){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10006';
+      const listaNomes = quemUsa.map(q => `<li style="margin:2px 0;">${escapeHtml(q.nome)}${q.ehCoadj?' <span style="color:#7C3AED;font-size:11px;">(coadjuvante)</span>':''}</li>`).join('');
+      ov.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:400px;">
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);">⚠️</div>
+          <h2 style="text-align:center; margin:8px 0 4px;">Voz já usada neste projeto</h2>
+          <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 12px;">
+            A voz <b style="color:var(--ink);">"${escapeHtml(voz)}"</b> já está sendo usada em <b>"${escapeHtml(baseProject(projeto))}"</b> por:
+          </p>
+          <ul style="font-size:13px;color:var(--ink);margin:0 0 16px;padding-left:22px;">${listaNomes}</ul>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="vdTrocar" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--blue-deep);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">🎙️ Escolher outra voz</button>
+            <button type="button" id="vdUsar" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Usar mesmo assim</button>
+            <button type="button" id="vdCancelar" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Descartar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      const cleanup = (r) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); resolve(r); };
+      ov.querySelector('#vdTrocar').addEventListener('click', () => cleanup('trocar'));
+      ov.querySelector('#vdUsar').addEventListener('click', () => cleanup('usar'));
+      ov.querySelector('#vdCancelar').addEventListener('click', () => cleanup('cancelar'));
+      fecharAoClicarFora(ov, () => cleanup('cancelar'));
+    });
+  }
+
   // Nome do projeto formatado pra EXIBIÇÃO — troca o sufixo interno com
   // símbolo "⟫" por um texto limpo "(Coadjuvantes)". O valor real no banco
   // continua com o símbolo (não mexer nele quebraria os coadjuvantes).
@@ -4602,6 +4659,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const novaData = dataInput.value.trim();
       if (!novoNome){ showToast('Digite o nome do personagem.'); nomeInput.focus(); return; }
       if (!novaVoz){ showToast('Digite a voz.'); vozInput.focus(); return; }
+
+      // Checa se a voz já é usada por outra pessoa no projeto (principal ou coadj)
+      if (novaVoz.trim().toLowerCase() !== (vozAtual||'').trim().toLowerCase()){
+        const quemUsa = vozJaUsadaNoProjeto(projeto, novaVoz, person.id);
+        if (quemUsa.length > 0){
+          const escolha = await avisarVozDuplicada(novaVoz, projeto, quemUsa);
+          if (escolha === 'cancelar') return;
+          if (escolha === 'trocar'){ vozInput.focus(); vozInput.select(); return; }
+          // 'usar' → segue e salva mesmo assim
+        }
+      }
+
       const btn = ov.querySelector('#altConfirm');
       btn.disabled = true;
       btn.textContent = 'Salvando…';
@@ -5967,6 +6036,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         } else if (escolha === 'cancelou'){
           return;
         }
+      }
+    }
+
+    // 2b) Checagem de VOZ duplicada no projeto (principal ou coadjuvantes)
+    if (projetoCanonico && projetoCanonico !== SEM_PROJETO && voz){
+      const quemUsa = vozJaUsadaNoProjeto(projetoCanonico, voz, null);
+      if (quemUsa.length > 0){
+        const escolha = await avisarVozDuplicada(voz, projetoCanonico, quemUsa);
+        if (escolha === 'cancelar') return;
+        if (escolha === 'trocar'){ $('#voiceMainInput')?.focus(); $('#voiceMainInput')?.select(); return; }
+        // 'usar' → segue e cria mesmo assim
       }
     }
 
@@ -8095,9 +8175,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ taskNotifs = []; }
   }
 
-  // Atualiza o sino de notificação — conta menções em observações de
-  // projeto (qualquer usuário pode ter). O recurso de solicitação de
-  // senha pro admin foi removido (agora é 100% self-service por e-mail).
+  // Atualiza o sino de notificação — conta menções, tarefas novas e
+  // prazos terminando (tudo que aparece na central de notificações).
   function renderBellBadge(){
     const btn = document.getElementById('bellBtn');
     const badge = document.getElementById('bellBadge');
@@ -8105,7 +8184,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     btn.style.display = 'flex';
     const mencoesNaoLidas = (minhasMencoes||[]).filter(m => !m.read).length;
     const tarefasNaoLidas = (taskNotifs||[]).filter(n => !n.read).length;
-    const total = mencoesNaoLidas + tarefasNaoLidas;
+    let prazosCount = 0;
+    try { prazosCount = prazosTerminando().length; } catch(e){}
+    const total = mencoesNaoLidas + tarefasNaoLidas + prazosCount;
     if (total > 0){
       badge.textContent = String(total);
       badge.style.display = 'flex';
@@ -10452,6 +10533,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       let ok = 0;
       for (const pessoa of arr){
         try {
+          // Checa se a voz dessa pessoa já está no projeto (principal ou coadj)
+          const vozDela = pessoa.voice || '';
+          const quemUsa = vozJaUsadaNoProjeto(project, vozDela, pessoa._nova ? null : pessoa.personId);
+          if (quemUsa.length > 0){
+            const escolha = await avisarVozDuplicada(vozDela, project, quemUsa);
+            if (escolha === 'cancelar' || escolha === 'trocar'){
+              // pula essa pessoa (não adiciona) — o admin pode reabrir e ajustar
+              continue;
+            }
+            // 'usar' → segue e adiciona mesmo assim
+          }
+
           let personIdReal = pessoa.personId;
           if (pessoa._nova){
             const novoPid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
@@ -12022,7 +12115,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   function renderChat(){
     return `
       <div class="painel-card" style="grid-column:1/-1;">
-        <div class="painel-title">💬 Chat do dia <span style="font-size:11px;color:var(--muted);font-weight:400;">(some à meia-noite)</span></div>
+        <div class="painel-title">💬 Chat do dia</div>
         <div class="chat-wrap">
           <div class="chat-msgs" id="chatMsgs">${renderChatMsgs()}</div>
           <div class="chat-input-row" style="position:relative;">
@@ -12585,7 +12678,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div id="prodListaTarefas"></div>
         <div class="prod-chat-col">
           <div class="painel-card" style="position:sticky;top:16px;">
-            <div class="painel-title">💬 Chat do dia <span style="font-size:10.5px;color:var(--muted);font-weight:400;">(some à meia-noite)</span></div>
+            <div class="painel-title">💬 Chat do dia</div>
             <div class="chat-wrap">
               <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
               <div class="chat-input-row" style="position:relative;">
@@ -12874,10 +12967,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           });
           if (error) throw error;
           try {
+            const quemAtribuiu = myProfile.display_name || myEmail || 'Um admin';
             await sb.from('task_notifications').insert({
               id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
               user_id: userId, task_id: taskId, project: projeto, stage,
-              message: `Nova missão: ${stage} — ${partesTxt}`, read: false
+              message: `${quemAtribuiu} adicionou uma nova tarefa pra você: ${stage} — ${partesTxt}`, read: false
             });
           } catch(e){}
         }
@@ -13010,19 +13104,17 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
-    const mencoesPanel = renderMencoesPanel();
     const notifTarefasPanel = renderNotifTarefasPanel();
     const minhasTarefasPanel = renderMinhasTarefasPanel();
     const versiculoPanel = renderVersiculoDia();
     painelContent.innerHTML = `
       ${versiculoPanel}
+      ${notifTarefasPanel}
       <div class="painel-grid">
         ${renderPodio()}
       </div>
       ${minhasTarefasPanel}
       ${renderAgenda()}
-      ${notifTarefasPanel}
-      ${mencoesPanel}
       ${renderSegurancaPanel()}
       ${backupPanel}
       ${adminPanel}`;
@@ -13032,7 +13124,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const btnBackup = $('#btnFazerBackup');
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
     wireSegurancaPanel();
-    wireMencoesPanel();
     wireNotifTarefasPanel();
     wireMinhasTarefasPanel();
   }
@@ -13126,44 +13217,120 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   // Painel de notificações de tarefa — mostra as tarefas atribuídas ao user.
+  // Calcula notificações de "prazo terminando" — tarefas suas com prazo
+  // hoje ou amanhã, ainda não concluídas.
+  function prazosTerminando(){
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const amanha = new Date(hoje.getTime() + 24*60*60*1000);
+    const depoisAmanha = new Date(hoje.getTime() + 2*24*60*60*1000);
+    return (producaoTasks||[]).filter(t => {
+      if (t.assignee_user_id !== myUserId || t.done || !t.due_date) return false;
+      const d = new Date(t.due_date+'T00:00:00');
+      return d < depoisAmanha; // hoje, amanhã, ou já passou
+    }).map(t => {
+      const d = new Date(t.due_date+'T00:00:00');
+      let quando;
+      if (d < hoje) quando = 'atrasada';
+      else if (d < amanha) quando = 'vence hoje';
+      else quando = 'vence amanhã';
+      return { ...t, _quando: quando };
+    });
+  }
+
   function renderNotifTarefasPanel(){
-    if (!taskNotifs || taskNotifs.length === 0) return '';
-    const naoLidas = taskNotifs.filter(n => !n.read);
-    const linha = (n) => `
-      <div class="prr-item" style="${n.read?'opacity:.6;':''}">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13px;">${escapeHtml(n.stage||'Tarefa')} · ${escapeHtml(nomeProjetoExibicao(n.project||''))}</div>
-          <div style="font-size:11.5px;color:var(--muted);">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
-        </div>
-        ${!n.read?`<button class="btn-ghost" data-lida-notif="${n.id}" style="padding:6px 10px;font-size:12px;">✓ Lida</button>`:''}
-      </div>`;
+    const naoLidasTask = (taskNotifs||[]).filter(n => !n.read);
+    const mencoes = (minhasMencoes||[]).filter(m => !m.read);
+    const prazos = prazosTerminando();
+    const totalNovas = naoLidasTask.length + mencoes.length + prazos.length;
+
+    if (totalNovas === 0 && (taskNotifs||[]).length === 0) return '';
+
+    // Monta as linhas de cada tipo
+    const itens = [];
+
+    // 1) Prazos terminando (urgente, aparece primeiro)
+    prazos.forEach(t => {
+      const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${cor};">
+          <div class="notif-ic" style="background:${cor}22;">⏰</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)} — ${escapeHtml(partesTxt)}</div>
+            <div class="notif-sub">Prazo: ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    // 2) Novas tarefas atribuídas (e menções de chat)
+    naoLidasTask.forEach(n => {
+      const ehChat = n.project === '__chat__';
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
+          <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
+            <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    // 3) Marcações no chat/observações
+    mencoes.forEach(m => {
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid #7C3AED;">
+          <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    const corpo = itens.length
+      ? itens.join('')
+      : `<p style="font-size:12.5px;color:var(--muted);margin:0;">🎉 Nenhuma notificação nova.</p>`;
+
     return `
       <div class="painel-card" style="margin-top:20px;">
-        <div class="painel-title">🎯 Suas tarefas (${naoLidas.length} nova${naoLidas.length===1?'':'s'})</div>
-        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">Tarefas que te atribuíram. Vá na aba <b>Produção</b> pra ver detalhes e marcar como feita.</p>
-        <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;">
-          ${taskNotifs.slice(0,20).map(linha).join('')}
+        <div class="painel-title">🔔 Notificações ${totalNovas?`(${totalNovas})`:''}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto;">
+          ${corpo}
         </div>
         <button class="btn-ghost" id="limparNotifs3dias" style="width:100%;justify-content:center;margin-top:12px;font-size:12.5px;">🧹 Limpar notificações dos últimos 3 dias</button>
       </div>`;
   }
 
   function wireNotifTarefasPanel(){
-    painelContent.querySelectorAll('[data-lida-notif]').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.dataset.lidaNotif;
-      try {
-        await sb.from('task_notifications').update({ read:true }).eq('id', id);
-        const n = taskNotifs.find(x => x.id === id);
-        if (n) n.read = true;
-        renderBellBadge();
-        renderPainel();
-      } catch(e){}
+    // Botão "Conferir" — marca como lida e leva ao lugar certo
+    painelContent.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
+      const destino = btn.dataset.conf;
+      // marca a notificação de tarefa como lida
+      if (btn.dataset.lidaTask){
+        try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
+      }
+      // marca a menção como lida
+      if (btn.dataset.lidaMencao){
+        try { await sb.from('project_note_mentions').update({ read:true }).eq('id', btn.dataset.lidaMencao); const m = minhasMencoes.find(x=>x.id===btn.dataset.lidaMencao); if(m) m.read=true; } catch(e){}
+      }
+      renderBellBadge();
+      // vai pro destino
+      if (destino === 'producao'){ switchView('producao'); }
+      else if (destino === 'mencao'){
+        const proj = btn.dataset.mencaoProj;
+        switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+      }
     }));
+
     const btnLimpar = $('#limparNotifs3dias');
     if (btnLimpar) btnLimpar.addEventListener('click', async () => {
       const ok = await confirmarBonito({
         titulo: 'Limpar notificações?',
-        mensagem: 'Isso apaga as notificações de tarefa dos últimos 3 dias.',
+        mensagem: 'Isso apaga as notificações dos últimos 3 dias.',
         textoBotao: '🧹 Limpar', corBotao:'#7C3AED', icone:'🧹'
       });
       if (!ok) return;
@@ -13683,6 +13850,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         showToast('Erro ao enviar: '+error.message);
         chatIn.value = texto;
       } else {
+        // Detecta @menções no texto e notifica quem foi marcado
+        try {
+          const nomes = [...texto.matchAll(/@([\wÀ-ú]+(?:\s[\wÀ-ú]+)?)/g)].map(m => m[1].trim());
+          if (nomes.length){
+            const marcados = Object.values(profilesByUser||{}).filter(p =>
+              p.display_name && p.user_id !== myUserId &&
+              nomes.some(n => p.display_name.toLowerCase().startsWith(n.toLowerCase()) || n.toLowerCase().startsWith(p.display_name.toLowerCase().split(' ')[0]))
+            );
+            const quem = myProfile.display_name || 'Alguém';
+            for (const p of marcados){
+              await sb.from('task_notifications').insert({
+                id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+                user_id: p.user_id, task_id: null, project: '__chat__', stage: 'chat',
+                message: `${quem} te marcou no chat: "${texto.slice(0,60)}${texto.length>60?'…':''}"`, read: false
+              });
+            }
+          }
+        } catch(e){ console.warn('Erro ao notificar menção no chat:', e); }
         // Recarrega do banco pra pegar a mensagem recém-criada (com id do servidor)
         await reloadChatFromDB(true);
       }
