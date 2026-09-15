@@ -12066,7 +12066,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       metaCards.forEach(c => { if(porSemana[c.semana]) porSemana[c.semana].push(c); });
       return [1,2,3,4,5].map(sem => {
         const cards = porSemana[sem];
-        if (sem===5 && cards.length===0) return ''; // semana 5 só se tiver
         const lista = cards.map(c => {
           const cc = metaCatCor(c.categoria);
           return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;margin-bottom:5px;">
@@ -12076,8 +12075,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <button class="mc-del" data-id="${c.id}" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;">🗑️</button>
           </div>`;
         }).join('') || `<p style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Nenhum cartão nesta semana.</p>`;
-        return `<div style="margin-bottom:14px;">
-          <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}</div>
+        return `<div style="margin-bottom:14px;${sem===5?'padding-top:12px;border-top:1px dashed var(--line);':''}">
+          <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}${sem===5?' <span style="font-weight:400;font-size:11px;color:var(--muted);">(opcional)</span>':''}</div>
           ${lista}
           <div style="display:flex;gap:6px;margin-top:4px;">
             <select class="mc-nova-cat" data-sem="${sem}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
@@ -12146,17 +12145,185 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     render();
   }
 
-  function renderProducao(){
-    const cont = $('#producaoContent');
-    if (!cont) return;
-
+  // ============================================================
+  // PAINEL DE GESTÃO (só admin) — modal com metas + delegar tarefa
+  // ============================================================
+  function openPainelGestao(){
     const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
-    // Projetos ordenados: em produção primeiro, depois o resto
     const emProdSet = new Set(allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].in_production));
     const projetos = [...allProjectsList()].sort((a,b) => {
       const pa = emProdSet.has(a)?0:1, pb = emProdSet.has(b)?0:1;
       return pa-pb || a.localeCompare(b,'pt-BR');
     });
+    const metaMes = getMetaMensal();
+    const feitos = contarProjetosConcluidosMes();
+    const pctMeta = metaMes > 0 ? Math.round(feitos/metaMes*100) : 0;
+
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '9998';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:640px;max-height:88vh;overflow:auto;">
+        <h2>⚙️ Painel de Gestão</h2>
+        <div class="gestao-tabs" style="display:flex;gap:6px;margin:10px 0 18px;background:var(--bg);padding:4px;border-radius:12px;">
+          <button class="gestao-tab on" data-gtab="delegar" style="flex:1;padding:9px;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-size:13px;background:var(--surface);font-family:inherit;">🚀 Delegar tarefa</button>
+          <button class="gestao-tab" data-gtab="metas" style="flex:1;padding:9px;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-size:13px;background:none;color:var(--muted);font-family:inherit;">🎯 Metas do mês</button>
+        </div>
+
+        <div id="gestaoDelegar">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">
+            <div class="field" style="margin:0;">
+              <label>Projeto</label>
+              <select id="prodProjetoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+                <option value="">— Escolher projeto —</option>
+                ${emProdSet.size ? `<optgroup label="Em produção">${projetos.filter(p=>emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+                ${projetos.some(p=>!emProdSet.has(p)) ? `<optgroup label="Outros projetos">${projetos.filter(p=>!emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">
+                <label style="margin:0;">Episódio</label>
+                <div class="ep-toggle" id="epToggle">
+                  <button type="button" class="ep-toggle-opt on" data-modo="ep">Ep</button>
+                  <button type="button" class="ep-toggle-opt" data-modo="filme">🎬 Filme</button>
+                </div>
+              </div>
+              <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <input type="checkbox" id="prodFullVideoCheck" style="display:none;">
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Parte</label>
+              <input type="text" id="prodParteInput" placeholder="Ex: 1 de 2" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+            <div class="field" style="margin:0;">
+              <label>Responsável</label>
+              <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+                <option value="">— Escolher —</option>
+                ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Prazo final</label>
+              <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <p id="prodPrazoAviso" style="font-size:11px;margin:5px 0 0;color:#CA8A04;">⚠️ Sem prazo, a tarefa não entra na agenda.</p>
+            </div>
+          </div>
+          <div class="field" style="margin:12px 0 0;">
+            <label>Etapas (uma tarefa por etapa marcada)</label>
+            <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              ${PRODUCAO_STAGES.map(s => { const si = stageInfo(s); return `
+                <div class="stage-chip" data-stage="${escapeHtml(s)}" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
+                  <span style="font-size:15px;">${si.ic}</span> ${escapeHtml(s)}
+                </div>`; }).join('')}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
+            <div class="field" style="margin:0;">
+              <label>Prioridade (1 = urgente)</label>
+              <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Observação (opcional)</label>
+              <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">🚀 Atribuir tarefa(s)</button>
+        </div>
+
+        <div id="gestaoMetas" style="display:none;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-radius:12px;margin-bottom:16px;">
+            <div class="prod-ring" style="width:60px;height:60px;flex:0 0 auto;">
+              <svg width="60" height="60" style="transform:rotate(-90deg);">
+                <circle cx="30" cy="30" r="25" fill="none" stroke="#BBF7D0" stroke-width="6"/>
+                <circle cx="30" cy="30" r="25" fill="none" stroke="${pctMeta>=100?'#059669':'#16A34A'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${2*Math.PI*25*Math.min(pctMeta,100)/100} ${2*Math.PI*25}"/>
+              </svg>
+              <div class="prod-ring-txt" style="color:#059669;font-size:13px;">${pctMeta}%</div>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:15px;color:#166534;">Meta do mês</div>
+              <div style="font-size:12.5px;color:#15803D;"><b>${feitos}</b> de <b>${metaMes}</b> projetos concluídos</div>
+            </div>
+          </div>
+          <div id="gestaoMetasCorpo"></div>
+        </div>
+
+        <div style="text-align:right;margin-top:16px;"><button class="btn-ghost" id="gestaoFechar">Fechar</button></div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    // Abas
+    ov.querySelectorAll('.gestao-tab').forEach(tab => tab.addEventListener('click', () => {
+      ov.querySelectorAll('.gestao-tab').forEach(t => { t.classList.remove('on'); t.style.background='none'; t.style.color='var(--muted)'; });
+      tab.classList.add('on'); tab.style.background='var(--surface)'; tab.style.color='';
+      const g = tab.dataset.gtab;
+      ov.querySelector('#gestaoDelegar').style.display = g==='delegar'?'':'none';
+      ov.querySelector('#gestaoMetas').style.display = g==='metas'?'':'none';
+      if (g==='metas') renderMetasNoModal(ov);
+    }));
+
+    // Liga o formulário de delegar (reusa wireProducaoForm, que acha os campos por id)
+    wireProducaoForm(() => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+
+    ov.querySelector('#gestaoFechar').addEventListener('click', () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+  }
+
+  // Renderiza a gestão de metas dentro do modal (semanas + cartões)
+  function renderMetasNoModal(ov){
+    const corpo = ov.querySelector('#gestaoMetasCorpo');
+    if (!corpo) return;
+    const porSemana = {1:[],2:[],3:[],4:[],5:[]};
+    metaCards.forEach(c => { if(porSemana[c.semana]) porSemana[c.semana].push(c); });
+    corpo.innerHTML = [1,2,3,4,5].map(sem => {
+      const cards = porSemana[sem];
+      const lista = cards.map(c => {
+        const cc = metaCatCor(c.categoria);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;margin-bottom:5px;">
+          <input type="checkbox" class="mc-done" data-id="${c.id}" ${c.done?'checked':''} style="width:16px;height:16px;accent-color:#16A34A;cursor:pointer;">
+          <span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${cc.bg};color:${cc.c};">${escapeHtml(c.categoria)}</span>
+          <span style="flex:1;min-width:0;font-size:12.5px;${c.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(c.titulo||'(sem nome)')}</span>
+          <button class="mc-del" data-id="${c.id}" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;">🗑️</button>
+        </div>`;
+      }).join('') || `<p style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Nenhum cartão nesta semana.</p>`;
+      return `<div style="margin-bottom:14px;${sem===5?'padding-top:12px;border-top:1px dashed var(--line);':''}">
+        <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}${sem===5?' <span style="font-weight:400;font-size:11px;color:var(--muted);">(opcional)</span>':''}</div>
+        ${lista}
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <select class="mc-nova-cat" data-sem="${sem}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+            ${META_CATEGORIAS.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+          <input type="text" class="mc-nova-titulo" data-sem="${sem}" placeholder="Nome do projeto (opcional)" style="flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+          <button class="mc-add btn-primary" data-sem="${sem}" style="padding:6px 12px;font-size:12px;">+ Add</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // wiring dos cartões
+    corpo.querySelectorAll('.mc-add').forEach(btn => btn.addEventListener('click', async () => {
+      const sem = Number(btn.dataset.sem);
+      const cat = corpo.querySelector(`.mc-nova-cat[data-sem="${sem}"]`).value;
+      const titulo = corpo.querySelector(`.mc-nova-titulo[data-sem="${sem}"]`).value.trim();
+      const novo = { id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(), mes:mesAtualStr(), semana:sem, categoria:cat, titulo:titulo||null, done:false, created_by:myEmail||null };
+      try { const { error } = await sb.from('meta_cards').insert(novo); if (error) throw error; metaCards.push(novo); renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+    corpo.querySelectorAll('.mc-done').forEach(cb => cb.addEventListener('change', async () => {
+      const id = cb.dataset.id;
+      try { await sb.from('meta_cards').update({ done: cb.checked }).eq('id', id); const c = metaCards.find(x=>x.id===id); if(c) c.done = cb.checked; renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); cb.checked=!cb.checked; }
+    }));
+    corpo.querySelectorAll('.mc-del').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      try { await sb.from('meta_cards').delete().eq('id', id); metaCards = metaCards.filter(x=>x.id!==id); renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+  }
+
+  function renderProducao(){
+    const cont = $('#producaoContent');
+    if (!cont) return;
 
     // Estatísticas gerais (pro hero)
     const total = producaoTasks.length;
@@ -12164,110 +12331,28 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const minhas = producaoTasks.filter(t => t.assignee_user_id === myUserId && !t.done).length;
     const pct = total ? Math.round(feitas/total*100) : 0;
 
-    // Meta mensal (contador manual guardado local + banco via project_meta especial)
+    // Meta mensal
     const metaMes = getMetaMensal();
     const projsConcluidosMes = contarProjetosConcluidosMes();
     const pctMeta = metaMes > 0 ? Math.round(projsConcluidosMes/metaMes*100) : 0;
 
-    const formAdmin = isAdmin ? `
-      <div class="painel-card" style="margin-bottom:20px;">
-        <div class="painel-title">➕ Nova missão</div>
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:10px;">
-          <div class="field" style="margin:0;">
-            <label>Projeto</label>
-            <select id="prodProjetoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-              <option value="">— Escolher projeto —</option>
-              ${emProdSet.size ? `<optgroup label="Em produção">${projetos.filter(p=>emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
-              ${projetos.some(p=>!emProdSet.has(p)) ? `<optgroup label="Outros projetos">${projetos.filter(p=>!emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
-            </select>
-          </div>
-          <div class="field" style="margin:0;">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">
-              <label style="margin:0;">Episódio</label>
-              <div class="ep-toggle" id="epToggle">
-                <button type="button" class="ep-toggle-opt on" data-modo="ep">Ep</button>
-                <button type="button" class="ep-toggle-opt" data-modo="filme">🎬 Filme</button>
-              </div>
-            </div>
-            <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-            <input type="checkbox" id="prodFullVideoCheck" style="display:none;">
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Parte</label>
-            <input type="text" id="prodParteInput" placeholder="Ex: 1 de 2" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-          <div class="field" style="margin:0;">
-            <label>Responsável</label>
-            <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-              <option value="">— Escolher —</option>
-              ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Prazo final</label>
-            <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-            <p id="prodPrazoAviso" style="font-size:11px;margin:5px 0 0;color:#CA8A04;display:flex;align-items:center;gap:4px;">⚠️ Sem prazo, a tarefa <b>não</b> entra na agenda do responsável.</p>
-          </div>
-        </div>
-        <div class="field" style="margin:12px 0 0;">
-          <label>Etapas da missão (marque uma ou várias)</label>
-          <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
-            ${PRODUCAO_STAGES.map(s => { const si = stageInfo(s); return `
-              <div class="stage-chip" data-stage="${escapeHtml(s)}" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
-                <span style="font-size:15px;">${si.ic}</span> ${escapeHtml(s)}
-              </div>`; }).join('')}
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
-          <div class="field" style="margin:0;">
-            <label>Prioridade (1 = urgente)</label>
-            <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Observação (opcional)</label>
-            <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-        </div>
-        <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">🚀 Atribuir missão(ões)</button>
-      </div>` : '';
-
     cont.innerHTML = `
       <div class="prod-hero">
-        <h1>🎯 Central de Produção</h1>
-        <p>Cada missão é uma etapa de um episódio. Complete-as e acompanhe o progresso da equipe.</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <h1>🎯 Central de Produção</h1>
+            <p>Acompanhe o que cada um está fazendo e o progresso da equipe.</p>
+          </div>
+          ${isAdmin?`<button id="abrirGestaoBtn" style="flex:0 0 auto;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">⚙️ Painel de Gestão</button>`:''}
+        </div>
         <div class="prod-hero-stats">
           <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
           <div class="prod-hero-stat"><b>${feitas}</b><span>concluídas</span></div>
           <div class="prod-hero-stat"><b>${minhas}</b><span>suas pendentes</span></div>
-          <div class="prod-hero-stat"><b>${pct}%</b><span>progresso geral</span></div>
+          <div class="prod-hero-stat"><b>${pctMeta}%</b><span>meta do mês (${projsConcluidosMes}/${metaMes})</span></div>
         </div>
       </div>
 
-      <div class="painel-card" style="margin-bottom:20px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-color:#86EFAC;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:${metaCards.length||isAdmin?'14px':'0'};">
-          <div style="flex:0 0 auto;">
-            <div class="prod-ring" style="width:64px;height:64px;">
-              <svg width="64" height="64" style="transform:rotate(-90deg);">
-                <circle cx="32" cy="32" r="27" fill="none" stroke="#BBF7D0" stroke-width="6"/>
-                <circle cx="32" cy="32" r="27" fill="none" stroke="${pctMeta>=100?'#059669':'#16A34A'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${2*Math.PI*27*Math.min(pctMeta,100)/100} ${2*Math.PI*27}"/>
-              </svg>
-              <div class="prod-ring-txt" style="color:#059669;font-size:14px;">${pctMeta}%</div>
-            </div>
-          </div>
-          <div style="flex:1;min-width:180px;">
-            <div style="font-weight:800;font-size:15px;color:#166534;">🎯 Meta do mês</div>
-            <div style="font-size:12.5px;color:#15803D;margin-top:2px;">
-              <b>${projsConcluidosMes}</b> de <b>${metaMes}</b> projetos concluídos este mês
-            </div>
-          </div>
-          ${isAdmin?`<button class="btn-ghost" id="gerenciarMetaBtn" style="flex:0 0 auto;padding:8px 14px;font-size:12.5px;background:#fff;border:1.5px solid #86EFAC;color:#166534;">📋 Gerenciar cartões</button>`:''}
-        </div>
-        ${renderMetaCardsResumo()}
-      </div>
-
-      ${formAdmin}
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
         <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
@@ -12294,9 +12379,20 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>
       </div>`;
 
-    wireProducaoForm();
+    const btnGestao = $('#abrirGestaoBtn');
+    if (btnGestao) btnGestao.addEventListener('click', openPainelGestao);
+    wireProducaoLista('minhas');
     wireChatProducao(); // liga o chat que está agora dentro da produção
-    renderProducaoLista('minhas');
+    wireVistaEfiltros();
+  }
+
+  // Liga só os filtros e botões de vista (o form de delegar foi pro modal de gestão)
+  function wireVistaEfiltros(){
+    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+    document.querySelectorAll('.prod-vista-btn').forEach(b => b.addEventListener('click', () => {
+      prodVistaAtual = b.dataset.vista;
+      renderProducaoLista();
+    }));
   }
 
   // Liga os eventos do chat quando ele está dentro da aba Produção
@@ -12476,19 +12572,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireProducaoLista();
   }
 
-  function wireProducaoForm(){
-    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
-
-    // Botões de alternar vista (por projeto / kanban)
-    document.querySelectorAll('.prod-vista-btn').forEach(b => b.addEventListener('click', () => {
-      prodVistaAtual = b.dataset.vista;
-      renderProducaoLista();
-    }));
-
-    // Gerenciar cartões de meta (admin)
-    const btnGerMeta = $('#gerenciarMetaBtn');
-    if (btnGerMeta) btnGerMeta.addEventListener('click', openGerenciarMeta);
-
+  function wireProducaoForm(aoConcluir){
     // Chips de etapa (clique alterna o estado "marcado")
     document.querySelectorAll('.stage-chip').forEach(chip => {
       chip.addEventListener('click', () => chip.classList.toggle('marcado'));
@@ -12574,11 +12658,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         await loadProducaoTasks();
         await loadTaskNotifs();
         if (userId === myUserId) await loadAgenda();
+        showToast(`🚀 ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}!`);
+        if (typeof aoConcluir === 'function') aoConcluir(); // fecha o modal de gestão
         renderProducao();
-        showToast(`🚀 ${etapas.length} missão${etapas.length===1?'':'ões'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}!`);
       } catch(err){
         showToast('Erro ao atribuir: '+(err.message||''));
-        btnCriar.disabled = false; btnCriar.textContent = '🚀 Atribuir missão(ões)';
+        btnCriar.disabled = false; btnCriar.textContent = '🚀 Atribuir tarefa(s)';
       }
     });
   }
