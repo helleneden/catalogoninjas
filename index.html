@@ -566,8 +566,8 @@
   .stage-chip.marcado{ border-color:var(--chip-cor,#2563EB); background:var(--chip-bg,#DBEAFE); color:var(--chip-cor,#2563EB); }
 
   /* ===== Kanban ===== */
-  .kb-wrap{ display:flex; gap:14px; overflow-x:auto; padding-bottom:12px; }
-  .kb-col{ flex:0 0 260px; background:var(--bg); border-radius:14px; padding:12px; min-height:120px; }
+  .kb-wrap{ display:flex; gap:10px; overflow-x:auto; padding-bottom:12px; scroll-snap-type:x proximity; }
+  .kb-col{ flex:0 0 200px; background:var(--bg); border-radius:14px; padding:10px; min-height:120px; scroll-snap-align:start; }
   .kb-col-head{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:13.5px; margin-bottom:12px; padding:9px 12px; border-radius:10px; }
   .kb-count{ margin-left:auto; background:rgba(255,255,255,.7); border-radius:20px; padding:2px 10px; font-size:12.5px; }
   .kb-card{ background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,.04); transition:transform .12s; }
@@ -579,9 +579,28 @@
   .kb-vazio{ text-align:center; color:var(--muted); font-size:12px; padding:24px 0; }
   .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
 
+  /* ===== Mural de arquivos ===== */
+  .mural-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
+  .mural-card{ background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s; }
+  .mural-card:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
+  .mural-card.antigo{ border-color:#FCA5A5; }
+  .mural-thumb{ height:120px; background-size:cover; background-position:center; background-color:var(--bg); }
+  .mural-thumb-ic{ display:flex; align-items:center; justify-content:center; font-size:44px; }
+  .mural-info{ padding:8px 10px; flex:1; }
+  .mural-nome{ font-weight:700; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mural-meta{ font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .mural-acoes{ display:flex; border-top:1px solid var(--line); }
+  .mural-btn{ flex:1; text-align:center; padding:8px; background:none; border:none; cursor:pointer; font-size:15px; text-decoration:none; transition:background .12s; }
+  .mural-btn:hover{ background:var(--bg); }
+  .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
+
   /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
   .prod-layout{ display:grid; grid-template-columns:1fr 400px; gap:18px; align-items:start; }
   .prod-chat-col{ position:relative; }
+  /* Modo kanban: coluna única — o quadro usa a largura toda, chat vai pra baixo */
+  .prod-layout.kanban-mode{ grid-template-columns:1fr; }
+  .prod-layout.kanban-mode .prod-chat-col .painel-card{ position:static !important; }
+  .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:300px !important; min-height:200px !important; }
   @media (max-width:1000px){
     .prod-layout{ grid-template-columns:1fr; }
     .prod-chat-col .painel-card{ position:static !important; }
@@ -3430,6 +3449,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
   let producaoTasks = []; // todas as tarefas de produção
   let metaCards = [];     // cartões de meta do mês (por semana + categoria)
+  let muralFiles = [];    // arquivos do mural de produção
   const META_CATEGORIAS = ['Filme', 'Desenho', 'Estudo', 'Documentário', 'Infantil', 'Série', 'Outro'];
   let taskNotifs = [];    // notificações de tarefa do usuário logado
   // As etapas de produção, na ordem típica do fluxo
@@ -3586,6 +3606,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadMinhasMencoes(),
       loadProducaoTasks(),
       loadMetaCards(),
+      loadMuralFiles(),
       loadTaskNotifs(),
     ]);
     projectCats = {};
@@ -8040,6 +8061,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ metaCards = []; }
   }
 
+  // Carrega os arquivos do mural (mais recentes primeiro)
+  async function loadMuralFiles(){
+    try{
+      const { data } = await sb.from('mural_files').select('*').order('created_at', { ascending:false }).limit(200);
+      muralFiles = data || [];
+    }catch(e){ muralFiles = []; }
+  }
+
   // Carrega as notificações de tarefa do usuário logado
   async function loadTaskNotifs(){
     if (!myUserId){ taskNotifs = []; return; }
@@ -12323,6 +12352,175 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }));
   }
 
+  // ============================================================
+  // MURAL DE ARQUIVOS — fotos, vídeos, áudios, planilhas, docs
+  // em qualidade original. Todos veem e baixam.
+  // ============================================================
+  const MURAL_BUCKET = 'mural';
+
+  function iconeArquivo(tipo, nome){
+    const t = (tipo||'').toLowerCase();
+    const ext = (nome||'').split('.').pop().toLowerCase();
+    if (t.startsWith('image/')) return '🖼️';
+    if (t.startsWith('video/')) return '🎬';
+    if (t.startsWith('audio/')) return '🎵';
+    if (['xls','xlsx','csv','ods'].includes(ext)) return '📊';
+    if (['doc','docx','odt','rtf'].includes(ext)) return '📄';
+    if (ext === 'pdf') return '📕';
+    if (['psd','ai','xd','fig'].includes(ext)) return '🎨';
+    if (['zip','rar','7z'].includes(ext)) return '🗜️';
+    return '📎';
+  }
+  function formatarTamanho(bytes){
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes+' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(0)+' KB';
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1)+' MB';
+    return (bytes/1024/1024/1024).toFixed(2)+' GB';
+  }
+  function ehImagem(f){ return (f.file_type||'').startsWith('image/'); }
+
+  function openMural(){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '9998';
+    document.body.appendChild(ov);
+
+    function render(){
+      const trintaDias = Date.now() - 30*24*60*60*1000;
+      const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
+
+      const cards = muralFiles.map(f => {
+        const antigo = new Date(f.created_at).getTime() < trintaDias;
+        const preview = ehImagem(f)
+          ? `<div class="mural-thumb" style="background-image:url('${escapeHtml(f.url)}');"></div>`
+          : `<div class="mural-thumb mural-thumb-ic">${iconeArquivo(f.file_type, f.file_name)}</div>`;
+        return `
+          <div class="mural-card ${antigo?'antigo':''}">
+            ${preview}
+            <div class="mural-info">
+              <div class="mural-nome" title="${escapeHtml(f.file_name)}">${escapeHtml(f.file_name)}</div>
+              <div class="mural-meta">${formatarTamanho(f.file_size)} · ${escapeHtml(f.uploaded_by_name||'—')} · ${new Date(f.created_at).toLocaleDateString('pt-BR')}${antigo?' · <span style="color:#DC2626;">+30 dias</span>':''}</div>
+            </div>
+            <div class="mural-acoes">
+              <a href="${escapeHtml(f.url)}" download="${escapeHtml(f.file_name)}" target="_blank" class="mural-btn" title="Baixar">⬇️</a>
+              <button class="mural-btn mural-del" data-id="${f.id}" data-path="${escapeHtml(f.storage_path)}" title="Excluir">🗑️</button>
+            </div>
+          </div>`;
+      }).join('') || `<div style="text-align:center;padding:40px 20px;color:var(--muted);"><div style="font-size:44px;">📭</div><p>Nenhum arquivo no mural ainda. Envie o primeiro!</p></div>`;
+
+      ov.innerHTML = `
+        <div class="modal" style="max-width:820px;width:94vw;max-height:90vh;overflow:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h2 style="margin:0;">📎 Mural de arquivos</h2>
+            <button class="btn-ghost" id="muralFechar" style="padding:6px 12px;font-size:12.5px;">✕ Fechar</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Compartilhe fotos, vídeos, áudios, planilhas e documentos em qualidade original. Todos podem baixar.</p>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+            <label class="btn-primary" style="cursor:pointer;padding:9px 16px;font-size:13px;">
+              ⬆️ Enviar arquivo(s)
+              <input type="file" id="muralUploadInput" multiple style="display:none;">
+            </label>
+            <span style="font-size:11px;color:var(--muted);">até 50MB por arquivo</span>
+            ${antigos.length ? `<button class="btn-ghost" id="muralLimparAntigos" style="padding:9px 14px;font-size:12.5px;color:#DC2626;border:1.5px solid #FECACA;">🧹 Limpar ${antigos.length} arquivo(s) com +30 dias</button>` : ''}
+            <span id="muralUploadStatus" style="font-size:12px;color:var(--muted);"></span>
+          </div>
+
+          <div class="mural-grid">${cards}</div>
+        </div>`;
+      wire();
+    }
+
+    async function wire(){
+      ov.querySelector('#muralFechar').addEventListener('click', fechar);
+      fecharAoClicarFora(ov, fechar);
+
+      // Upload
+      const inp = ov.querySelector('#muralUploadInput');
+      const status = ov.querySelector('#muralUploadStatus');
+      if (inp) inp.addEventListener('change', async () => {
+        const arquivos = [...inp.files];
+        if (!arquivos.length) return;
+        const LIMITE = 50 * 1024 * 1024; // 50 MB
+        // Separa os que passam do limite pra avisar
+        const grandes = arquivos.filter(f => f.size > LIMITE);
+        const validos = arquivos.filter(f => f.size <= LIMITE);
+        if (grandes.length){
+          showToast(`⚠️ ${grandes.length} arquivo(s) acima de 50MB não enviado(s): ${grandes.map(f=>f.name).join(', ')}`);
+        }
+        if (!validos.length){ inp.value=''; return; }
+        let enviados = 0;
+        for (const file of validos){
+          status.textContent = `Enviando ${file.name}… (${enviados+1}/${validos.length})`;
+          try {
+            const ts = Date.now();
+            const nomeSeguro = file.name.replace(/[^\w.\-]/g, '_');
+            const path = `${ts}_${nomeSeguro}`;
+            // Upload em qualidade ORIGINAL (sem compressão)
+            const { error: upErr } = await sb.storage.from(MURAL_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+            if (upErr) throw upErr;
+            const { data: pub } = sb.storage.from(MURAL_BUCKET).getPublicUrl(path);
+            const url = pub.publicUrl;
+            const registro = {
+              id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+              storage_path: path, file_name: file.name, file_type: file.type, file_size: file.size,
+              url, uploaded_by_id: myUserId||null, uploaded_by_name: myProfile.display_name||myEmail||'Alguém'
+            };
+            const { error: dbErr } = await sb.from('mural_files').insert(registro);
+            if (dbErr) throw dbErr;
+            muralFiles.unshift(registro);
+            enviados++;
+          } catch(err){
+            console.error('Erro no upload:', err);
+            showToast('Erro ao enviar '+file.name+': '+(err.message||''));
+          }
+        }
+        status.textContent = '';
+        if (enviados) showToast(`✅ ${enviados} arquivo(s) enviado(s).`);
+        render();
+      });
+
+      // Limpar antigos
+      const btnLimpar = ov.querySelector('#muralLimparAntigos');
+      if (btnLimpar) btnLimpar.addEventListener('click', async () => {
+        const trintaDias = Date.now() - 30*24*60*60*1000;
+        const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
+        const ok = await confirmarBonito({
+          titulo: `Limpar ${antigos.length} arquivo(s)?`,
+          mensagem: 'Isso apaga permanentemente todos os arquivos com mais de 30 dias.',
+          textoBotao: '🧹 Limpar', corBotao:'#DC2626', icone:'🧹'
+        });
+        if (!ok) return;
+        for (const f of antigos){
+          try {
+            await sb.storage.from(MURAL_BUCKET).remove([f.storage_path]);
+            await sb.from('mural_files').delete().eq('id', f.id);
+            muralFiles = muralFiles.filter(x => x.id !== f.id);
+          } catch(e){ console.error(e); }
+        }
+        showToast(`✅ ${antigos.length} arquivo(s) removido(s).`);
+        render();
+      });
+
+      // Excluir individual
+      ov.querySelectorAll('.mural-del').forEach(btn => btn.addEventListener('click', async () => {
+        const ok = await confirmarBonito({ titulo:'Excluir arquivo?', mensagem:'Isso remove o arquivo do mural permanentemente.', textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️' });
+        if (!ok) return;
+        const id = btn.dataset.id, path = btn.dataset.path;
+        try {
+          await sb.storage.from(MURAL_BUCKET).remove([path]);
+          await sb.from('mural_files').delete().eq('id', id);
+          muralFiles = muralFiles.filter(x => x.id !== id);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+    }
+
+    function fechar(){ ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); }
+    render();
+  }
+
   function renderProducao(){
     const cont = $('#producaoContent');
     if (!cont) return;
@@ -12345,7 +12543,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <h1>🎯 Central de Produção</h1>
             <p>Acompanhe o que cada um está fazendo e o progresso da equipe.</p>
           </div>
-          ${isAdmin?`<button id="abrirGestaoBtn" style="flex:0 0 auto;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">⚙️ Painel de Gestão</button>`:''}
+          <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="abrirMuralBtn" style="background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">📎 Mural${muralFiles.length?` (${muralFiles.length})`:''}</button>
+            ${isAdmin?`<button id="abrirGestaoBtn" style="background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);color:#fff;font-weight:700;padding:10px 16px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;">⚙️ Painel de Gestão</button>`:''}
+          </div>
         </div>
         <div class="prod-hero-stats">
           <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
@@ -12383,6 +12584,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     const btnGestao = $('#abrirGestaoBtn');
     if (btnGestao) btnGestao.addEventListener('click', openPainelGestao);
+    const btnMural = $('#abrirMuralBtn');
+    if (btnMural) btnMural.addEventListener('click', openMural);
     wireVistaEfiltros();
     wireChatProducao(); // liga o chat que está agora dentro da produção
     renderProducaoLista('todas'); // começa mostrando todas — cada um vê o que os outros fazem
@@ -12451,6 +12654,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       b.style.borderColor = on ? 'var(--blue)' : '';
     });
     document.querySelectorAll('.prod-vista-btn').forEach(b => b.classList.toggle('on', b.dataset.vista === prodVistaAtual));
+
+    // No modo kanban, o layout vira coluna única (kanban ocupa a largura toda,
+    // chat vai pra baixo) — assim o quadro não fica espremido pela coluna do chat.
+    const layout = document.querySelector('.prod-layout');
+    if (layout) layout.classList.toggle('kanban-mode', prodVistaAtual === 'kanban');
 
     let tarefas = [...producaoTasks];
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
@@ -13692,6 +13900,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       // Produção (tarefas) + agenda
       .on('postgres_changes', { event:'*', schema:'public', table:'production_tasks' }, async ()=>{ await loadProducaoTasks(); await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'mural_files' }, async ()=>{ await loadMuralFiles(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
       // Avaliações e comentários de voz
