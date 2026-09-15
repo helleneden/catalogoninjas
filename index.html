@@ -3427,6 +3427,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // (Removido: passwordResetRequests — fluxo de senha agora é self-service)
   let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
   let producaoTasks = []; // todas as tarefas de produção
+  let metaCards = [];     // cartões de meta do mês (por semana + categoria)
+  const META_CATEGORIAS = ['Filme', 'Desenho', 'Estudo', 'Documentário', 'Infantil', 'Série', 'Outro'];
   let taskNotifs = [];    // notificações de tarefa do usuário logado
   // As etapas de produção, na ordem típica do fluxo
   const PRODUCAO_STAGES = ['Dublar', 'Revisar', 'Casting', 'Pós edição', 'Team Project', 'Renderizar', 'Dropbox', 'Controle de qualidade', 'Correção de qualidade', 'Finalizar'];
@@ -3581,6 +3583,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadBackupLog(),
       loadMinhasMencoes(),
       loadProducaoTasks(),
+      loadMetaCards(),
       loadTaskNotifs(),
     ]);
     projectCats = {};
@@ -8026,6 +8029,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ producaoTasks = []; }
   }
 
+  // Carrega os cartões de meta do mês atual
+  function mesAtualStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  async function loadMetaCards(){
+    try{
+      const { data } = await sb.from('meta_cards').select('*').eq('mes', mesAtualStr()).order('semana').order('created_at');
+      metaCards = data || [];
+    }catch(e){ metaCards = []; }
+  }
+
   // Carrega as notificações de tarefa do usuário logado
   async function loadTaskNotifs(){
     if (!myUserId){ taskNotifs = []; return; }
@@ -11884,8 +11896,20 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   async function toggleAgendaNote(id){
     const n = agendaNotes.find(x=>x.id===id); if(!n) return;
-    const { error } = await sb.from('agenda_notes').update({ done:!n.done }).eq('id', id).eq('user_id', myUserId);
-    if (!error) n.done = !n.done;
+    const novoDone = !n.done;
+    const { error } = await sb.from('agenda_notes').update({ done:novoDone }).eq('id', id).eq('user_id', myUserId);
+    if (!error){
+      n.done = novoDone;
+      // Se este item de agenda veio de uma tarefa de produção, marca a tarefa
+      // também — assim todos veem na aba Produção que a tarefa foi concluída.
+      if (n.from_task_id){
+        try {
+          await sb.from('production_tasks').update({ done:novoDone, done_at: novoDone?new Date().toISOString():null }).eq('id', n.from_task_id);
+          const t = producaoTasks.find(x=>x.id===n.from_task_id);
+          if (t){ t.done = novoDone; t.done_at = novoDone?new Date().toISOString():null; }
+        } catch(e){ console.warn('Erro sincronizando tarefa:', e); }
+      }
+    }
   }
 
   // ---- Chat ----
@@ -11990,37 +12014,136 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   // Meta mensal — guardada em project_meta com uma chave especial por mês.
-  // Ex: "__meta__2026-09" guarda o total de projetos previstos pra setembro/26.
   let prodVistaAtual = 'projeto'; // 'projeto' ou 'kanban'
-  function chaveMetaMes(){ const d=new Date(); return `__meta__${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
-  function getMetaMensal(){
-    const k = chaveMetaMes();
-    const m = projectMeta[k];
-    return m && m.meta_total ? Number(m.meta_total) : 0;
+
+  // Meta do mês agora é baseada nos cartões de meta.
+  function getMetaMensal(){ return metaCards.length; }
+  function contarProjetosConcluidosMes(){ return metaCards.filter(c => c.done).length; }
+
+  // Cor por categoria (pros badges dos cartões)
+  const META_CAT_COR = {
+    'Filme':{c:'#2563EB',bg:'#DBEAFE'}, 'Desenho':{c:'#DB2777',bg:'#FCE7F3'},
+    'Estudo':{c:'#16A34A',bg:'#DCFCE7'}, 'Documentário':{c:'#EA580C',bg:'#FFEDD5'},
+    'Infantil':{c:'#CA8A04',bg:'#FEF9C3'}, 'Série':{c:'#7C3AED',bg:'#EDE9FE'}, 'Outro':{c:'#64748B',bg:'#F1F5F9'}
+  };
+  const metaCatCor = (cat) => META_CAT_COR[cat] || META_CAT_COR['Outro'];
+
+  // Resumo compacto dos cartões (por semana), mostrado no card de meta
+  function renderMetaCardsResumo(){
+    if (metaCards.length === 0){
+      return isAdmin
+        ? `<p style="font-size:12px;color:#15803D;margin:0;">Nenhum cartão ainda. Clique em "Gerenciar cartões" para adicionar os projetos da meta deste mês.</p>`
+        : `<p style="font-size:12px;color:#15803D;margin:0;">A meta deste mês ainda não foi definida.</p>`;
+    }
+    // Agrupa por semana
+    const porSemana = {};
+    metaCards.forEach(c => { (porSemana[c.semana] = porSemana[c.semana]||[]).push(c); });
+    const blocos = Object.keys(porSemana).sort((a,b)=>a-b).map(sem => {
+      const cards = porSemana[sem];
+      const feitos = cards.filter(c=>c.done).length;
+      const chips = cards.map(c => {
+        const cc = metaCatCor(c.categoria);
+        return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:${cc.bg};color:${cc.c};${c.done?'opacity:.5;text-decoration:line-through;':''}">${c.done?'✓ ':''}${escapeHtml(c.categoria)}${c.titulo?` · ${escapeHtml(c.titulo)}`:''}</span>`;
+      }).join(' ');
+      return `<div style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:4px;">Semana ${sem} <span style="font-weight:400;color:#15803D;">(${feitos}/${cards.length})</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${chips}</div>
+      </div>`;
+    }).join('');
+    return `<div style="border-top:1px solid #86EFAC;padding-top:10px;">${blocos}</div>`;
   }
-  async function salvarMetaMensal(valor){
-    const k = chaveMetaMes();
-    try {
-      await sb.from('project_meta').upsert({ project:k, meta_total:valor, updated_at:new Date().toISOString() }, { onConflict:'project' });
-      projectMeta[k] = { ...(projectMeta[k]||{}), meta_total:valor };
-      return true;
-    } catch(e){ console.error('Erro salvando meta:', e); return false; }
-  }
-  // Conta projetos concluídos no mês: projetos que estavam em produção e foram
-  // marcados como concluídos (não in_production) com todas as tarefas feitas.
-  // Simplificação: conta projetos que têm todas as tarefas do mês concluídas.
-  function contarProjetosConcluidosMes(){
-    const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0);
-    const projetosComTarefa = {};
-    producaoTasks.forEach(t => {
-      if (!t.due_date) return;
-      const d = new Date(t.due_date+'T00:00:00');
-      if (d < inicioMes) return; // só tarefas com prazo neste mês em diante
-      projetosComTarefa[t.project] = projetosComTarefa[t.project] || { total:0, feitas:0 };
-      projetosComTarefa[t.project].total++;
-      if (t.done) projetosComTarefa[t.project].feitas++;
-    });
-    return Object.values(projetosComTarefa).filter(p => p.total>0 && p.total===p.feitas).length;
+
+  // Modal de gerenciar cartões de meta (admin)
+  function openGerenciarMeta(){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '10000';
+    const d = new Date();
+    const nomeMes = d.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+
+    function corpoCartoes(){
+      const porSemana = {1:[],2:[],3:[],4:[],5:[]};
+      metaCards.forEach(c => { if(porSemana[c.semana]) porSemana[c.semana].push(c); });
+      return [1,2,3,4,5].map(sem => {
+        const cards = porSemana[sem];
+        if (sem===5 && cards.length===0) return ''; // semana 5 só se tiver
+        const lista = cards.map(c => {
+          const cc = metaCatCor(c.categoria);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;margin-bottom:5px;">
+            <input type="checkbox" class="mc-done" data-id="${c.id}" ${c.done?'checked':''} style="width:16px;height:16px;accent-color:#16A34A;cursor:pointer;">
+            <span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${cc.bg};color:${cc.c};">${escapeHtml(c.categoria)}</span>
+            <span style="flex:1;min-width:0;font-size:12.5px;${c.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(c.titulo||'(sem nome)')}</span>
+            <button class="mc-del" data-id="${c.id}" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;">🗑️</button>
+          </div>`;
+        }).join('') || `<p style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Nenhum cartão nesta semana.</p>`;
+        return `<div style="margin-bottom:14px;">
+          <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}</div>
+          ${lista}
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <select class="mc-nova-cat" data-sem="${sem}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+              ${META_CATEGORIAS.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+            </select>
+            <input type="text" class="mc-nova-titulo" data-sem="${sem}" placeholder="Nome do projeto (opcional)" style="flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+            <button class="mc-add btn-primary" data-sem="${sem}" style="padding:6px 12px;font-size:12px;">+ Add</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function render(){
+      ov.innerHTML = `
+        <div class="modal" style="max-width:560px;max-height:85vh;overflow:auto;">
+          <h2 style="text-transform:capitalize;">🎯 Cartões de meta — ${escapeHtml(nomeMes)}</h2>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;">Cada cartão é 1 projeto da meta do mês. Marque como concluído quando terminar. O total e o progresso atualizam sozinhos.</p>
+          <div style="margin-bottom:14px;padding:10px 12px;background:var(--surface-soft);border-radius:10px;font-size:13px;">
+            <b>${metaCards.filter(c=>c.done).length}</b> de <b>${metaCards.length}</b> concluídos ·
+            Meta total: <b>${metaCards.length}</b> projeto${metaCards.length===1?'':'s'}
+          </div>
+          <div id="mcCorpo">${corpoCartoes()}</div>
+          <div style="text-align:right;margin-top:8px;"><button class="btn-ghost" id="mcFechar">Fechar</button></div>
+        </div>`;
+      wire();
+    }
+
+    async function wire(){
+      ov.querySelector('#mcFechar').addEventListener('click', () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); });
+      fecharAoClicarFora(ov, () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); });
+
+      // adicionar cartão
+      ov.querySelectorAll('.mc-add').forEach(btn => btn.addEventListener('click', async () => {
+        const sem = Number(btn.dataset.sem);
+        const cat = ov.querySelector(`.mc-nova-cat[data-sem="${sem}"]`).value;
+        const titulo = ov.querySelector(`.mc-nova-titulo[data-sem="${sem}"]`).value.trim();
+        const novo = { id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(), mes:mesAtualStr(), semana:sem, categoria:cat, titulo:titulo||null, done:false, created_by:myEmail||null };
+        try {
+          const { error } = await sb.from('meta_cards').insert(novo);
+          if (error) throw error;
+          metaCards.push(novo);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+      // marcar concluído
+      ov.querySelectorAll('.mc-done').forEach(cb => cb.addEventListener('change', async () => {
+        const id = cb.dataset.id;
+        try {
+          await sb.from('meta_cards').update({ done: cb.checked }).eq('id', id);
+          const c = metaCards.find(x=>x.id===id); if(c) c.done = cb.checked;
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked=!cb.checked; }
+      }));
+      // excluir
+      ov.querySelectorAll('.mc-del').forEach(btn => btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try {
+          await sb.from('meta_cards').delete().eq('id', id);
+          metaCards = metaCards.filter(x=>x.id!==id);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+    }
+
+    document.body.appendChild(ov);
+    render();
   }
 
   function renderProducao(){
@@ -12123,7 +12246,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>
 
       <div class="painel-card" style="margin-bottom:20px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-color:#86EFAC;">
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:${metaCards.length||isAdmin?'14px':'0'};">
           <div style="flex:0 0 auto;">
             <div class="prod-ring" style="width:64px;height:64px;">
               <svg width="64" height="64" style="transform:rotate(-90deg);">
@@ -12136,15 +12259,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div style="flex:1;min-width:180px;">
             <div style="font-weight:800;font-size:15px;color:#166534;">🎯 Meta do mês</div>
             <div style="font-size:12.5px;color:#15803D;margin-top:2px;">
-              <b>${projsConcluidosMes}</b> de <b>${metaMes||'?'}</b> projetos concluídos este mês
+              <b>${projsConcluidosMes}</b> de <b>${metaMes}</b> projetos concluídos este mês
             </div>
           </div>
-          ${isAdmin?`<div style="flex:0 0 auto;display:flex;align-items:center;gap:8px;">
-            <label style="font-size:12px;color:#166534;font-weight:600;">Meta:</label>
-            <input type="number" id="metaMensalInput" min="0" value="${metaMes||''}" placeholder="0" style="width:70px;padding:7px 9px;border:1.5px solid #86EFAC;border-radius:8px;font-size:13px;background:#fff;">
-            <button class="btn-ghost" id="salvarMetaBtn" style="padding:7px 12px;font-size:12.5px;">Salvar</button>
-          </div>`:''}
+          ${isAdmin?`<button class="btn-ghost" id="gerenciarMetaBtn" style="flex:0 0 auto;padding:8px 14px;font-size:12.5px;background:#fff;border:1.5px solid #86EFAC;color:#166534;">📋 Gerenciar cartões</button>`:''}
         </div>
+        ${renderMetaCardsResumo()}
       </div>
 
       ${formAdmin}
@@ -12365,16 +12485,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       renderProducaoLista();
     }));
 
-    // Salvar meta mensal (admin)
-    const btnMeta = $('#salvarMetaBtn');
-    if (btnMeta) btnMeta.addEventListener('click', async () => {
-      const val = parseInt($('#metaMensalInput')?.value||'0', 10) || 0;
-      btnMeta.disabled = true; btnMeta.textContent = '…';
-      const ok = await salvarMetaMensal(val);
-      btnMeta.disabled = false; btnMeta.textContent = 'Salvar';
-      if (ok){ renderProducao(); showToast('🎯 Meta do mês salva.'); }
-      else showToast('Erro ao salvar meta.');
-    });
+    // Gerenciar cartões de meta (admin)
+    const btnGerMeta = $('#gerenciarMetaBtn');
+    if (btnGerMeta) btnGerMeta.addEventListener('click', openGerenciarMeta);
 
     // Chips de etapa (clique alterna o estado "marcado")
     document.querySelectorAll('.stage-chip').forEach(chip => {
@@ -13491,6 +13604,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       .on('postgres_changes', { event:'*', schema:'public', table:'audiobook_voices' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
       // Produção (tarefas) + agenda
       .on('postgres_changes', { event:'*', schema:'public', table:'production_tasks' }, async ()=>{ await loadProducaoTasks(); await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
       // Avaliações e comentários de voz
