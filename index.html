@@ -2310,6 +2310,17 @@
     gap: 9px;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
+  /* Barra de ações dos cards de coadjuvante */
+  .coadj-acoes{ display:flex; gap:6px; margin-top:4px; padding-top:10px; border-top:1px solid var(--line); }
+  .coadj-btn{
+    flex:1; padding:8px 10px; border-radius:9px; font-size:12px; font-weight:700;
+    cursor:pointer; border:1.5px solid var(--line); background:var(--surface); font-family:inherit;
+    transition:all .13s;
+  }
+  .coadj-btn.coadj-editar{ border-color:var(--blue); color:var(--blue-deep); }
+  .coadj-btn.coadj-editar:hover{ background:var(--blue); color:#fff; }
+  .coadj-btn.coadj-tirar{ border-color:#DDD6FE; color:#7C3AED; flex:0 0 auto; }
+  .coadj-btn.coadj-tirar:hover{ background:#7C3AED; color:#fff; }
   .voice-card::before{
     content:'';
     position:absolute;
@@ -9921,11 +9932,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}">${initials}</div>`
         : `<div class="photo-fallback">${initials}</div>`;
       return `
-        <div class="voice-card" data-id="${c.personId}" style="cursor:pointer;position:relative;">
-          ${isAdmin?`<div style="position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:2;">
-            <button class="btn-ghost" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}" title="Editar nome e voz" style="padding:4px 9px;font-size:11px;">✎ Editar</button>
-            <button class="btn-ghost" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Tirar de coadjuvante — volta pro projeto principal" style="padding:4px 9px;font-size:11px;">↩ Tirar</button>
-          </div>`:''}
+        <div class="voice-card coadj-card" data-id="${c.personId}">
           <div class="card-top">
             ${photo}
             <div class="card-name-block">
@@ -9934,6 +9941,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             </div>
           </div>
           <div class="voice-summary"><b>${escapeHtml(c.voice)}</b></div>
+          ${isAdmin?`
+          <div class="coadj-acoes">
+            <button type="button" class="coadj-btn coadj-editar" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">✎ Editar nome e voz</button>
+            <button type="button" class="coadj-btn coadj-tirar" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}">↩ Tirar</button>
+          </div>`:''}
         </div>`;
     }).join('');
     ov.innerHTML = `
