@@ -4641,9 +4641,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <p style="font-size:11.5px;color:var(--muted);margin:6px 0 0;">Muda o nome desta pessoa em todo o catálogo.</p>
         </div>
         <div class="field">
-          <label for="altVozInput">Voz utilizada</label>
+          <label for="altVozInput">Voz utilizada <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
           <div class="ac-wrap">
-            <input type="text" id="altVozInput" value="${escapeHtml(vozAtual)}" placeholder="Ex: Marcus Jr" autocomplete="off"
+            <input type="text" id="altVozInput" value="${escapeHtml(vozAtual)}" placeholder="Ex: Marcus Jr — deixe vazio se ainda não tem" autocomplete="off"
                    style="width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;">
             <div class="ac-dropdown" id="altVozDrop"></div>
           </div>
@@ -4696,10 +4696,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.querySelector('#altConfirm').addEventListener('click', async () => {
       const nomeInput = ov.querySelector('#altNomeInput');
       const novoNome = (nomeInput?.value || '').trim();
-      const novaVoz = vozInput.value.trim();
+      let novaVoz = vozInput.value.trim();
       const novaData = dataInput.value.trim();
       if (!novoNome){ showToast('Digite o nome do personagem.'); nomeInput.focus(); return; }
-      if (!novaVoz){ showToast('Digite a voz.'); vozInput.focus(); return; }
+      // Voz é opcional — se deixar vazia, fica "(voz não definida)" e pode ser
+      // preenchida depois. Isso permite criar/editar ficha sem voz.
+      if (!novaVoz) novaVoz = '(voz não definida)';
 
       // Checa se a voz já é usada por outra pessoa no projeto (principal ou coadj)
       if (novaVoz.trim().toLowerCase() !== (vozAtual||'').trim().toLowerCase()){
@@ -11112,7 +11114,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
-                ${isAdmin?`<button class="dub-edit-btn" title="Editar voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
+                ${isAdmin?`<button class="dub-edit-btn" title="Editar nome e voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
                 <div class="dub-copy-wrap">
                   <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
                   <div class="dub-copy-menu" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">
@@ -11369,7 +11371,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (!pessoa) return;
       const entry = pessoa.entries.find(en => en.id && String(en.id) === btn.dataset.editVozBtn)
         || pessoa.entries.filter(en => (en.project||'').toLowerCase() === project.toLowerCase())[Number(btn.dataset.entryIdx)];
-      const vozAtual = entry ? entry.voice : '';
+      let vozAtual = entry ? entry.voice : '';
+      // Se a voz for o placeholder "(voz não definida)", abre o campo vazio
+      // pra pessoa poder digitar/adicionar a voz.
+      if ((vozAtual||'').trim().toLowerCase() === '(voz não definida)') vozAtual = '';
       const dataAtual = entry ? entry.date : '';
       abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual, () => {
         openProjetoModal(project);
