@@ -210,6 +210,57 @@
 
   /* ---------- Home (projetos em produção) ---------- */
   .home-hero{ margin-bottom:18px; }
+
+  /* Saudação personalizada da Home */
+  .home-greeting{
+    background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 50%,#3B82F6 100%);
+    color:#fff; border-radius:20px; padding:22px 24px; margin-bottom:20px;
+    box-shadow:0 12px 30px rgba(37,99,235,.25); position:relative; overflow:hidden;
+  }
+  .home-greeting::after{
+    content:''; position:absolute; top:-50px; right:-30px; width:200px; height:200px;
+    background:radial-gradient(circle, rgba(255,255,255,.14), transparent 70%); border-radius:50%;
+    pointer-events:none;
+  }
+  .home-greeting h1{ font-family:var(--font-head); font-size:24px; font-weight:800; position:relative; z-index:1; }
+  .home-greet-tasks{ position:relative; z-index:1; }
+  .home-task-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .home-task-chip{
+    display:inline-flex; align-items:center; gap:5px;
+    background:var(--bg,rgba(255,255,255,.9)); color:var(--c,#334155);
+    border:none; border-radius:10px; padding:7px 13px; font-size:12.5px; font-weight:600;
+    cursor:pointer; transition:transform .12s, box-shadow .12s; font-family:inherit;
+  }
+  .home-task-chip:hover{ transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+  .home-task-chip b{ font-size:14px; }
+
+  /* Versículo/citação do dia */
+  .versiculo-card{
+    background:linear-gradient(135deg,#0F172A 0%,#1E293B 100%);
+    color:#fff; border-radius:16px; padding:20px 24px; margin-bottom:20px;
+    position:relative; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.2);
+  }
+  .versiculo-quote{
+    position:absolute; top:-10px; left:14px; font-size:80px; opacity:.12;
+    font-family:Georgia,serif; line-height:1;
+  }
+  .versiculo-texto{
+    font-size:16px; line-height:1.5; margin:0 0 8px; font-style:italic;
+    position:relative; z-index:1; font-family:var(--font-head); font-weight:600;
+  }
+  .versiculo-ref{
+    font-size:12.5px; opacity:.75; margin:0; text-align:right; position:relative; z-index:1; font-weight:600;
+  }
+
+  /* Chips do painel Minhas Tarefas */
+  .mt-chip{
+    display:inline-flex; align-items:center; gap:5px; background:var(--bg,#F1F5F9); color:var(--c,#334155);
+    border:1.5px solid transparent; border-radius:10px; padding:7px 13px; font-size:12.5px; font-weight:600;
+    cursor:pointer; transition:all .12s; font-family:inherit;
+  }
+  .mt-chip:hover{ transform:translateY(-1px); }
+  .mt-chip.mt-on{ border-color:var(--c,#334155); box-shadow:0 2px 8px rgba(0,0,0,.1); }
+  .mt-chip b{ font-size:14px; }
   .home-hero h1{ font-family:var(--font-head); font-weight:800; font-size:22px; margin:0 0 4px; }
   .home-hero p{ margin:0; color:var(--muted); font-size:13.5px; }
   .home-section-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:20px 0 12px; display:flex; align-items:center; gap:8px; }
@@ -374,6 +425,13 @@
   }
   .dub-item:hover .dub-del{ opacity:1; }
   .dub-del:hover{ background:rgba(220,38,38,.1); color:#DC2626; }
+  .dub-edit-btn{
+    background:none; border:none; cursor:pointer; font-size:15px;
+    width:32px; height:32px; line-height:1; display:flex;
+    align-items:center; justify-content:center; border-radius:8px;
+    color:var(--blue-deep); padding:0; flex:0 0 auto; font-weight:700;
+  }
+  .dub-edit-btn:hover{ background:rgba(37,99,235,.1); }
   .dub-copy-wrap{ position:relative; flex:0 0 auto; }
   .dub-copy{
     background:none; border:none; cursor:pointer; font-size:15px;
@@ -422,6 +480,178 @@
   .painel-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   @media(max-width:640px){ .painel-grid{ grid-template-columns:1fr; } }
   .painel-card{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow); }
+
+  /* Itens da central de notificações */
+  .notif-item{ display:flex; align-items:center; gap:10px; padding:9px 11px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+  .notif-ic{ width:34px; height:34px; border-radius:9px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .notif-txt{ font-size:12.5px; font-weight:600; line-height:1.35; }
+  .notif-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* Dropdown de notificações (abre no sininho) */
+  #notifDropdown{
+    position:fixed; z-index:10020; width:360px; max-width:calc(100vw - 24px);
+    background:var(--surface); border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 16px 40px rgba(15,23,42,.22); overflow:hidden;
+    animation:notifPop .16s ease;
+  }
+  @keyframes notifPop{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .notif-drop-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-bottom:1px solid var(--line); }
+  .notif-drop-body{ max-height:400px; overflow:auto; padding:10px; display:flex; flex-direction:column; gap:8px; }
+
+  /* ===== PAINEL DE PRODUÇÃO — estilo missões/jogo ===== */
+  .prod-hero{
+    background:linear-gradient(135deg,#1D4ED8 0%,#2563EB 45%,#3B82F6 100%);
+    border-radius:20px; padding:24px 26px; color:#fff; margin-bottom:22px;
+    position:relative; overflow:hidden; box-shadow:0 12px 30px rgba(37,99,235,.28);
+  }
+  .prod-hero::after{
+    content:''; position:absolute; top:-40px; right:-30px; width:180px; height:180px;
+    background:radial-gradient(circle, rgba(255,255,255,.16), transparent 70%); border-radius:50%;
+    pointer-events:none;
+  }
+  .prod-hero h1{ font-family:var(--font-head); font-size:26px; margin:0 0 4px; font-weight:800; position:relative; z-index:1; }
+  .prod-hero p{ margin:0; font-size:13.5px; opacity:.92; position:relative; z-index:1; }
+  .prod-hero-stats{ display:flex; gap:22px; margin-top:16px; position:relative; z-index:1; flex-wrap:wrap; }
+  .prod-hero-stat{ display:flex; flex-direction:column; }
+  .prod-hero-stat b{ font-size:24px; font-family:var(--font-head); font-weight:800; line-height:1; }
+  .prod-hero-stat span{ font-size:11px; opacity:.85; text-transform:uppercase; letter-spacing:.4px; margin-top:3px; }
+
+  .prod-filtro-btn{ transition:all .15s; }
+
+  /* Card de projeto (missão) */
+  .prod-proj-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:0; margin-bottom:18px; overflow:hidden; box-shadow:0 4px 16px rgba(15,23,42,.06);
+    transition:transform .18s, box-shadow .18s;
+  }
+  .prod-proj-card:hover{ transform:translateY(-2px); box-shadow:0 10px 26px rgba(15,23,42,.12); }
+  .prod-proj-head{
+    display:flex; align-items:center; gap:14px; padding:16px 18px;
+    background:linear-gradient(135deg, rgba(37,99,235,.06), rgba(37,99,235,.02));
+    border-bottom:1px solid var(--line);
+  }
+  .prod-proj-emoji{ font-size:30px; flex:0 0 auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,.1)); }
+  .prod-proj-title{ font-family:var(--font-head); font-weight:800; font-size:17px; flex:1; min-width:0; }
+  .prod-proj-progress-wrap{ flex:0 0 auto; display:flex; align-items:center; gap:10px; }
+  .prod-ring{ position:relative; width:52px; height:52px; }
+  .prod-ring svg{ transform:rotate(-90deg); }
+  .prod-ring-txt{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:var(--blue-deep); font-family:var(--font-head);
+  }
+  .prod-ep-block{ padding:12px 18px; }
+  .prod-ep-title{
+    display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:800;
+    color:var(--blue-deep); background:rgba(37,99,235,.08); padding:4px 12px; border-radius:20px;
+    margin-bottom:10px;
+  }
+
+  /* Card de missão (tarefa) */
+  .prod-mission{
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    border-radius:14px; margin-bottom:8px; border:1.5px solid var(--line);
+    background:var(--surface); transition:all .15s; position:relative;
+  }
+  .prod-mission:hover{ border-color:var(--stage-cor,#2563EB); }
+  .prod-mission.feita{ opacity:.6; }
+  .prod-mission.feita .prod-mission-stage{ text-decoration:line-through; }
+  .prod-mission.atrasada{ border-color:#FCA5A5; background:#FEF2F2; }
+  .prod-mission-icon{
+    width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+    background:var(--stage-bg,#F1F5F9);
+  }
+  .prod-mission-body{ flex:1; min-width:0; }
+  .prod-mission-stage{ font-weight:800; font-size:14px; color:var(--ink); }
+  .prod-mission-meta{ font-size:11.5px; color:var(--muted); margin-top:2px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .prod-badge{ display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
+  .prod-badge.pessoa{ background:var(--stage-bg,#F1F5F9); color:var(--stage-cor,#334155); }
+  .prod-badge.prazo{ background:#F1F5F9; color:#475569; }
+  .prod-badge.atraso{ background:#FEE2E2; color:#DC2626; }
+  .prod-badge.parte{ background:#FEF3C7; color:#92400E; }
+  .prod-check{
+    width:26px; height:26px; border-radius:50%; border:2.5px solid var(--line);
+    flex:0 0 auto; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-size:15px; color:#fff; transition:all .15s; background:var(--surface);
+  }
+  .prod-check.on{ background:#10B981; border-color:#10B981; }
+  .prod-check:hover{ border-color:#10B981; }
+  .prod-del-mission{ background:none; border:none; cursor:pointer; font-size:14px; opacity:.4; padding:4px 6px; flex:0 0 auto; transition:opacity .15s; }
+  .prod-del-mission:hover{ opacity:1; }
+
+  /* Etapas do formulário viram "chips" clicáveis */
+  .stage-chip{
+    display:inline-flex; align-items:center; gap:6px; padding:8px 13px; border-radius:12px;
+    border:2px solid var(--line); font-size:12.5px; font-weight:600; cursor:pointer;
+    transition:all .15s; user-select:none; background:var(--surface);
+  }
+  .stage-chip input{ display:none; }
+  .stage-chip:hover{ border-color:var(--chip-cor,#2563EB); }
+  .stage-chip.marcado{ border-color:var(--chip-cor,#2563EB); background:var(--chip-bg,#DBEAFE); color:var(--chip-cor,#2563EB); }
+
+  /* ===== Kanban ===== */
+  .kb-wrap{
+    display:flex; gap:10px; overflow-x:auto; overflow-y:hidden; padding-bottom:14px;
+    scroll-snap-type:x proximity; width:100%; max-width:100%;
+  }
+  /* Barra de rolagem sempre visível e destacada, só pro kanban */
+  .kb-wrap::-webkit-scrollbar{ height:12px; }
+  .kb-wrap::-webkit-scrollbar-track{ background:var(--bg); border-radius:10px; }
+  .kb-wrap::-webkit-scrollbar-thumb{ background:var(--blue); border-radius:10px; border:2px solid var(--bg); }
+  .kb-wrap::-webkit-scrollbar-thumb:hover{ background:var(--blue-deep); }
+  .kb-wrap{ scrollbar-width:thin; scrollbar-color:var(--blue) var(--bg); }
+  /* Trava o container do kanban pra não empurrar a tela */
+  #prodListaTarefas{ min-width:0; max-width:100%; overflow:hidden; }
+  .kb-col{
+    flex:0 0 210px; background:var(--bg); border-radius:14px; padding:10px;
+    min-height:600px; max-height:calc(100vh - 190px); overflow-y:auto; scroll-snap-align:start;
+  }
+  .kb-col::-webkit-scrollbar{ width:6px; }
+  .kb-col::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+  .kb-col-head{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:13.5px; margin-bottom:12px; padding:9px 12px; border-radius:10px; }
+  .kb-count{ margin-left:auto; background:rgba(255,255,255,.7); border-radius:20px; padding:2px 10px; font-size:12.5px; }
+  .kb-card{ background:var(--surface); border:1.5px solid var(--line); border-radius:12px; padding:11px 12px; margin-bottom:8px; box-shadow:0 2px 6px rgba(0,0,0,.04); transition:transform .12s; }
+  .kb-card:hover{ transform:translateY(-1px); }
+  .kb-card.feita{ opacity:.55; }
+  .kb-card.atrasada{ border-color:#FCA5A5; }
+  .kb-card-title{ font-weight:700; font-size:12.5px; margin-bottom:7px; color:var(--ink); }
+  .kb-card-foot{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .kb-vazio{ text-align:center; color:var(--muted); font-size:12px; padding:24px 0; }
+  .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+
+  /* ===== Mural de arquivos ===== */
+  .mural-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
+  .mural-card{ background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s; }
+  .mural-card:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
+  .mural-card.antigo{ border-color:#FCA5A5; }
+  .mural-thumb{ height:120px; background-size:cover; background-position:center; background-color:var(--bg); }
+  .mural-thumb-ic{ display:flex; align-items:center; justify-content:center; font-size:44px; }
+  .mural-info{ padding:8px 10px; flex:1; }
+  .mural-nome{ font-weight:700; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mural-meta{ font-size:10.5px; color:var(--muted); margin-top:2px; }
+  .mural-acoes{ display:flex; border-top:1px solid var(--line); }
+  .mural-btn{ flex:1; text-align:center; padding:8px; background:none; border:none; cursor:pointer; font-size:15px; text-decoration:none; transition:background .12s; }
+  .mural-btn:hover{ background:var(--bg); }
+  .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
+
+  /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
+  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:start; }
+  .prod-chat-col{ position:relative; min-width:0; }
+  /* Modo kanban: mantém o chat na lateral, mas o quadro fica mais alto */
+  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 420px; }
+  .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:calc(100vh - 300px) !important; min-height:490px !important; }
+  @media (max-width:1000px){
+    .prod-layout{ grid-template-columns:minmax(0,1fr); }
+    .prod-chat-col .painel-card{ position:static !important; }
+  }
+
+  /* Toggle Episódio / Filme */
+  .ep-toggle{ display:inline-flex; background:var(--bg); border-radius:8px; padding:2px; gap:1px; }
+  .ep-toggle-opt{
+    border:none; background:none; cursor:pointer; font-size:11px; font-weight:700;
+    padding:3px 9px; border-radius:6px; color:var(--muted); transition:all .13s; font-family:inherit;
+  }
+  .ep-toggle-opt.on{ background:var(--surface); color:#7C3AED; box-shadow:0 1px 2px rgba(0,0,0,.08); }
   .painel-title{ font-family:var(--font-head); font-weight:700; font-size:15px; margin:0 0 14px; display:flex; align-items:center; gap:8px; }
   .backup-status{
     padding: 10px 14px;
@@ -545,6 +775,7 @@
   .chat-edit-msg:hover{ color:var(--blue-deep); }
   .chat-input-row{ display:flex; gap:6px; align-items:flex-end; }
   .chat-input{ flex:1; border:1px solid var(--line); border-radius:10px; padding:10px 14px; font-size:14px; font-family:var(--font-body); resize:none; min-height:42px; max-height:100px; background:var(--bg); }
+  .chat-input::placeholder{ font-size:12.5px; color:var(--muted); }
   .chat-input:focus{ outline:none; border-color:var(--blue); }
   .chat-mention-drop{ position:absolute; background:var(--surface); border:1px solid var(--line); border-radius:10px; box-shadow:0 4px 16px rgba(30,58,138,.12); z-index:400; max-height:180px; overflow-y:auto; min-width:180px; }
   .chat-mention-item{ padding:9px 14px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:10px; }
@@ -1057,6 +1288,18 @@
     text-align: center;
     text-shadow: 0 1px 4px rgba(0,0,0,.5);
   }
+  .lightbox-nav{
+    position: fixed; top: 50%; transform: translateY(-50%);
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(255,255,255,.15); color: #fff; border: none;
+    font-size: 34px; line-height: 1; cursor: pointer; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .lightbox-nav:hover{ background: rgba(255,255,255,.3); }
+  .lightbox-prev{ left: 24px; }
+  .lightbox-next{ right: 24px; }
+  @media (max-width:600px){ .lightbox-nav{ width:44px; height:44px; font-size:26px; } .lightbox-prev{left:10px;} .lightbox-next{right:10px;} }
   .lightbox-close{
     position: fixed;
     top: 20px; right: 20px;
@@ -2086,6 +2329,17 @@
     gap: 9px;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
+  /* Barra de ações dos cards de coadjuvante */
+  .coadj-acoes{ display:flex; gap:6px; margin-top:4px; padding-top:10px; border-top:1px solid var(--line); }
+  .coadj-btn{
+    flex:1; padding:8px 10px; border-radius:9px; font-size:12px; font-weight:700;
+    cursor:pointer; border:1.5px solid var(--line); background:var(--surface); font-family:inherit;
+    transition:all .13s;
+  }
+  .coadj-btn.coadj-editar{ border-color:var(--blue); color:var(--blue-deep); }
+  .coadj-btn.coadj-editar:hover{ background:var(--blue); color:#fff; }
+  .coadj-btn.coadj-tirar{ border-color:#DDD6FE; color:#7C3AED; flex:0 0 auto; }
+  .coadj-btn.coadj-tirar:hover{ background:#7C3AED; color:#fff; }
   .voice-card::before{
     content:'';
     position:absolute;
@@ -2699,7 +2953,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <button class="tab" data-view="home" role="tab">🏠 Home</button>
       <button class="tab active" data-view="painel" role="tab">👤 Meu Painel</button>
       <button class="tab" data-view="producao" role="tab">🎯 Produção</button>
-      <button class="tab" data-view="projetos" role="tab">🎬 Projetos</button>
       <button class="tab" data-view="audiobooks" role="tab">🎧 Audiobooks</button>
       <button class="tab" data-view="colecoes" role="tab">🗂 Coleções</button>
       <button class="tab" data-view="fichas" role="tab">📇 Todas as fichas</button>
@@ -3073,6 +3326,57 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const baseProject = (proj) => (proj||'').split(COADJ_SUFFIX)[0].trim();
   const coadjProjectOf = (proj) => baseProject(proj) + COADJ_SUFFIX;
 
+  // Verifica se uma voz já está usada em algum lugar do projeto (lista
+  // principal OU coadjuvantes). Retorna a lista de pessoas que já usam essa
+  // voz naquele projeto (excluindo a própria pessoa, se ignorarPersonId).
+  function vozJaUsadaNoProjeto(projeto, voz, ignorarPersonId){
+    const base = baseProject(projeto);
+    const alvos = new Set([base.toLowerCase(), coadjProjectOf(base).toLowerCase()]);
+    const vozNorm = (voz||'').trim().toLowerCase();
+    if (!vozNorm || vozNorm === '(voz não definida)') return []; // voz vazia não conta como duplicata
+    const encontrados = [];
+    (people||[]).forEach(p => {
+      if (ignorarPersonId && p.id === ignorarPersonId) return;
+      p.entries.forEach(e => {
+        if (alvos.has((e.project||'').toLowerCase()) && (e.voice||'').trim().toLowerCase() === vozNorm){
+          encontrados.push({ nome: p.name, ehCoadj: isCoadjProject(e.project) });
+        }
+      });
+    });
+    return encontrados;
+  }
+
+  // Popup de aviso de voz duplicada. Retorna Promise<'trocar'|'usar'|'cancelar'>.
+  // 'trocar' = admin quer escolher outra voz; 'usar' = adicionar mesmo assim; 'cancelar' = desistir.
+  function avisarVozDuplicada(voz, projeto, quemUsa){
+    return new Promise(resolve => {
+      const ov = document.createElement('div');
+      ov.className = 'modal-overlay confirm-overlay open';
+      ov.style.zIndex = '10006';
+      const listaNomes = quemUsa.map(q => `<li style="margin:2px 0;">${escapeHtml(q.nome)}${q.ehCoadj?' <span style="color:#7C3AED;font-size:11px;">(coadjuvante)</span>':''}</li>`).join('');
+      ov.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:400px;">
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);">⚠️</div>
+          <h2 style="text-align:center; margin:8px 0 4px;">Voz já usada neste projeto</h2>
+          <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 12px;">
+            A voz <b style="color:var(--ink);">"${escapeHtml(voz)}"</b> já está sendo usada em <b>"${escapeHtml(baseProject(projeto))}"</b> por:
+          </p>
+          <ul style="font-size:13px;color:var(--ink);margin:0 0 16px;padding-left:22px;">${listaNomes}</ul>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button type="button" id="vdTrocar" style="width:100%;padding:12px;border:none;border-radius:12px;background:var(--blue-deep);color:#fff;font-weight:700;font-size:14px;cursor:pointer;">🎙️ Escolher outra voz</button>
+            <button type="button" id="vdUsar" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Usar mesmo assim</button>
+            <button type="button" id="vdCancelar" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Descartar</button>
+          </div>
+        </div>`;
+      document.body.appendChild(ov);
+      const cleanup = (r) => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); resolve(r); };
+      ov.querySelector('#vdTrocar').addEventListener('click', () => cleanup('trocar'));
+      ov.querySelector('#vdUsar').addEventListener('click', () => cleanup('usar'));
+      ov.querySelector('#vdCancelar').addEventListener('click', () => cleanup('cancelar'));
+      fecharAoClicarFora(ov, () => cleanup('cancelar'));
+    });
+  }
+
   // Nome do projeto formatado pra EXIBIÇÃO — troca o sufixo interno com
   // símbolo "⟫" por um texto limpo "(Coadjuvantes)". O valor real no banco
   // continua com o símbolo (não mexer nele quebraria os coadjuvantes).
@@ -3258,9 +3562,62 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // (Removido: passwordResetRequests — fluxo de senha agora é self-service)
   let minhasMencoes = []; // observações de projeto onde EU fui marcado (pendentes/lidas)
   let producaoTasks = []; // todas as tarefas de produção
+  let metaCards = [];     // cartões de meta do mês (por semana + categoria)
+  let muralFiles = [];    // arquivos do mural de produção
+  const META_CATEGORIAS = ['Filme', 'Desenho', 'Estudo', 'Documentário', 'Infantil', 'Série', 'Outro'];
   let taskNotifs = [];    // notificações de tarefa do usuário logado
   // As etapas de produção, na ordem típica do fluxo
   const PRODUCAO_STAGES = ['Dublar', 'Revisar', 'Casting', 'Pós edição', 'Team Project', 'Renderizar', 'Dropbox', 'Controle de qualidade', 'Correção de qualidade', 'Finalizar'];
+  // Identidade visual de cada etapa (ícone + cor) — dá a "cara de missão"
+  const STAGE_INFO = {
+    'Dublar':                { ic:'🎙️', cor:'#2563EB', bg:'#DBEAFE' },
+    'Revisar':               { ic:'🔍', cor:'#7C3AED', bg:'#EDE9FE' },
+    'Casting':               { ic:'🎭', cor:'#DB2777', bg:'#FCE7F3' },
+    'Pós edição':            { ic:'✂️', cor:'#EA580C', bg:'#FFEDD5' },
+    'Team Project':          { ic:'🤝', cor:'#0891B2', bg:'#CFFAFE' },
+    'Renderizar':            { ic:'⚙️', cor:'#4F46E5', bg:'#E0E7FF' },
+    'Dropbox':               { ic:'☁️', cor:'#0284C7', bg:'#E0F2FE' },
+    'Controle de qualidade': { ic:'🛡️', cor:'#16A34A', bg:'#DCFCE7' },
+    'Correção de qualidade': { ic:'🔧', cor:'#CA8A04', bg:'#FEF9C3' },
+    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#D1FAE5' }
+  };
+  const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#64748B', bg:'#F1F5F9' };
+
+  // Versículos bíblicos + citações de reformadores e puritanos.
+  // Um por dia (rotaciona pelo dia do ano). Sempre com a referência.
+  const VERSICULOS_CITACOES = [
+    { texto:'O Senhor é o meu pastor; nada me faltará.', ref:'Salmo 23:1' },
+    { texto:'Posso todas as coisas naquele que me fortalece.', ref:'Filipenses 4:13' },
+    { texto:'Tudo quanto te vier à mão para fazer, faze-o conforme as tuas forças.', ref:'Eclesiastes 9:10' },
+    { texto:'O coração do homem planeja o seu caminho, mas o Senhor lhe dirige os passos.', ref:'Provérbios 16:9' },
+    { texto:'Sede fortes e corajosos; não temais. O Senhor, teu Deus, é quem vai contigo.', ref:'Deuteronômio 31:6' },
+    { texto:'E sabemos que todas as coisas cooperam para o bem daqueles que amam a Deus.', ref:'Romanos 8:28' },
+    { texto:'Lançando sobre ele toda a vossa ansiedade, porque ele tem cuidado de vós.', ref:'1 Pedro 5:7' },
+    { texto:'A glória de Deus é o homem plenamente vivo; e a vida do homem é a visão de Deus.', ref:'Irineu de Lyon' },
+    { texto:'Não há um só centímetro em todo o domínio da nossa existência sobre o qual Cristo não clame: "Meu!"', ref:'Abraham Kuyper' },
+    { texto:'A fé que não perturba não é fé verdadeira; a fé que não muda não é fé real.', ref:'Martinho Lutero' },
+    { texto:'Aqui estou; não posso fazer de outra maneira. Que Deus me ajude.', ref:'Martinho Lutero, Dieta de Worms (1521)' },
+    { texto:'O coração humano é uma fábrica de ídolos.', ref:'João Calvino' },
+    { texto:'Não sabemos o que devemos pedir; mas o próprio Espírito intercede por nós.', ref:'Romanos 8:26' },
+    { texto:'Buscai primeiro o reino de Deus e a sua justiça, e todas essas coisas vos serão acrescentadas.', ref:'Mateus 6:33' },
+    { texto:'A oração é a respiração da alma renascida.', ref:'Thomas Watson' },
+    { texto:'Deus não tem prazer no sacrifício de quem oferece a Deus o que não lhe custa nada.', ref:'John Owen' },
+    { texto:'Seja o pecado morto em você, ou ele matará você.', ref:'John Owen' },
+    { texto:'A Palavra de Deus é uma lâmpada para os meus pés e luz para o meu caminho.', ref:'Salmo 119:105' },
+    { texto:'O trabalho feito para Deus, por menor que seja, tem grande dignidade.', ref:'Richard Baxter' },
+    { texto:'O tempo é curto demais para gastá-lo com coisas pequenas.', ref:'Jonathan Edwards' },
+    { texto:'Resolvo viver com todas as minhas forças enquanto viver.', ref:'Jonathan Edwards, Resoluções' },
+    { texto:'Bem-aventurados os que choram, porque serão consolados.', ref:'Mateus 5:4' },
+    { texto:'O Senhor é a minha luz e a minha salvação; a quem temerei?', ref:'Salmo 27:1' },
+    { texto:'A graça é o favor imerecido de Deus para com os que merecem o contrário.', ref:'Charles Spurgeon' },
+    { texto:'Nenhuma oração é feita na terra sem que seja ouvida no céu.', ref:'Charles Spurgeon' },
+    { texto:'Confia no Senhor de todo o teu coração e não te estribes no teu próprio entendimento.', ref:'Provérbios 3:5' },
+    { texto:'Aquele que começou a boa obra em vós há de completá-la até o Dia de Cristo Jesus.', ref:'Filipenses 1:6' },
+    { texto:'A santidade não é o caminho para Cristo; Cristo é o caminho para a santidade.', ref:'Adaptado de John Owen' },
+    { texto:'Deus é maior que o nosso coração e conhece todas as coisas.', ref:'1 João 3:20' },
+    { texto:'O justo viverá pela fé.', ref:'Romanos 1:17 / Habacuque 2:4' },
+    { texto:'Ensina-nos a contar os nossos dias, para que alcancemos coração sábio.', ref:'Salmo 90:12' }
+  ];
 
   const mainContent = $('#mainContent');
   const statPlates = $('#statPlates');
@@ -3362,6 +3719,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadBackupLog(),
       loadMinhasMencoes(),
       loadProducaoTasks(),
+      loadMetaCards(),
+      loadMuralFiles(),
       loadTaskNotifs(),
     ]);
     projectCats = {};
@@ -4341,6 +4700,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const novaData = dataInput.value.trim();
       if (!novoNome){ showToast('Digite o nome do personagem.'); nomeInput.focus(); return; }
       if (!novaVoz){ showToast('Digite a voz.'); vozInput.focus(); return; }
+
+      // Checa se a voz já é usada por outra pessoa no projeto (principal ou coadj)
+      if (novaVoz.trim().toLowerCase() !== (vozAtual||'').trim().toLowerCase()){
+        const quemUsa = vozJaUsadaNoProjeto(projeto, novaVoz, person.id);
+        if (quemUsa.length > 0){
+          const escolha = await avisarVozDuplicada(novaVoz, projeto, quemUsa);
+          if (escolha === 'cancelar') return;
+          if (escolha === 'trocar'){ vozInput.focus(); vozInput.select(); return; }
+          // 'usar' → segue e salva mesmo assim
+        }
+      }
+
       const btn = ov.querySelector('#altConfirm');
       btn.disabled = true;
       btn.textContent = 'Salvando…';
@@ -5193,43 +5564,96 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
-  function abrirLightbox(url, legenda){
+  // Lista de fotos navegáveis no lightbox atual (preenchida ao abrir)
+  let _lightboxItens = [];
+  let _lightboxIdx = 0;
+
+  function abrirLightbox(url, legenda, legendaSub){
     if (!url) return;
+    // Se não veio uma lista pré-montada, o lightbox tem só esta foto
+    if (!_lightboxItens.length){
+      _lightboxItens = [{ url, nome: legenda||'', voz: legendaSub||'' }];
+      _lightboxIdx = 0;
+    }
     const ov = document.createElement('div');
     ov.className = 'lightbox-overlay';
     ov.innerHTML = `
       <button class="lightbox-close" title="Fechar (ESC)">✕</button>
+      ${_lightboxItens.length>1?`<button class="lightbox-nav lightbox-prev" title="Anterior (←)">‹</button>`:''}
+      ${_lightboxItens.length>1?`<button class="lightbox-nav lightbox-next" title="Próxima (→)">›</button>`:''}
       <div class="lightbox-content" onclick="event.stopPropagation()">
-        <img src="${escapeHtml(url)}" alt="${escapeHtml(legenda||'')}">
-        ${legenda ? `<div class="lightbox-caption">${escapeHtml(legenda)}</div>` : ''}
+        <img id="lbImg" src="${escapeHtml(url)}" alt="">
+        <div class="lightbox-caption" id="lbCap"></div>
       </div>
     `;
     document.body.appendChild(ov);
-    // Animação: fade in
     requestAnimationFrame(() => ov.classList.add('open'));
+
+    function mostrar(i){
+      _lightboxIdx = (i + _lightboxItens.length) % _lightboxItens.length;
+      const it = _lightboxItens[_lightboxIdx];
+      const img = ov.querySelector('#lbImg');
+      const cap = ov.querySelector('#lbCap');
+      img.src = it.url;
+      cap.innerHTML = `<div style="font-weight:800;font-size:16px;">${escapeHtml(it.nome||'')}</div>${it.voz?`<div style="font-size:13px;opacity:.85;margin-top:3px;">🎤 ${escapeHtml(it.voz)}</div>`:''}${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+    }
+    mostrar(_lightboxIdx);
 
     const cleanup = () => {
       ov.classList.remove('open');
       setTimeout(() => ov.remove(), 200);
-      document.removeEventListener('keydown', escHandler);
+      document.removeEventListener('keydown', keyHandler);
+      _lightboxItens = [];
     };
-    const escHandler = (e) => { if (e.key === 'Escape') cleanup(); };
-    document.addEventListener('keydown', escHandler);
+    const keyHandler = (e) => {
+      if (e.key === 'Escape') cleanup();
+      else if (e.key === 'ArrowRight') mostrar(_lightboxIdx + 1);
+      else if (e.key === 'ArrowLeft') mostrar(_lightboxIdx - 1);
+    };
+    document.addEventListener('keydown', keyHandler);
     ov.addEventListener('click', cleanup);
     ov.querySelector('.lightbox-close').addEventListener('click', cleanup);
+    const prev = ov.querySelector('.lightbox-prev');
+    const next = ov.querySelector('.lightbox-next');
+    if (prev) prev.addEventListener('click', (e)=>{ e.stopPropagation(); mostrar(_lightboxIdx-1); });
+    if (next) next.addEventListener('click', (e)=>{ e.stopPropagation(); mostrar(_lightboxIdx+1); });
   }
 
   // Listener global: qualquer <img class="photo"> clicada abre lightbox.
-  // Usa delegation pra pegar fotos que ainda serão criadas via hydratePhotos.
   document.addEventListener('click', (e) => {
     const img = e.target.closest('img.photo');
     if (!img) return;
-    // Não abre lightbox se o clique é dentro de um card interativo (evita conflito com editar/etc)
-    // Só abre se for exatamente na foto (não bubble de outros elementos)
     if (e.target !== img) return;
-    // Não abre em fotos dentro do modal de nova ficha nas linhas de "colegas" (essas são pequenas demais)
     if (img.closest('.suges-photo, .suges-buscar-item .ph, .proj-mini-ic')) return;
     e.stopPropagation();
+
+    // Se a foto está dentro de uma lista de dublagem (modal de projeto), monta
+    // a lista navegável de TODAS as fotos daquela lista, com nome + voz.
+    const dubList = img.closest('.dub-list');
+    const card = img.closest('[data-photo-for]');
+    if (dubList){
+      const itens = [];
+      let idxClicado = 0;
+      dubList.querySelectorAll('.dub-item').forEach((li, i) => {
+        const avatar = li.querySelector('[data-photo-for] img.photo, img.photo');
+        const nome = li.querySelector('.dub-voice .vn')?.textContent || '';
+        const voz = li.querySelector('.dub-voice .pn')?.textContent || '';
+        const imgEl = li.querySelector('img.photo');
+        if (imgEl && imgEl.src){
+          if (imgEl === img) idxClicado = itens.length;
+          itens.push({ url: imgEl.src, nome, voz });
+        }
+      });
+      if (itens.length){
+        _lightboxItens = itens;
+        _lightboxIdx = idxClicado;
+        abrirLightbox(itens[idxClicado].url);
+        return;
+      }
+    }
+
+    // Caso geral: só a foto, com o nome (alt) como legenda
+    _lightboxItens = [];
     abrirLightbox(img.src, img.alt || 'Foto');
   });
 
@@ -5706,6 +6130,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         } else if (escolha === 'cancelou'){
           return;
         }
+      }
+    }
+
+    // 2b) Checagem de VOZ duplicada no projeto (principal ou coadjuvantes)
+    if (projetoCanonico && projetoCanonico !== SEM_PROJETO && voz){
+      const quemUsa = vozJaUsadaNoProjeto(projetoCanonico, voz, null);
+      if (quemUsa.length > 0){
+        const escolha = await avisarVozDuplicada(voz, projetoCanonico, quemUsa);
+        if (escolha === 'cancelar') return;
+        if (escolha === 'trocar'){ $('#voiceMainInput')?.focus(); $('#voiceMainInput')?.select(); return; }
+        // 'usar' → segue e cria mesmo assim
       }
     }
 
@@ -6250,7 +6685,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const home = view === 'home';
     const painel = view === 'painel';
     const producao = view === 'producao';
-    const projetos = view === 'projetos';
     const audiobooks = view === 'audiobooks';
     const colecoes = view === 'colecoes';
     const fichas = view === 'fichas';
@@ -6259,7 +6693,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#homeView').style.display = home ? '' : 'none';
     $('#painelView').style.display = painel ? '' : 'none';
     $('#producaoView').style.display = producao ? '' : 'none';
-    $('#projetosView').style.display = projetos ? '' : 'none';
     $('#audiobooksView').style.display = audiobooks ? '' : 'none';
     $('#colecoesView').style.display = colecoes ? '' : 'none';
     mainContent.style.display = fichas ? '' : 'none';
@@ -6272,10 +6705,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (fichas){
       requestAnimationFrame(() => posicionarAzRail());
     }
-    if (home) renderHome();
+    if (home) renderProjetos(); // Home unificada com Projetos
     if (painel) renderPainel();
     if (producao) renderProducao();
-    if (projetos) renderProjetos();
     if (audiobooks) renderAudiobooks();
     if (ranking) renderRanking();
     if (colecoes) renderColecoes();
@@ -7261,7 +7693,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (error) throw error;
       chatCache = data || [];
       chatLastReload = Date.now();
-      if (currentView === 'painel') rerenderChatMsgs();
+      if (currentView === 'painel' || currentView === 'producao') rerenderChatMsgs();
     }catch(e){
       // silencioso — mantém o cache anterior
     }finally{
@@ -7732,16 +8164,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   async function loadProjectMeta(){
     try{
       let pmRes = await sb.from('project_meta')
-        .select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+        .select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at, meta_total');
 
-      // Se as colunas novas (notes_*) ainda não existirem no banco (SQL
-      // de menções ainda não rodado), essa busca falha inteira. Em vez de
-      // perder TODOS os projetos por causa disso, tenta de novo só com as
-      // colunas básicas — assim o app continua funcionando normalmente,
-      // só sem o recurso novo até o SQL ser rodado.
+      // Se as colunas novas ainda não existirem no banco, tenta de novo com
+      // um conjunto menor, pra não perder TODOS os projetos.
       if (pmRes.error){
-        console.warn('Colunas novas de project_meta indisponíveis, usando busca básica:', pmRes.error.message);
-        pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
+        console.warn('Colunas novas de project_meta indisponíveis:', pmRes.error.message);
+        pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+        if (pmRes.error){
+          pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
+        }
       }
 
       const doRes = await sb.from('dub_order').select('project, entry_id, position').order('position');
@@ -7750,7 +8182,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       (pmRes.data||[]).forEach(r => { projectMeta[r.project] = {
         in_production:r.in_production, has_cover:r.has_cover, archived:!!r.archived,
         notes:r.notes||'', notes_author_id:r.notes_author_id||null,
-        notes_author_name:r.notes_author_name||'', notes_updated_at:r.notes_updated_at||null
+        notes_author_name:r.notes_author_name||'', notes_updated_at:r.notes_updated_at||null,
+        meta_total: (r.meta_total!=null?r.meta_total:null)
       }; });
       dubOrder = {};
       (doRes.data||[]).forEach(r => { (dubOrder[r.project] = dubOrder[r.project]||[]).push(r.entry_id); });
@@ -7798,8 +8231,32 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     try{
       const { data } = await sb.from('production_tasks')
         .select('*').order('priority', { ascending:true }).order('due_date', { ascending:true, nullsFirst:false });
-      producaoTasks = data || [];
+      producaoTasks = (data || []).map(t => {
+        // Se o nome do responsável não veio salvo, busca do perfil pelo user_id
+        if (!t.assignee_name && t.assignee_user_id){
+          const perfil = profilesByUser[t.assignee_user_id];
+          if (perfil) t.assignee_name = perfil.display_name;
+        }
+        return t;
+      });
     }catch(e){ producaoTasks = []; }
+  }
+
+  // Carrega os cartões de meta do mês atual
+  function mesAtualStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+  async function loadMetaCards(){
+    try{
+      const { data } = await sb.from('meta_cards').select('*').eq('mes', mesAtualStr()).order('semana').order('created_at');
+      metaCards = data || [];
+    }catch(e){ metaCards = []; }
+  }
+
+  // Carrega os arquivos do mural (mais recentes primeiro)
+  async function loadMuralFiles(){
+    try{
+      const { data } = await sb.from('mural_files').select('*').order('created_at', { ascending:false }).limit(200);
+      muralFiles = data || [];
+    }catch(e){ muralFiles = []; }
   }
 
   // Carrega as notificações de tarefa do usuário logado
@@ -7812,9 +8269,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }catch(e){ taskNotifs = []; }
   }
 
-  // Atualiza o sino de notificação — conta menções em observações de
-  // projeto (qualquer usuário pode ter). O recurso de solicitação de
-  // senha pro admin foi removido (agora é 100% self-service por e-mail).
+  // Atualiza o sino de notificação — conta menções, tarefas novas e
+  // prazos terminando (tudo que aparece na central de notificações).
   function renderBellBadge(){
     const btn = document.getElementById('bellBtn');
     const badge = document.getElementById('bellBadge');
@@ -7822,7 +8278,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     btn.style.display = 'flex';
     const mencoesNaoLidas = (minhasMencoes||[]).filter(m => !m.read).length;
     const tarefasNaoLidas = (taskNotifs||[]).filter(n => !n.read).length;
-    const total = mencoesNaoLidas + tarefasNaoLidas;
+    let prazosCount = 0;
+    try { prazosCount = prazosTerminando().length; } catch(e){}
+    const total = mencoesNaoLidas + tarefasNaoLidas + prazosCount;
     if (total > 0){
       badge.textContent = String(total);
       badge.style.display = 'flex';
@@ -8054,7 +8512,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // BUG FIX: inclui projetos que existem em project_meta mesmo sem fichas cadastradas.
     // Antes: só listava projetos com fichas, então projetos recém-criados sumiam.
     const doCatalogo = new Set(mainPeople().flatMap(p=>p.entries.map(e=>e.project)).filter(p=>p!==SEM_PROJETO && !isCoadjProject(p)));
-    const doMeta = new Set(Object.keys(projectMeta || {}));
+    // Exclui chaves especiais (ex: "__meta__2026-09" que guarda a meta mensal)
+    const doMeta = new Set(Object.keys(projectMeta || {}).filter(k => !k.startsWith('__meta__')));
     return [...new Set([...doCatalogo, ...doMeta])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
   }
   function peopleCountForProject(project){
@@ -8063,50 +8522,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   function renderHome(){
-    const emProducao = allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].in_production);
-    const cards = emProducao.map(pr => {
-      const url = projCoverUrl(pr);
-      const cover = url
-        ? `<div class="prod-cover"><img src="${escapeHtml(url)}" alt="" onerror="this.parentNode.innerHTML='<span class=&quot;ic&quot;>🎬</span>';"></div>`
-        : `<div class="prod-cover"><span class="ic">🎬</span></div>`;
-      const n = peopleCountForProject(pr);
-      return `
-        <div class="prod-card" data-proj="${escapeHtml(pr)}">
-          <span class="prod-badge">em produção</span>
-          ${cover}
-          <div class="prod-body">
-            <div class="prod-title">${escapeHtml(pr)}</div>
-            <div class="prod-sub">${n} voz${n===1?'':'es'} · toque para ver a ordem</div>
-          </div>
-        </div>`;
-    }).join('');
-
-    homeContent.innerHTML = `
-      <div class="home-hero">
-        <h1>Olá, Ninjas! 🥷</h1>
-        <p>${isAdmin?'Você é administrador — pode destacar projetos e ordenar as vozes.':'Projetos em produção neste período.'}</p>
-      </div>
-      <div class="home-section-title">🎬 Projetos em produção
-        ${isAdmin?`<button class="btn-ghost admin-only" id="gerenciarProd" style="margin-left:auto; padding:6px 12px; font-size:12.5px;">Gerenciar projetos da home</button>`:''}
-      </div>
-      ${emProducao.length? `<div class="prod-grid">${cards}</div>`
-        : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nenhum projeto em produção</h2><p>${isAdmin?'Clique em “Gerenciar projetos da home” para destacar projetos.':'O administrador ainda não destacou projetos.'}</p></div>`}`;
-
-    const gp = $('#gerenciarProd');
-    if (gp) gp.addEventListener('click', openGerenciarProducao);
+    // Home e Projetos foram unificadas — a Home agora mostra a grade
+    // completa de projetos (com filtros de produção/concluídos/arquivados,
+    // busca e botão de novo projeto). Toda a lógica vive em renderProjetos.
+    renderProjetos();
   }
-
-  // clique num projeto da home abre a ordem de dublagem
-  homeContent.addEventListener('click', (e) => {
-    const card = e.target.closest('.prod-card[data-proj]');
-    if (card) openProjetoModal(card.dataset.proj);
-  });
-  // botão direito: menu de contexto pra excluir o projeto direto
-  homeContent.addEventListener('contextmenu', (e) => {
-    if (!isAdmin) return;
-    const card = e.target.closest('.prod-card[data-proj]');
-    if (card) showProjectContextMenu(e, card.dataset.proj);
-  });
 
   // ---- Modal: gerenciar quais projetos estão em produção (admin) ----
   async function openGerenciarProducao(){
@@ -8147,9 +8567,91 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   // ============================================================
   //  ABA PROJETOS — grade com filtro produção/concluídos
   // ============================================================
-  const projetosContent = $('#projetosContent');
+  // Home e Projetos foram unificadas: tudo é renderizado no container da Home.
+  const projetosContent = homeContent;
 
   let projetosSearch = '';
+
+  // Saudação conforme a hora do dia
+  function saudacaoHora(){
+    const h = new Date().getHours();
+    if (h < 12) return { txt:'Bom dia', ic:'☀️' };
+    if (h < 18) return { txt:'Boa tarde', ic:'🌤️' };
+    return { txt:'Boa noite', ic:'🌙' };
+  }
+
+  // Resumo das tarefas do usuário logado: hoje, atrasadas, urgentes, semana
+  function meuResumoTarefas(){
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const agora = new Date();
+    const minhas = (producaoTasks||[]).filter(t => t.assignee_user_id === myUserId && !t.done);
+    const hoje = minhas.filter(t => t.due_date === hojeStr);
+    const atrasadas = minhas.filter(t => t.due_date && new Date(t.due_date+'T23:59:59') < agora);
+    const urgentes = minhas.filter(t => t.priority === 1 && !atrasadas.includes(t));
+    // próximos 7 dias
+    const em7 = new Date(agora.getTime() + 7*24*60*60*1000).toISOString().split('T')[0];
+    const semana = minhas.filter(t => t.due_date && t.due_date > hojeStr && t.due_date <= em7);
+    return { totalPendentes: minhas.length, hoje, atrasadas, urgentes, semana };
+  }
+
+  // Mostra a lista detalhada de tarefas conforme o filtro clicado na Home
+  function mostrarResumoTarefas(tipo){
+    const box = $('#homeResumoDetalhe');
+    if (!box) return;
+    const r = meuResumoTarefas();
+    let tarefas, titulo, cor;
+    switch(tipo){
+      case 'atrasadas': tarefas = r.atrasadas; titulo = '🔴 Tarefas atrasadas'; cor='#DC2626'; break;
+      case 'hoje': tarefas = r.hoje; titulo = '📅 Para hoje'; cor='#2563EB'; break;
+      case 'urgentes': tarefas = r.urgentes; titulo = '⚡ Urgentes'; cor='#CA8A04'; break;
+      case 'semana': tarefas = r.semana; titulo = '🗓️ Esta semana'; cor='#7C3AED'; break;
+      default: // todas
+        tarefas = (producaoTasks||[]).filter(t => t.assignee_user_id === myUserId && !t.done)
+          .sort((a,b)=>(a.due_date||'zzz').localeCompare(b.due_date||'zzz'));
+        titulo = '📋 Todas as suas tarefas pendentes'; cor='#334155';
+    }
+
+    if (!tarefas || tarefas.length === 0){
+      box.innerHTML = `<div class="painel-card" style="margin:12px 0 20px;"><p style="color:var(--muted);font-size:13px;margin:0;">Nenhuma tarefa nesse filtro. 🎉</p></div>`;
+      box.scrollIntoView({behavior:'smooth', block:'nearest'});
+      return;
+    }
+
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const linhas = tarefas.map(t => {
+      const si = stageInfo(t.stage);
+      const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : 'sem prazo';
+      const atrasada = t.due_date && new Date(t.due_date+'T23:59:59') < new Date();
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);">
+          <div style="width:36px;height:36px;border-radius:10px;background:${si.bg};display:flex;align-items:center;justify-content:center;font-size:18px;flex:0 0 auto;">${si.ic}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13.5px;">${escapeHtml(t.stage)}</div>
+            <div style="font-size:11.5px;color:var(--muted);">${escapeHtml(partesTxt)}</div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto;">
+            <div style="font-size:11.5px;font-weight:700;color:${atrasada?'#DC2626':'var(--muted)'};">⏱ ${prazoTxt}</div>
+            ${t.priority===1?'<div style="font-size:10.5px;color:#CA8A04;font-weight:700;">⚡ urgente</div>':''}
+          </div>
+        </div>`;
+    }).join('');
+
+    box.innerHTML = `
+      <div class="painel-card" style="margin:12px 0 20px;border-top:3px solid ${cor};">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-weight:800;font-size:15px;">${titulo} <span style="color:var(--muted);font-weight:400;font-size:13px;">(${tarefas.length})</span></div>
+          <button class="btn-ghost" id="fecharResumo" style="padding:5px 10px;font-size:12px;">✕ Fechar</button>
+        </div>
+        <div>${linhas}</div>
+        <button class="btn-ghost" id="irProducaoResumo" style="width:100%;justify-content:center;margin-top:12px;font-size:12.5px;">Abrir aba Produção →</button>
+      </div>`;
+    box.scrollIntoView({behavior:'smooth', block:'nearest'});
+    const fechar = $('#fecharResumo');
+    if (fechar) fechar.addEventListener('click', () => { box.innerHTML = ''; });
+    const irProd = $('#irProducaoResumo');
+    if (irProd) irProd.addEventListener('click', () => switchView('producao'));
+  }
 
   function renderProjetos(){
     const arquivados = allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].archived);
@@ -8191,12 +8693,25 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>`;
     }).join('');
 
+    const sd = saudacaoHora();
+    const nome = myProfile.display_name || 'Ninja';
+    const r = meuResumoTarefas();
+    const temTarefas = r.totalPendentes > 0;
+
     projetosContent.innerHTML = `
-      <div class="home-hero" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-        <div><h1>🎬 Projetos</h1><p>Todos os projetos de dublagem.</p></div>
-        ${isAdmin?`<div class="admin-only" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-primary" id="btnNovoProjeto" style="white-space:nowrap;">+ Novo projeto</button>
-        </div>`:''}
+      <div class="home-greeting">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <h1 style="margin:0 0 2px;">${sd.ic} ${sd.txt}, ${escapeHtml(nome)}!</h1>
+            ${temTarefas
+              ? `<p style="margin:6px 0 0;font-size:13.5px;opacity:.95;">Você tem <b>${r.totalPendentes}</b> tarefa${r.totalPendentes>1?'s':''} pendente${r.totalPendentes>1?'s':''}. <button id="verMinhasTarefas" style="background:rgba(255,255,255,.2);border:none;color:#fff;font-weight:700;padding:4px 12px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12.5px;margin-left:4px;">Ver no Meu Painel →</button></p>`
+              : `<p style="margin:6px 0 0;font-size:13.5px;opacity:.92;">🎉 Você está em dia — nenhuma tarefa pendente!</p>`}
+          </div>
+        </div>
+      </div>
+      <div class="home-section-title" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <span>🎬 Projetos</span>
+        ${isAdmin?`<button class="btn-primary admin-only" id="btnNovoProjeto" style="white-space:nowrap;padding:8px 16px;font-size:13px;">+ Novo projeto</button>`:''}
       </div>
       <div class="seg-filter">
         <button class="${projetosFilter==='producao'?'on':''}" data-filter="producao">Em produção</button>
@@ -8211,6 +8726,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>
       ${lista.length? `<div class="prod-grid">${cards}</div>`
         : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nada aqui</h2><p>${projetosSearch ? `Nenhum projeto ${rotuloFiltro} com "${escapeHtml(projetosSearch)}".` : `Nenhum projeto ${rotuloFiltro}. ${isAdmin && !ehArquivados ?'Use o botão acima para criar.':''}`}</p></div>`}`;
+
+    // Botão "Ver no Meu Painel"
+    const btnVerTarefas = $('#verMinhasTarefas');
+    if (btnVerTarefas) btnVerTarefas.addEventListener('click', () => switchView('painel'));
 
     projetosContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{
       projetosFilter = b.dataset.filter;
@@ -9151,6 +9670,68 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
   }
 
+  // Popup pra pedir um texto (usado na observação da tarefa). Retorna
+  // Promise<string|null> — null se cancelou.
+  function pedirTextoBonito({titulo='Escreva algo', placeholder='', valorInicial='', textoBotao='Salvar'}={}){
+    return new Promise(resolve => {
+      const conf = document.createElement('div');
+      conf.className = 'modal-overlay confirm-overlay open';
+      conf.style.zIndex = '10005';
+      conf.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:420px;">
+          <h2 style="text-align:center; margin:4px 0 14px;">${escapeHtml(titulo)}</h2>
+          <textarea id="ptbInput" placeholder="${escapeHtml(placeholder)}" style="width:100%;min-height:90px;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;resize:vertical;box-sizing:border-box;">${escapeHtml(valorInicial)}</textarea>
+          <div class="confirm-actions" style="margin-top:14px;">
+            <button class="btn-ghost" id="ptbCancel">Cancelar</button>
+            <button class="btn-primary" id="ptbYes">${escapeHtml(textoBotao)}</button>
+          </div>
+        </div>`;
+      document.body.appendChild(conf);
+      const ta = conf.querySelector('#ptbInput');
+      setTimeout(()=>{ ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 50);
+      const cleanup = (r) => { conf.classList.remove('open'); setTimeout(() => conf.remove(), 200); document.removeEventListener('keydown', escHandler); resolve(r); };
+      conf.querySelector('#ptbCancel').addEventListener('click', () => cleanup(null));
+      conf.querySelector('#ptbYes').addEventListener('click', () => cleanup(ta.value.trim()));
+      conf.addEventListener('click', (e) => { if (e.target === conf) cleanup(null); });
+      const escHandler = (e) => { if (e.key === 'Escape') cleanup(null); };
+      document.addEventListener('keydown', escHandler);
+    });
+  }
+
+  // Popup pra escolher uma data. Retorna Promise<string|null> (string vazia =
+  // removeu a data; null = cancelou).
+  function pedirDataBonito({titulo='Escolha a data', subtitulo='', valorInicial=''}={}){
+    return new Promise(resolve => {
+      const conf = document.createElement('div');
+      conf.className = 'modal-overlay confirm-overlay open';
+      conf.style.zIndex = '10005';
+      conf.innerHTML = `
+        <div class="modal confirm-modal" style="max-width:360px;">
+          <h2 style="text-align:center; margin:4px 0 4px;">${escapeHtml(titulo)}</h2>
+          ${subtitulo?`<p style="text-align:center;font-size:12.5px;color:var(--muted);margin:0 0 14px;">${subtitulo}</p>`:'<div style="height:10px;"></div>'}
+          <input type="date" id="pdbInput" value="${escapeHtml(valorInicial)}" style="width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;font-size:14px;box-sizing:border-box;">
+          <div class="confirm-actions" style="margin-top:14px;">
+            ${valorInicial?`<button class="btn-ghost" id="pdbRemover" style="color:#DC2626;">Tirar prazo</button>`:'<span></span>'}
+            <div style="display:flex;gap:8px;margin-left:auto;">
+              <button class="btn-ghost" id="pdbCancel">Cancelar</button>
+              <button class="btn-primary" id="pdbYes">Salvar</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(conf);
+      const inp = conf.querySelector('#pdbInput');
+      setTimeout(()=>inp.focus(), 50);
+      const cleanup = (r) => { conf.classList.remove('open'); setTimeout(() => conf.remove(), 200); document.removeEventListener('keydown', escHandler); resolve(r); };
+      conf.querySelector('#pdbCancel').addEventListener('click', () => cleanup(null));
+      conf.querySelector('#pdbYes').addEventListener('click', () => cleanup(inp.value || ''));
+      const btnRemover = conf.querySelector('#pdbRemover');
+      if (btnRemover) btnRemover.addEventListener('click', () => cleanup(''));
+      conf.addEventListener('click', (e) => { if (e.target === conf) cleanup(null); });
+      const escHandler = (e) => { if (e.key === 'Escape') cleanup(null); };
+      document.addEventListener('keydown', escHandler);
+    });
+  }
+
   function confirmarExclusao(nomeItem){
     return new Promise(resolve => {
       // Cria um overlay temporário sobre o overlay atual
@@ -9423,8 +10004,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}">${initials}</div>`
         : `<div class="photo-fallback">${initials}</div>`;
       return `
-        <div class="voice-card" data-id="${c.personId}" style="cursor:pointer;position:relative;">
-          ${isAdmin?`<button class="btn-ghost" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Tirar de coadjuvante — volta pro projeto principal" style="position:absolute;top:8px;right:8px;padding:4px 9px;font-size:11px;z-index:2;">↩ Tirar</button>`:''}
+        <div class="voice-card coadj-card" data-id="${c.personId}">
           <div class="card-top">
             ${photo}
             <div class="card-name-block">
@@ -9433,6 +10013,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             </div>
           </div>
           <div class="voice-summary"><b>${escapeHtml(c.voice)}</b></div>
+          ${isAdmin?`
+          <div class="coadj-acoes">
+            <button type="button" class="coadj-btn coadj-editar" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">✎ Editar ficha</button>
+            <button type="button" class="coadj-btn coadj-tirar" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}">↩ Tirar</button>
+          </div>`:''}
         </div>`;
     }).join('');
     ov.innerHTML = `
@@ -9449,6 +10034,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     $('#coadjClose').addEventListener('click', ()=>ov.classList.remove('open'));
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
+
+    // Editar nome e voz do coadjuvante (abre o mesmo modal de editar do projeto)
+    ov.querySelectorAll('[data-editar-coadj]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const entryId = btn.dataset.editarCoadj;
+        const pid = btn.dataset.editarPid;
+        const nome = btn.dataset.editarNome;
+        const voz = btn.dataset.editarVoz;
+        const pessoa = people.find(p => p.id === pid);
+        if (!pessoa) return;
+        // usa o projeto de coadjuvantes como contexto (pra manter na pasta)
+        const projCoadj = coadjProjectOf(project);
+        abrirAlterarVozData(pessoa, entryId, projCoadj, voz, '', () => {
+          openCoadjuvantesModal(project); // reabre a pasta atualizada
+        });
+      });
+    });
 
     // Tirar de coadjuvante — volta a entrada pro projeto principal (base,
     // sem o sufixo "⟫ Coadjuvantes"), fazendo a pessoa reaparecer na
@@ -9484,6 +10087,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       card.addEventListener('click', (e)=>{
         if (e.target.closest('img.photo, [data-photo-for]')) return; // foto amplia
         if (e.target.closest('[data-remover-coadj]')) return; // botão de tirar
+        if (e.target.closest('[data-editar-coadj]')) return; // botão de editar
         openModal(card.dataset.id);
       });
     });
@@ -10046,6 +10650,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       let ok = 0;
       for (const pessoa of arr){
         try {
+          // Checa se a voz dessa pessoa já está no projeto (principal ou coadj)
+          const vozDela = pessoa.voice || '';
+          const quemUsa = vozJaUsadaNoProjeto(project, vozDela, pessoa._nova ? null : pessoa.personId);
+          if (quemUsa.length > 0){
+            const escolha = await avisarVozDuplicada(vozDela, project, quemUsa);
+            if (escolha === 'cancelar' || escolha === 'trocar'){
+              // pula essa pessoa (não adiciona) — o admin pode reabrir e ajustar
+              continue;
+            }
+            // 'usar' → segue e adiciona mesmo assim
+          }
+
           let personIdReal = pessoa.personId;
           if (pessoa._nova){
             const novoPid = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
@@ -10496,6 +11112,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
+                ${isAdmin?`<button class="dub-edit-btn" title="Editar voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
                 <div class="dub-copy-wrap">
                   <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
                   <div class="dub-copy-menu" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">
@@ -10739,6 +11356,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const dataAtual = entry ? entry.date : '';
       abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual, () => {
         // reabre o modal DESTE projeto atualizado, em vez do modal de ficha
+        openProjetoModal(project);
+      });
+    }));
+
+    // botão ✎ Editar voz (mesmo comportamento de clicar na voz, mas botão claro)
+    ov.querySelectorAll('[data-edit-voz-btn]').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const personId = btn.dataset.personId;
+      const entryIdOuIdx = btn.dataset.editVozBtn || btn.dataset.entryIdx;
+      const pessoa = people.find(p => p.id === personId);
+      if (!pessoa) return;
+      const entry = pessoa.entries.find(en => en.id && String(en.id) === btn.dataset.editVozBtn)
+        || pessoa.entries.filter(en => (en.project||'').toLowerCase() === project.toLowerCase())[Number(btn.dataset.entryIdx)];
+      const vozAtual = entry ? entry.voice : '';
+      const dataAtual = entry ? entry.date : '';
+      abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual, () => {
         openProjetoModal(project);
       });
     }));
@@ -11345,18 +11978,123 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   document.addEventListener('click', (e)=>{
     if (e.target.closest('#profileBtn')) openProfileModal(false);
     if (e.target.closest('#bellBtn')){
-      switchView('painel');
-      setTimeout(() => {
-        const cards = document.querySelectorAll('.painel-title');
-        for (const c of cards){
-          if (c.textContent.includes('Você foi marcado')){
-            c.scrollIntoView({behavior:'smooth', block:'center'});
-            break;
-          }
-        }
-      }, 150);
+      e.stopPropagation();
+      toggleNotifDropdown();
+    } else if (!e.target.closest('#notifDropdown')){
+      // clicar fora fecha o dropdown
+      fecharNotifDropdown();
     }
   });
+
+  // Monta a lista de notificações (mesma lógica dos 3 tipos) pra exibir no dropdown
+  function montarListaNotificacoes(){
+    const naoLidasTask = (taskNotifs||[]).filter(n => !n.read);
+    const mencoes = (minhasMencoes||[]).filter(m => !m.read);
+    const prazos = (typeof prazosTerminando === 'function') ? prazosTerminando() : [];
+    const itens = [];
+
+    prazos.forEach(t => {
+      const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${cor};">
+          <div class="notif-ic" style="background:${cor}22;">⏰</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)}</div>
+            <div class="notif-sub">${escapeHtml(partesTxt)}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    naoLidasTask.forEach(n => {
+      const ehChat = n.project === '__chat__';
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
+          <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
+            <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    mencoes.forEach(m => {
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid #7C3AED;">
+          <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+    return itens;
+  }
+
+  function fecharNotifDropdown(){
+    const d = document.getElementById('notifDropdown');
+    if (d) d.remove();
+  }
+
+  function toggleNotifDropdown(){
+    const existente = document.getElementById('notifDropdown');
+    if (existente){ existente.remove(); return; }
+
+    const bell = document.getElementById('bellBtn');
+    if (!bell) return;
+    const itens = montarListaNotificacoes();
+
+    const drop = document.createElement('div');
+    drop.id = 'notifDropdown';
+    drop.innerHTML = `
+      <div class="notif-drop-head">
+        <span style="font-weight:800;font-size:14px;">🔔 Notificações</span>
+        ${itens.length?`<span style="font-size:11px;color:var(--muted);">${itens.length} nova${itens.length>1?'s':''}</span>`:''}
+      </div>
+      <div class="notif-drop-body">
+        ${itens.length ? itens.join('') : `<div style="text-align:center;padding:30px 16px;color:var(--muted);"><div style="font-size:36px;">🎉</div><p style="font-size:13px;margin:8px 0 0;">Nenhuma notificação nova!</p></div>`}
+      </div>
+      ${itens.length?`<button class="btn-ghost" id="notifLimparDrop" style="width:100%;justify-content:center;font-size:12px;border-top:1px solid var(--line);border-radius:0;padding:10px;">🧹 Limpar dos últimos 3 dias</button>`:''}`;
+    document.body.appendChild(drop);
+
+    // Posiciona logo abaixo do sininho
+    const r = bell.getBoundingClientRect();
+    drop.style.top = (r.bottom + 8) + 'px';
+    drop.style.right = (window.innerWidth - r.right) + 'px';
+
+    // Handlers dos botões "Conferir"
+    drop.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
+      const destino = btn.dataset.conf;
+      if (btn.dataset.lidaTask){
+        try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
+      }
+      if (btn.dataset.lidaMencao){
+        try { await sb.from('project_note_mentions').update({ read:true }).eq('id', btn.dataset.lidaMencao); const m = minhasMencoes.find(x=>x.id===btn.dataset.lidaMencao); if(m) m.read=true; } catch(e){}
+      }
+      renderBellBadge();
+      fecharNotifDropdown();
+      if (destino === 'producao'){ switchView('producao'); }
+      else if (destino === 'mencao'){
+        const proj = btn.dataset.mencaoProj;
+        switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+      }
+    }));
+
+    // Limpar dos últimos 3 dias
+    const btnLimpar = drop.querySelector('#notifLimparDrop');
+    if (btnLimpar) btnLimpar.addEventListener('click', async () => {
+      const tresDiasAtras = new Date(Date.now() - 3*24*60*60*1000).toISOString();
+      try {
+        await sb.from('task_notifications').delete().eq('user_id', myUserId).gte('created_at', tresDiasAtras);
+        await loadTaskNotifs();
+        renderBellBadge();
+        fecharNotifDropdown();
+        showToast('✅ Notificações limpas.');
+      } catch(e){ showToast('Erro: '+(e.message||'')); }
+    });
+  }
 
 
   // ============================================================
@@ -11537,8 +12275,20 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   async function toggleAgendaNote(id){
     const n = agendaNotes.find(x=>x.id===id); if(!n) return;
-    const { error } = await sb.from('agenda_notes').update({ done:!n.done }).eq('id', id).eq('user_id', myUserId);
-    if (!error) n.done = !n.done;
+    const novoDone = !n.done;
+    const { error } = await sb.from('agenda_notes').update({ done:novoDone }).eq('id', id).eq('user_id', myUserId);
+    if (!error){
+      n.done = novoDone;
+      // Se este item de agenda veio de uma tarefa de produção, marca a tarefa
+      // também — assim todos veem na aba Produção que a tarefa foi concluída.
+      if (n.from_task_id){
+        try {
+          await sb.from('production_tasks').update({ done:novoDone, done_at: novoDone?new Date().toISOString():null }).eq('id', n.from_task_id);
+          const t = producaoTasks.find(x=>x.id===n.from_task_id);
+          if (t){ t.done = novoDone; t.done_at = novoDone?new Date().toISOString():null; }
+        } catch(e){ console.warn('Erro sincronizando tarefa:', e); }
+      }
+    }
   }
 
   // ---- Chat ----
@@ -11604,7 +12354,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   function renderChat(){
     return `
       <div class="painel-card" style="grid-column:1/-1;">
-        <div class="painel-title">💬 Chat do dia <span style="font-size:11px;color:var(--muted);font-weight:400;">(some à meia-noite)</span></div>
+        <div class="painel-title">💬 Chat do dia</div>
         <div class="chat-wrap">
           <div class="chat-msgs" id="chatMsgs">${renderChatMsgs()}</div>
           <div class="chat-input-row" style="position:relative;">
@@ -11642,101 +12392,639 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     try { await sb.from('agenda_notes').delete().eq('id', agendaNoteId); } catch(e){ console.error(e); }
   }
 
+  // Meta mensal — guardada em project_meta com uma chave especial por mês.
+  let prodVistaAtual = 'projeto'; // 'projeto' ou 'kanban'
+
+  // Meta do mês agora é baseada nos cartões de meta.
+  function getMetaMensal(){ return metaCards.length; }
+  function contarProjetosConcluidosMes(){ return metaCards.filter(c => c.done).length; }
+
+  // Cor por categoria (pros badges dos cartões)
+  const META_CAT_COR = {
+    'Filme':{c:'#2563EB',bg:'#DBEAFE'}, 'Desenho':{c:'#DB2777',bg:'#FCE7F3'},
+    'Estudo':{c:'#16A34A',bg:'#DCFCE7'}, 'Documentário':{c:'#EA580C',bg:'#FFEDD5'},
+    'Infantil':{c:'#CA8A04',bg:'#FEF9C3'}, 'Série':{c:'#7C3AED',bg:'#EDE9FE'}, 'Outro':{c:'#64748B',bg:'#F1F5F9'}
+  };
+  const metaCatCor = (cat) => META_CAT_COR[cat] || META_CAT_COR['Outro'];
+
+  // Resumo compacto dos cartões (por semana), mostrado no card de meta
+  function renderMetaCardsResumo(){
+    if (metaCards.length === 0){
+      return isAdmin
+        ? `<p style="font-size:12px;color:#15803D;margin:0;">Nenhum cartão ainda. Clique em "Gerenciar cartões" para adicionar os projetos da meta deste mês.</p>`
+        : `<p style="font-size:12px;color:#15803D;margin:0;">A meta deste mês ainda não foi definida.</p>`;
+    }
+    // Agrupa por semana
+    const porSemana = {};
+    metaCards.forEach(c => { (porSemana[c.semana] = porSemana[c.semana]||[]).push(c); });
+    const blocos = Object.keys(porSemana).sort((a,b)=>a-b).map(sem => {
+      const cards = porSemana[sem];
+      const feitos = cards.filter(c=>c.done).length;
+      const chips = cards.map(c => {
+        const cc = metaCatCor(c.categoria);
+        return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:${cc.bg};color:${cc.c};${c.done?'opacity:.5;text-decoration:line-through;':''}">${c.done?'✓ ':''}${escapeHtml(c.categoria)}${c.titulo?` · ${escapeHtml(c.titulo)}`:''}</span>`;
+      }).join(' ');
+      return `<div style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:4px;">Semana ${sem} <span style="font-weight:400;color:#15803D;">(${feitos}/${cards.length})</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${chips}</div>
+      </div>`;
+    }).join('');
+    return `<div style="border-top:1px solid #86EFAC;padding-top:10px;">${blocos}</div>`;
+  }
+
+  // Modal de gerenciar cartões de meta (admin)
+  function openGerenciarMeta(){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '10000';
+    const d = new Date();
+    const nomeMes = d.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+
+    function corpoCartoes(){
+      const porSemana = {1:[],2:[],3:[],4:[],5:[]};
+      metaCards.forEach(c => { if(porSemana[c.semana]) porSemana[c.semana].push(c); });
+      return [1,2,3,4,5].map(sem => {
+        const cards = porSemana[sem];
+        const lista = cards.map(c => {
+          const cc = metaCatCor(c.categoria);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;margin-bottom:5px;">
+            <input type="checkbox" class="mc-done" data-id="${c.id}" ${c.done?'checked':''} style="width:16px;height:16px;accent-color:#16A34A;cursor:pointer;">
+            <span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${cc.bg};color:${cc.c};">${escapeHtml(c.categoria)}</span>
+            <span style="flex:1;min-width:0;font-size:12.5px;${c.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(c.titulo||'(sem nome)')}</span>
+            <button class="mc-del" data-id="${c.id}" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;">🗑️</button>
+          </div>`;
+        }).join('') || `<p style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Nenhum cartão nesta semana.</p>`;
+        return `<div style="margin-bottom:14px;${sem===5?'padding-top:12px;border-top:1px dashed var(--line);':''}">
+          <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}${sem===5?' <span style="font-weight:400;font-size:11px;color:var(--muted);">(opcional)</span>':''}</div>
+          ${lista}
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <select class="mc-nova-cat" data-sem="${sem}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+              ${META_CATEGORIAS.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+            </select>
+            <input type="text" class="mc-nova-titulo" data-sem="${sem}" placeholder="Nome do projeto (opcional)" style="flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+            <button class="mc-add btn-primary" data-sem="${sem}" style="padding:6px 12px;font-size:12px;">+ Add</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function render(){
+      ov.innerHTML = `
+        <div class="modal" style="max-width:560px;max-height:85vh;overflow:auto;">
+          <h2 style="text-transform:capitalize;">🎯 Cartões de meta — ${escapeHtml(nomeMes)}</h2>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 16px;">Cada cartão é 1 projeto da meta do mês. Marque como concluído quando terminar. O total e o progresso atualizam sozinhos.</p>
+          <div style="margin-bottom:14px;padding:10px 12px;background:var(--surface-soft);border-radius:10px;font-size:13px;">
+            <b>${metaCards.filter(c=>c.done).length}</b> de <b>${metaCards.length}</b> concluídos ·
+            Meta total: <b>${metaCards.length}</b> projeto${metaCards.length===1?'':'s'}
+          </div>
+          <div id="mcCorpo">${corpoCartoes()}</div>
+          <div style="text-align:right;margin-top:8px;"><button class="btn-ghost" id="mcFechar">Fechar</button></div>
+        </div>`;
+      wire();
+    }
+
+    async function wire(){
+      ov.querySelector('#mcFechar').addEventListener('click', () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); });
+      fecharAoClicarFora(ov, () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); });
+
+      // adicionar cartão
+      ov.querySelectorAll('.mc-add').forEach(btn => btn.addEventListener('click', async () => {
+        const sem = Number(btn.dataset.sem);
+        const cat = ov.querySelector(`.mc-nova-cat[data-sem="${sem}"]`).value;
+        const titulo = ov.querySelector(`.mc-nova-titulo[data-sem="${sem}"]`).value.trim();
+        const novo = { id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(), mes:mesAtualStr(), semana:sem, categoria:cat, titulo:titulo||null, done:false, created_by:myEmail||null };
+        try {
+          const { error } = await sb.from('meta_cards').insert(novo);
+          if (error) throw error;
+          metaCards.push(novo);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+      // marcar concluído
+      ov.querySelectorAll('.mc-done').forEach(cb => cb.addEventListener('change', async () => {
+        const id = cb.dataset.id;
+        try {
+          await sb.from('meta_cards').update({ done: cb.checked }).eq('id', id);
+          const c = metaCards.find(x=>x.id===id); if(c) c.done = cb.checked;
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked=!cb.checked; }
+      }));
+      // excluir
+      ov.querySelectorAll('.mc-del').forEach(btn => btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try {
+          await sb.from('meta_cards').delete().eq('id', id);
+          metaCards = metaCards.filter(x=>x.id!==id);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+    }
+
+    document.body.appendChild(ov);
+    render();
+  }
+
+  // ============================================================
+  // PAINEL DE GESTÃO (só admin) — modal com metas + delegar tarefa
+  // ============================================================
+  function openPainelGestao(){
+    const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
+    const emProdSet = new Set(allProjectsList().filter(pr => projectMeta[pr] && projectMeta[pr].in_production));
+    const projetos = [...allProjectsList()].sort((a,b) => {
+      const pa = emProdSet.has(a)?0:1, pb = emProdSet.has(b)?0:1;
+      return pa-pb || a.localeCompare(b,'pt-BR');
+    });
+    const metaMes = getMetaMensal();
+    const feitos = contarProjetosConcluidosMes();
+    const pctMeta = metaMes > 0 ? Math.round(feitos/metaMes*100) : 0;
+
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '9998';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:860px;width:94vw;max-height:92vh;overflow:auto;">
+        <h2>⚙️ Painel de Gestão</h2>
+        <div class="gestao-tabs" style="display:flex;gap:6px;margin:10px 0 18px;background:var(--bg);padding:4px;border-radius:12px;">
+          <button class="gestao-tab on" data-gtab="delegar" style="flex:1;padding:9px;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-size:13px;background:var(--surface);font-family:inherit;">🚀 Delegar tarefa</button>
+          <button class="gestao-tab" data-gtab="metas" style="flex:1;padding:9px;border:none;border-radius:9px;cursor:pointer;font-weight:700;font-size:13px;background:none;color:var(--muted);font-family:inherit;">🎯 Metas do mês</button>
+        </div>
+
+        <div id="gestaoDelegar">
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;">
+            <div class="field" style="margin:0;">
+              <label>Projeto</label>
+              <select id="prodProjetoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+                <option value="">— Escolher projeto —</option>
+                ${emProdSet.size ? `<optgroup label="Em produção">${projetos.filter(p=>emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+                ${projetos.some(p=>!emProdSet.has(p)) ? `<optgroup label="Outros projetos">${projetos.filter(p=>!emProdSet.has(p)).map(p=>`<option value="${escapeHtml(p)}">${escapeHtml(nomeProjetoExibicao(p))}</option>`).join('')}</optgroup>` : ''}
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">
+                <label style="margin:0;">Episódio</label>
+                <div class="ep-toggle" id="epToggle">
+                  <button type="button" class="ep-toggle-opt on" data-modo="ep">Ep</button>
+                  <button type="button" class="ep-toggle-opt" data-modo="filme">🎬 Único</button>
+                </div>
+              </div>
+              <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <input type="checkbox" id="prodFullVideoCheck" style="display:none;">
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Parte</label>
+              <input type="text" id="prodParteInput" placeholder="Ex: 1 de 2" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
+            <div class="field" style="margin:0;">
+              <label>Responsável</label>
+              <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+                <option value="">— Escolher —</option>
+                ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Prazo final</label>
+              <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+              <p id="prodPrazoAviso" style="font-size:11px;margin:5px 0 0;color:#CA8A04;">⚠️ Sem prazo, a tarefa não entra na agenda.</p>
+            </div>
+          </div>
+          <div class="field" style="margin:12px 0 0;">
+            <label>Etapas (uma tarefa por etapa marcada)</label>
+            <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+              ${PRODUCAO_STAGES.map(s => { const si = stageInfo(s); return `
+                <div class="stage-chip" data-stage="${escapeHtml(s)}" style="--chip-cor:${si.cor};--chip-bg:${si.bg};">
+                  <span style="font-size:15px;">${si.ic}</span> ${escapeHtml(s)}
+                </div>`; }).join('')}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:12px;">
+            <div class="field" style="margin:0;">
+              <label>Prioridade (1 = urgente)</label>
+              <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Observação (opcional)</label>
+              <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
+            </div>
+          </div>
+          <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">🚀 Atribuir tarefa(s)</button>
+        </div>
+
+        <div id="gestaoMetas" style="display:none;">
+          <div style="display:flex;align-items:center;gap:14px;padding:14px;background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-radius:12px;margin-bottom:16px;">
+            <div class="prod-ring" style="width:60px;height:60px;flex:0 0 auto;">
+              <svg width="60" height="60" style="transform:rotate(-90deg);">
+                <circle cx="30" cy="30" r="25" fill="none" stroke="#BBF7D0" stroke-width="6"/>
+                <circle cx="30" cy="30" r="25" fill="none" stroke="${pctMeta>=100?'#059669':'#16A34A'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${2*Math.PI*25*Math.min(pctMeta,100)/100} ${2*Math.PI*25}"/>
+              </svg>
+              <div class="prod-ring-txt" style="color:#059669;font-size:13px;">${pctMeta}%</div>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:15px;color:#166534;">Meta do mês</div>
+              <div style="font-size:12.5px;color:#15803D;"><b>${feitos}</b> de <b>${metaMes}</b> projetos concluídos</div>
+            </div>
+          </div>
+          <div id="gestaoMetasCorpo"></div>
+        </div>
+
+        <div style="text-align:right;margin-top:16px;"><button class="btn-ghost" id="gestaoFechar">Fechar</button></div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    // Abas
+    ov.querySelectorAll('.gestao-tab').forEach(tab => tab.addEventListener('click', () => {
+      ov.querySelectorAll('.gestao-tab').forEach(t => { t.classList.remove('on'); t.style.background='none'; t.style.color='var(--muted)'; });
+      tab.classList.add('on'); tab.style.background='var(--surface)'; tab.style.color='';
+      const g = tab.dataset.gtab;
+      ov.querySelector('#gestaoDelegar').style.display = g==='delegar'?'':'none';
+      ov.querySelector('#gestaoMetas').style.display = g==='metas'?'':'none';
+      if (g==='metas') renderMetasNoModal(ov);
+    }));
+
+    // Liga o formulário de delegar (reusa wireProducaoForm, que acha os campos por id)
+    wireProducaoForm(() => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+
+    ov.querySelector('#gestaoFechar').addEventListener('click', () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+    fecharAoClicarFora(ov, () => { ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); });
+  }
+
+  // Renderiza a gestão de metas dentro do modal (semanas + cartões)
+  function renderMetasNoModal(ov){
+    const corpo = ov.querySelector('#gestaoMetasCorpo');
+    if (!corpo) return;
+    const porSemana = {1:[],2:[],3:[],4:[],5:[]};
+    metaCards.forEach(c => { if(porSemana[c.semana]) porSemana[c.semana].push(c); });
+    corpo.innerHTML = [1,2,3,4,5].map(sem => {
+      const cards = porSemana[sem];
+      const lista = cards.map(c => {
+        const cc = metaCatCor(c.categoria);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface);border:1px solid var(--line);border-radius:9px;margin-bottom:5px;">
+          <input type="checkbox" class="mc-done" data-id="${c.id}" ${c.done?'checked':''} style="width:16px;height:16px;accent-color:#16A34A;cursor:pointer;">
+          <span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;background:${cc.bg};color:${cc.c};">${escapeHtml(c.categoria)}</span>
+          <span style="flex:1;min-width:0;font-size:12.5px;${c.done?'text-decoration:line-through;color:var(--muted);':''}">${escapeHtml(c.titulo||'(sem nome)')}</span>
+          <button class="mc-del" data-id="${c.id}" style="background:none;border:none;cursor:pointer;font-size:13px;opacity:.5;">🗑️</button>
+        </div>`;
+      }).join('') || `<p style="font-size:11.5px;color:var(--muted);margin:0 0 6px;">Nenhum cartão nesta semana.</p>`;
+      return `<div style="margin-bottom:14px;${sem===5?'padding-top:12px;border-top:1px dashed var(--line);':''}">
+        <div style="font-weight:800;font-size:13px;margin-bottom:6px;">📅 Semana ${sem}${sem===5?' <span style="font-weight:400;font-size:11px;color:var(--muted);">(opcional)</span>':''}</div>
+        ${lista}
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <select class="mc-nova-cat" data-sem="${sem}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+            ${META_CATEGORIAS.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}
+          </select>
+          <input type="text" class="mc-nova-titulo" data-sem="${sem}" placeholder="Nome do projeto (opcional)" style="flex:1;padding:6px 9px;border:1px solid var(--line);border-radius:8px;font-size:12px;background:var(--bg);">
+          <button class="mc-add btn-primary" data-sem="${sem}" style="padding:6px 12px;font-size:12px;">+ Add</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // wiring dos cartões
+    corpo.querySelectorAll('.mc-add').forEach(btn => btn.addEventListener('click', async () => {
+      const sem = Number(btn.dataset.sem);
+      const cat = corpo.querySelector(`.mc-nova-cat[data-sem="${sem}"]`).value;
+      const titulo = corpo.querySelector(`.mc-nova-titulo[data-sem="${sem}"]`).value.trim();
+      const novo = { id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(), mes:mesAtualStr(), semana:sem, categoria:cat, titulo:titulo||null, done:false, created_by:myEmail||null };
+      try { const { error } = await sb.from('meta_cards').insert(novo); if (error) throw error; metaCards.push(novo); renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+    corpo.querySelectorAll('.mc-done').forEach(cb => cb.addEventListener('change', async () => {
+      const id = cb.dataset.id;
+      try { await sb.from('meta_cards').update({ done: cb.checked }).eq('id', id); const c = metaCards.find(x=>x.id===id); if(c) c.done = cb.checked; renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); cb.checked=!cb.checked; }
+    }));
+    corpo.querySelectorAll('.mc-del').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      try { await sb.from('meta_cards').delete().eq('id', id); metaCards = metaCards.filter(x=>x.id!==id); renderMetasNoModal(ov); }
+      catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+  }
+
+  // ============================================================
+  // MURAL DE ARQUIVOS — fotos, vídeos, áudios, planilhas, docs
+  // em qualidade original. Todos veem e baixam.
+  // ============================================================
+  const MURAL_BUCKET = 'mural';
+
+  function iconeArquivo(tipo, nome){
+    const t = (tipo||'').toLowerCase();
+    const ext = (nome||'').split('.').pop().toLowerCase();
+    if (t.startsWith('image/')) return '🖼️';
+    if (t.startsWith('video/')) return '🎬';
+    if (t.startsWith('audio/')) return '🎵';
+    if (['xls','xlsx','csv','ods'].includes(ext)) return '📊';
+    if (['doc','docx','odt','rtf'].includes(ext)) return '📄';
+    if (ext === 'pdf') return '📕';
+    if (['psd','ai','xd','fig'].includes(ext)) return '🎨';
+    if (['zip','rar','7z'].includes(ext)) return '🗜️';
+    return '📎';
+  }
+  function formatarTamanho(bytes){
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes+' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(0)+' KB';
+    if (bytes < 1024*1024*1024) return (bytes/1024/1024).toFixed(1)+' MB';
+    return (bytes/1024/1024/1024).toFixed(2)+' GB';
+  }
+  function ehImagem(f){ return (f.file_type||'').startsWith('image/'); }
+
+  function openMural(){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '9998';
+    document.body.appendChild(ov);
+
+    function render(){
+      const trintaDias = Date.now() - 30*24*60*60*1000;
+      const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
+
+      const cards = muralFiles.map(f => {
+        const antigo = new Date(f.created_at).getTime() < trintaDias;
+        const preview = ehImagem(f)
+          ? `<div class="mural-thumb" style="background-image:url('${escapeHtml(f.url)}');"></div>`
+          : `<div class="mural-thumb mural-thumb-ic">${iconeArquivo(f.file_type, f.file_name)}</div>`;
+        return `
+          <div class="mural-card ${antigo?'antigo':''}">
+            ${preview}
+            <div class="mural-info">
+              <div class="mural-nome" title="${escapeHtml(f.file_name)}">${escapeHtml(f.file_name)}</div>
+              <div class="mural-meta">${formatarTamanho(f.file_size)} · ${escapeHtml(f.uploaded_by_name||'—')} · ${new Date(f.created_at).toLocaleDateString('pt-BR')}${antigo?' · <span style="color:#DC2626;">+30 dias</span>':''}</div>
+            </div>
+            <div class="mural-acoes">
+              <a href="${escapeHtml(f.url)}" download="${escapeHtml(f.file_name)}" target="_blank" class="mural-btn" title="Baixar">⬇️</a>
+              <button class="mural-btn mural-del" data-id="${f.id}" data-path="${escapeHtml(f.storage_path)}" title="Excluir">🗑️</button>
+            </div>
+          </div>`;
+      }).join('') || `<div style="text-align:center;padding:40px 20px;color:var(--muted);"><div style="font-size:44px;">📭</div><p>Nenhum arquivo no mural ainda. Envie o primeiro!</p></div>`;
+
+      ov.innerHTML = `
+        <div class="modal" style="max-width:820px;width:94vw;max-height:90vh;overflow:auto;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h2 style="margin:0;">📎 Mural de arquivos</h2>
+            <button class="btn-ghost" id="muralFechar" style="padding:6px 12px;font-size:12.5px;">✕ Fechar</button>
+          </div>
+          <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Compartilhe fotos, vídeos, áudios, planilhas e documentos em qualidade original. Todos podem baixar.</p>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
+            <label class="btn-primary" style="cursor:pointer;padding:9px 16px;font-size:13px;">
+              ⬆️ Enviar arquivo(s)
+              <input type="file" id="muralUploadInput" multiple style="display:none;">
+            </label>
+            <span style="font-size:11px;color:var(--muted);">até 50MB por arquivo</span>
+            ${antigos.length ? `<button class="btn-ghost" id="muralLimparAntigos" style="padding:9px 14px;font-size:12.5px;color:#DC2626;border:1.5px solid #FECACA;">🧹 Limpar ${antigos.length} arquivo(s) com +30 dias</button>` : ''}
+            <span id="muralUploadStatus" style="font-size:12px;color:var(--muted);"></span>
+          </div>
+
+          <div class="mural-grid">${cards}</div>
+        </div>`;
+      wire();
+    }
+
+    async function wire(){
+      ov.querySelector('#muralFechar').addEventListener('click', fechar);
+      fecharAoClicarFora(ov, fechar);
+
+      // Upload
+      const inp = ov.querySelector('#muralUploadInput');
+      const status = ov.querySelector('#muralUploadStatus');
+      if (inp) inp.addEventListener('change', async () => {
+        const arquivos = [...inp.files];
+        if (!arquivos.length) return;
+        const LIMITE = 50 * 1024 * 1024; // 50 MB
+        // Separa os que passam do limite pra avisar
+        const grandes = arquivos.filter(f => f.size > LIMITE);
+        const validos = arquivos.filter(f => f.size <= LIMITE);
+        if (grandes.length){
+          showToast(`⚠️ ${grandes.length} arquivo(s) acima de 50MB não enviado(s): ${grandes.map(f=>f.name).join(', ')}`);
+        }
+        if (!validos.length){ inp.value=''; return; }
+        let enviados = 0;
+        for (const file of validos){
+          status.textContent = `Enviando ${file.name}… (${enviados+1}/${validos.length})`;
+          try {
+            const ts = Date.now();
+            const nomeSeguro = file.name.replace(/[^\w.\-]/g, '_');
+            const path = `${ts}_${nomeSeguro}`;
+            // Upload em qualidade ORIGINAL (sem compressão)
+            const { error: upErr } = await sb.storage.from(MURAL_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+            if (upErr) throw upErr;
+            const { data: pub } = sb.storage.from(MURAL_BUCKET).getPublicUrl(path);
+            const url = pub.publicUrl;
+            const registro = {
+              id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+              storage_path: path, file_name: file.name, file_type: file.type, file_size: file.size,
+              url, uploaded_by_id: myUserId||null, uploaded_by_name: myProfile.display_name||myEmail||'Alguém'
+            };
+            const { error: dbErr } = await sb.from('mural_files').insert(registro);
+            if (dbErr) throw dbErr;
+            muralFiles.unshift(registro);
+            enviados++;
+          } catch(err){
+            console.error('Erro no upload:', err);
+            showToast('Erro ao enviar '+file.name+': '+(err.message||''));
+          }
+        }
+        status.textContent = '';
+        if (enviados) showToast(`✅ ${enviados} arquivo(s) enviado(s).`);
+        render();
+      });
+
+      // Limpar antigos
+      const btnLimpar = ov.querySelector('#muralLimparAntigos');
+      if (btnLimpar) btnLimpar.addEventListener('click', async () => {
+        const trintaDias = Date.now() - 30*24*60*60*1000;
+        const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
+        const ok = await confirmarBonito({
+          titulo: `Limpar ${antigos.length} arquivo(s)?`,
+          mensagem: 'Isso apaga permanentemente todos os arquivos com mais de 30 dias.',
+          textoBotao: '🧹 Limpar', corBotao:'#DC2626', icone:'🧹'
+        });
+        if (!ok) return;
+        for (const f of antigos){
+          try {
+            await sb.storage.from(MURAL_BUCKET).remove([f.storage_path]);
+            await sb.from('mural_files').delete().eq('id', f.id);
+            muralFiles = muralFiles.filter(x => x.id !== f.id);
+          } catch(e){ console.error(e); }
+        }
+        showToast(`✅ ${antigos.length} arquivo(s) removido(s).`);
+        render();
+      });
+
+      // Excluir individual
+      ov.querySelectorAll('.mural-del').forEach(btn => btn.addEventListener('click', async () => {
+        const ok = await confirmarBonito({ titulo:'Excluir arquivo?', mensagem:'Isso remove o arquivo do mural permanentemente.', textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️' });
+        if (!ok) return;
+        const id = btn.dataset.id, path = btn.dataset.path;
+        try {
+          await sb.storage.from(MURAL_BUCKET).remove([path]);
+          await sb.from('mural_files').delete().eq('id', id);
+          muralFiles = muralFiles.filter(x => x.id !== id);
+          render();
+        } catch(err){ showToast('Erro: '+(err.message||'')); }
+      }));
+    }
+
+    function fechar(){ ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); }
+    render();
+  }
+
   function renderProducao(){
     const cont = $('#producaoContent');
     if (!cont) return;
 
-    const membros = Object.values(profilesByUser||{}).filter(p => p.display_name);
-    const projetos = allProjectsList();
+    // Estatísticas gerais (pro hero)
+    const total = producaoTasks.length;
+    const feitas = producaoTasks.filter(t => t.done).length;
+    const minhas = producaoTasks.filter(t => t.assignee_user_id === myUserId && !t.done).length;
+    const pct = total ? Math.round(feitas/total*100) : 0;
 
-    // Formulário de atribuir tarefa (só admin) — agora com episódio e parte
-    const formAdmin = isAdmin ? `
-      <div class="painel-card" style="margin-bottom:20px;">
-        <div class="painel-title">➕ Atribuir tarefa</div>
-        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-top:10px;">
-          <div class="field" style="margin:0;">
-            <label>Projeto</label>
-            <input type="text" id="prodProjetoInput" list="prodProjetoList" placeholder="Nome do projeto" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-            <datalist id="prodProjetoList">${projetos.map(p=>`<option value="${escapeHtml(p)}">`).join('')}</datalist>
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Episódio</label>
-            <input type="text" id="prodEpisodioInput" placeholder="Ex: 01" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Parte</label>
-            <input type="text" id="prodParteInput" placeholder="Ex: 1 de 2" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-          <div class="field" style="margin:0;">
-            <label>Responsável</label>
-            <select id="prodMembroSel" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-              <option value="">— Escolher —</option>
-              ${membros.map(m => `<option value="${m.user_id}">${escapeHtml(m.display_name)}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Prazo final</label>
-            <input type="date" id="prodPrazoInput" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-        </div>
-        <div class="field" style="margin:10px 0 0;">
-          <label>Etapas (uma tarefa por etapa marcada)</label>
-          <div id="prodStagesBox" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-            ${PRODUCAO_STAGES.map(s => `
-              <label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:12.5px;cursor:pointer;">
-                <input type="checkbox" class="prod-stage-check" value="${escapeHtml(s)}" style="accent-color:var(--blue);">
-                ${escapeHtml(s)}
-              </label>`).join('')}
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-top:10px;">
-          <div class="field" style="margin:0;">
-            <label>Prioridade (1 = urgente)</label>
-            <input type="number" id="prodPrioridadeInput" min="1" value="1" style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-          <div class="field" style="margin:0;">
-            <label>Observação (opcional)</label>
-            <input type="text" id="prodNotaInput" placeholder="Ex: foco no personagem X..." style="width:100%;padding:9px 11px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:var(--bg);">
-          </div>
-        </div>
-        <button class="btn-primary" id="prodCriarBtn" style="width:100%;justify-content:center;margin-top:14px;">Atribuir tarefa(s)</button>
-      </div>` : '';
-
-    const filtro = `
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:7px 14px;font-size:13px;">👤 Minhas tarefas</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:7px 14px;font-size:13px;">📋 Todas</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:7px 14px;font-size:13px;">⏳ Só pendentes</button>
-      </div>`;
+    // Meta mensal
+    const metaMes = getMetaMensal();
+    const projsConcluidosMes = contarProjetosConcluidosMes();
+    const pctMeta = metaMes > 0 ? Math.round(projsConcluidosMes/metaMes*100) : 0;
 
     cont.innerHTML = `
-      <h1 style="font-family:var(--font-head);font-size:24px;margin:0 0 6px;">🎯 Produção</h1>
-      <p style="color:var(--muted);font-size:13.5px;margin:0 0 20px;">Delegue cada parte de cada episódio, com prazo. As tarefas entram na agenda de quem recebe.</p>
-      ${formAdmin}
-      ${filtro}
-      <div id="prodListaTarefas"></div>`;
+      <div class="prod-hero">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;">
+            <h1>🎯 Central de Produção</h1>
+            <p>Acompanhe o que cada um está fazendo e o progresso da equipe.</p>
+          </div>
+          <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="abrirMuralBtn" style="background:#fff;border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
+            ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:#78350F;font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
+          </div>
+        </div>
+        <div class="prod-hero-stats">
+          <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
+          <div class="prod-hero-stat"><b>${feitas}</b><span>concluídas</span></div>
+          <div class="prod-hero-stat"><b>${minhas}</b><span>suas pendentes</span></div>
+          <div class="prod-hero-stat"><b>${pctMeta}%</b><span>meta do mês (${projsConcluidosMes}/${metaMes})</span></div>
+        </div>
+      </div>
 
-    wireProducaoForm();
-    renderProducaoLista('minhas');
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
+        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:8px 16px;font-size:13px;">⏳ Pendentes</button>
+        <div style="margin-left:auto;display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px;">
+          <button class="prod-vista-btn" data-vista="projeto" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:var(--surface);font-weight:700;">🎬 Por projeto</button>
+          <button class="prod-vista-btn" data-vista="kanban" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:none;font-weight:700;color:var(--muted);">📋 Kanban</button>
+        </div>
+      </div>
+      <div class="prod-layout">
+        <div id="prodListaTarefas"></div>
+        <div class="prod-chat-col">
+          <div class="painel-card" style="position:sticky;top:16px;">
+            <div class="painel-title">💬 Chat do dia</div>
+            <div class="chat-wrap">
+              <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
+              <div class="chat-input-row" style="position:relative;">
+                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
+                <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
+                <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    const btnGestao = $('#abrirGestaoBtn');
+    if (btnGestao) btnGestao.addEventListener('click', openPainelGestao);
+    const btnMural = $('#abrirMuralBtn');
+    if (btnMural) btnMural.addEventListener('click', openMural);
+    wireVistaEfiltros();
+    wireChatProducao(); // liga o chat que está agora dentro da produção
+    renderProducaoLista('todas'); // começa mostrando todas — cada um vê o que os outros fazem
   }
 
+  // Liga só os filtros e botões de vista (o form de delegar foi pro modal de gestão)
+  function wireVistaEfiltros(){
+    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+    document.querySelectorAll('.prod-vista-btn').forEach(b => b.addEventListener('click', () => {
+      prodVistaAtual = b.dataset.vista;
+      renderProducaoLista();
+    }));
+  }
+
+  // Liga os eventos do chat quando ele está dentro da aba Produção
+  // (o chat do Meu Painel usa delegação no painelContent; aqui é separado).
+  function wireChatProducao(){
+    const cont = $('#producaoContent');
+    if (!cont) return;
+    const send = cont.querySelector('#chatSend');
+    const input = cont.querySelector('#chatInput');
+    if (send) send.addEventListener('click', () => sendChatMsg());
+    if (input){
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMsg(); }
+      });
+      input.addEventListener('input', (e) => { try { handleChatMention(e); } catch(err){} });
+    }
+    // reações e emoji: delegação dentro do container de produção
+    cont.addEventListener('click', (e) => {
+      const react = e.target.closest('[data-react]');
+      if (react){ toggleReaction(react.dataset.react, react.dataset.emoji); return; }
+    });
+    // Garante que o realtime do chat está ativo e rola até o fim
+    try { subscribeChat(); } catch(e){}
+    const box = cont.querySelector('#chatMsgs');
+    if (box) box.scrollTop = box.scrollHeight;
+  }
+
+  // Emoji "temático" pro projeto baseado no nome (dá personalidade a cada card)
+  function emojiDoProjeto(nome){
+    const n = (nome||'').toLowerCase();
+    if (/hero|herói|super/.test(n)) return '🦸';
+    if (/trilha|selva|aventura|jungle/.test(n)) return '🌴';
+    if (/discipl|estudo|bíbli|biblia|fé|deus/.test(n)) return '📖';
+    if (/infan|criança|kids/.test(n)) return '🧸';
+    if (/document|real/.test(n)) return '🎥';
+    if (/amor|romance|coração/.test(n)) return '💕';
+    if (/guerra|batalha|luta/.test(n)) return '⚔️';
+    if (/natal|festa/.test(n)) return '🎄';
+    const emojis = ['🎬','🎞️','🎦','📽️','🎪','🎨','🌟','🚀'];
+    let h=0; for (let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0;
+    return emojis[h % emojis.length];
+  }
+
+  let prodFiltroAtual = 'minhas';
   function renderProducaoLista(filtro){
+    if (filtro) prodFiltroAtual = filtro; else filtro = prodFiltroAtual;
     const box = $('#prodListaTarefas');
     if (!box) return;
 
     document.querySelectorAll('.prod-filtro-btn').forEach(b => {
-      b.style.background = b.dataset.filtro === filtro ? 'var(--blue)' : '';
-      b.style.color = b.dataset.filtro === filtro ? '#fff' : '';
+      const on = b.dataset.filtro === filtro;
+      b.style.background = on ? 'var(--blue)' : '';
+      b.style.color = on ? '#fff' : '';
+      b.style.borderColor = on ? 'var(--blue)' : '';
     });
+    document.querySelectorAll('.prod-vista-btn').forEach(b => b.classList.toggle('on', b.dataset.vista === prodVistaAtual));
+
+    // No modo kanban, o layout vira coluna única (kanban ocupa a largura toda,
+    // chat vai pra baixo) — assim o quadro não fica espremido pela coluna do chat.
+    const layout = document.querySelector('.prod-layout');
+    if (layout) layout.classList.toggle('kanban-mode', prodVistaAtual === 'kanban');
 
     let tarefas = [...producaoTasks];
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
     if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
 
     if (tarefas.length === 0){
-      box.innerHTML = `<div class="empty-state" style="padding:30px;"><p style="color:var(--muted);">Nenhuma tarefa ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p></div>`;
+      box.innerHTML = `
+        <div style="text-align:center;padding:50px 20px;background:var(--surface);border-radius:16px;border:2px dashed var(--line);">
+          <div style="font-size:48px;margin-bottom:10px;">🗂️</div>
+          <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
+          ${isAdmin && filtro!=='minhas' ? '<p style="color:var(--muted);font-size:12.5px;">Use o formulário acima pra criar a primeira!</p>' : ''}
+        </div>`;
+      return;
+    }
+
+    // Vista Kanban: colunas por etapa
+    if (prodVistaAtual === 'kanban'){
+      renderProducaoKanban(box, tarefas);
       return;
     }
 
@@ -11749,40 +13037,61 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
 
     box.innerHTML = Object.entries(porProjeto).map(([proj, episodios]) => {
+      // progresso do projeto
+      const todasProj = Object.values(episodios).flat();
+      const feitasProj = todasProj.filter(t=>t.done).length;
+      const pctProj = todasProj.length ? Math.round(feitasProj/todasProj.length*100) : 0;
+      const circ = 2 * Math.PI * 22; // raio 22
+      const dash = circ * (pctProj/100);
+
       const blocosEp = Object.entries(episodios).map(([ep, lista]) => {
         lista.sort((a,b) => (a.priority-b.priority) || ((a.due_date||'zzz').localeCompare(b.due_date||'zzz')));
-        const linhas = lista.map(t => {
+        const missoes = lista.map(t => {
+          const si = stageInfo(t.stage);
           const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR') : 'sem prazo';
           const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
-          const podeMarcar = t.assignee_user_id === myUserId || isAdmin;
-          const parteTxt = t.part ? ` · Parte ${escapeHtml(t.part)}` : '';
+          const podeMarcar = t.assignee_user_id === myUserId; // só o responsável marca
+          const perfil = profilesByUser[t.assignee_user_id] || {};
+          const ninjaImg = NINJAS[perfil.ninja_color||'azul'] || NINJAS.azul;
+          const temComentario = t.assignee_comment && t.assignee_comment.trim();
           return `
-            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;${t.done?'opacity:.55;':''}">
-              <div style="flex:0 0 auto;">
-                ${podeMarcar ? `<input type="checkbox" class="prod-done-check" data-task="${t.id}" ${t.done?'checked':''} style="width:18px;height:18px;accent-color:#10B981;cursor:pointer;">` : (t.done?'✅':'⏳')}
-              </div>
-              <div style="flex:1;min-width:0;">
-                <div style="font-weight:700;font-size:13.5px;${t.done?'text-decoration:line-through;':''}">
-                  ${escapeHtml(t.stage)}${parteTxt}
-                  <span style="font-weight:400;color:var(--muted);font-size:12px;">· ${escapeHtml(t.assignee_name||'—')}</span>
-                </div>
-                <div style="font-size:11.5px;color:${atrasada?'#DC2626':'var(--muted)'};font-weight:${atrasada?'700':'400'};">
-                  ⏱ ${prazoTxt}${atrasada?' (atrasada!)':''} · prioridade ${t.priority}
-                  ${t.notes?` · ${escapeHtml(t.notes)}`:''}
+            <div class="prod-mission ${t.done?'feita':''} ${atrasada?'atrasada':''}" style="--stage-cor:${si.cor};--stage-bg:${si.bg};" ${temComentario?`title="💬 ${escapeHtml(t.assignee_comment)}"`:''}>
+              <div class="prod-mission-icon">${si.ic}</div>
+              <div class="prod-mission-body">
+                <div class="prod-mission-stage">${escapeHtml(t.stage)}${t.part?` <span style="font-weight:600;color:var(--stage-cor);font-size:12.5px;">· Parte ${escapeHtml(t.part)}</span>`:''}</div>
+                <div class="prod-mission-meta">
+                  <span class="prod-badge pessoa" style="padding-left:3px;"><img src="${ninjaImg}" alt="" style="width:16px;height:16px;border-radius:50%;vertical-align:middle;margin-right:3px;">${escapeHtml(t.assignee_name||'—')}</span>
+                  <span class="prod-badge ${atrasada?'atraso':'prazo'} ${isAdmin?'prod-prazo-edit':''}" ${isAdmin?`data-prazo-task="${t.id}" style="cursor:pointer;" title="Clique para ${t.due_date?'mudar':'adicionar'} o prazo"`:''}>⏱ ${prazoTxt}${atrasada?' • atrasada':''}${isAdmin?' ✎':''}</span>
+                  ${t.notes?`<span style="color:var(--muted);">📋 ${escapeHtml(t.notes)}</span>`:''}
+                  ${temComentario?`<span class="prod-badge" style="background:#FEF9C3;color:#854D0E;">💬 tem observação</span>`:''}
                 </div>
               </div>
-              ${isAdmin ? `<button class="prod-del-btn" data-task="${t.id}" title="Excluir tarefa" style="flex:0 0 auto;background:none;border:none;cursor:pointer;font-size:14px;opacity:.6;padding:4px 8px;">🗑️</button>` : ''}
+              ${podeMarcar ? `<button class="prod-comment-btn" data-comment="${t.id}" title="Adicionar observação" style="background:none;border:none;cursor:pointer;font-size:15px;opacity:${temComentario?'1':'.4'};padding:4px 6px;">💬</button>` : ''}
+              ${podeMarcar ? `<div class="prod-check ${t.done?'on':''}" data-task="${t.id}" title="${t.done?'Concluída':'Marcar como feita'}">${t.done?'✓':''}</div>` : (t.done?'<div style="font-size:20px;">✅</div>':'<div style="font-size:18px;opacity:.5;">⏳</div>')}
+              ${isAdmin ? `<button class="prod-del-mission" data-task="${t.id}" title="Excluir missão">🗑️</button>` : ''}
             </div>`;
         }).join('');
         return `
-          <div style="margin-bottom:12px;">
-            <div style="font-size:12.5px;font-weight:700;color:var(--blue-deep);margin-bottom:6px;">📺 Episódio ${escapeHtml(ep)}</div>
-            ${linhas}
+          <div class="prod-ep-block">
+            <div class="prod-ep-title">${ep==='Filme' ? '🎬 Vídeo único' : (ep==='—' ? '📌 Sem episódio' : '📺 Episódio '+escapeHtml(ep))}</div>
+            ${missoes}
           </div>`;
       }).join('');
+
       return `
-        <div class="painel-card" style="margin-bottom:14px;">
-          <div style="font-weight:800;font-size:15px;margin-bottom:12px;">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+        <div class="prod-proj-card">
+          <div class="prod-proj-head">
+            <div class="prod-proj-title">${escapeHtml(nomeProjetoExibicao(proj))}</div>
+            <div class="prod-proj-progress-wrap">
+              <div class="prod-ring">
+                <svg width="52" height="52">
+                  <circle cx="26" cy="26" r="22" fill="none" stroke="var(--line)" stroke-width="5"/>
+                  <circle cx="26" cy="26" r="22" fill="none" stroke="${pctProj===100?'#10B981':'#2563EB'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${dash} ${circ}"/>
+                </svg>
+                <div class="prod-ring-txt">${pctProj}%</div>
+              </div>
+            </div>
+          </div>
           ${blocosEp}
         </div>`;
     }).join('');
@@ -11790,16 +13099,85 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireProducaoLista();
   }
 
-  function wireProducaoForm(){
-    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+  // Renderiza a vista Kanban: uma coluna por etapa
+  function renderProducaoKanban(box, tarefas){
+    const colunas = PRODUCAO_STAGES.map(stage => {
+      const si = stageInfo(stage);
+      const doStage = tarefas.filter(t => t.stage === stage);
+      const cards = doStage.map(t => {
+        const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : 'sem prazo';
+        const atrasada = t.due_date && !t.done && new Date(t.due_date+'T23:59:59') < new Date();
+        const podeMarcar = t.assignee_user_id === myUserId; // só o responsável marca
+        const titulo = [nomeProjetoExibicao(t.project), t.episode ? (t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`P${t.part}`:''].filter(Boolean).join(' · ');
+        return `
+          <div class="kb-card ${t.done?'feita':''} ${atrasada?'atrasada':''}">
+            <div class="kb-card-title">${escapeHtml(titulo)}</div>
+            <div class="kb-card-foot">
+              ${podeMarcar ? `<div class="prod-check ${t.done?'on':''}" data-task="${t.id}" style="width:20px;height:20px;font-size:12px;">${t.done?'✓':''}</div>` : (t.done?'✅':'⏳')}
+              <span class="prod-badge pessoa" style="--stage-bg:${si.bg};--stage-cor:${si.cor};">${escapeHtml(t.assignee_name||'—')}</span>
+              <span class="prod-badge ${atrasada?'atraso':'prazo'}">⏱ ${prazoTxt}</span>
+              ${isAdmin?`<button class="prod-del-mission" data-task="${t.id}" title="Excluir" style="margin-left:auto;">🗑️</button>`:''}
+            </div>
+          </div>`;
+      }).join('') || `<div class="kb-vazio">—</div>`;
+      return `
+        <div class="kb-col">
+          <div class="kb-col-head" style="background:${si.bg};color:${si.cor};">${si.ic} ${escapeHtml(stage)} <span class="kb-count">${doStage.length}</span></div>
+          ${cards}
+        </div>`;
+    }).join('');
+    box.innerHTML = `<div class="kb-wrap">${colunas}</div>`;
+    wireProducaoLista();
+  }
+
+  function wireProducaoForm(aoConcluir){
+    // Chips de etapa (clique alterna o estado "marcado")
+    document.querySelectorAll('.stage-chip').forEach(chip => {
+      chip.addEventListener('click', () => chip.classList.toggle('marcado'));
+    });
+
+    // Aviso dinâmico do prazo (sem prazo = não vai pra agenda)
+    const prazoInput = $('#prodPrazoInput');
+    const prazoAviso = $('#prodPrazoAviso');
+    if (prazoInput && prazoAviso){
+      const atualizarAviso = () => {
+        if (prazoInput.value){
+          prazoAviso.innerHTML = '✅ Vai entrar na agenda do responsável neste dia.';
+          prazoAviso.style.color = '#16A34A';
+        } else {
+          prazoAviso.innerHTML = '⚠️ Sem prazo, a tarefa <b>não</b> entra na agenda do responsável.';
+          prazoAviso.style.color = '#CA8A04';
+        }
+      };
+      prazoInput.addEventListener('input', atualizarAviso);
+      prazoInput.addEventListener('change', atualizarAviso);
+    }
+
+    // Toggle Episódio / Filme
+    const fullCheck = $('#prodFullVideoCheck');
+    const epInput = $('#prodEpisodioInput');
+    const epToggle = $('#epToggle');
+    if (epToggle && fullCheck && epInput){
+      epToggle.querySelectorAll('.ep-toggle-opt').forEach(btn => btn.addEventListener('click', () => {
+        const filme = btn.dataset.modo === 'filme';
+        epToggle.querySelectorAll('.ep-toggle-opt').forEach(b => b.classList.toggle('on', b.dataset.modo === btn.dataset.modo));
+        fullCheck.checked = filme;
+        epInput.disabled = filme;
+        epInput.style.opacity = filme ? '.4' : '1';
+        epInput.placeholder = filme ? 'filme inteiro' : 'Ex: 01';
+        if (filme) epInput.value = '';
+      }));
+    }
 
     const btnCriar = $('#prodCriarBtn');
     if (btnCriar) btnCriar.addEventListener('click', async () => {
       const userId = $('#prodMembroSel')?.value;
       const projeto = ($('#prodProjetoInput')?.value||'').trim();
-      const episodio = ($('#prodEpisodioInput')?.value||'').trim();
+      const fullVideo = $('#prodFullVideoCheck')?.checked;
+      // Se for "vídeo completo", usa "Filme" como identificador em vez do nº do episódio
+      const episodio = fullVideo ? 'Filme' : ($('#prodEpisodioInput')?.value||'').trim();
       const parte = ($('#prodParteInput')?.value||'').trim();
-      const etapas = [...document.querySelectorAll('.prod-stage-check:checked')].map(c => c.value);
+      const etapas = [...document.querySelectorAll('.stage-chip.marcado')].map(c => c.dataset.stage);
       const prazo = $('#prodPrazoInput')?.value || null;
       const prioridade = parseInt($('#prodPrioridadeInput')?.value||'1', 10) || 1;
       const nota = ($('#prodNotaInput')?.value||'').trim();
@@ -11813,16 +13191,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       try {
         for (const stage of etapas){
           const taskId = (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback();
-          // Texto que vai pra agenda do responsável
           const partesTxt = [
             nomeProjetoExibicao(projeto),
-            episodio ? `Ep ${episodio}` : '',
+            episodio ? (episodio==='Filme' ? '🎬 Único' : `Ep ${episodio}`) : '',
             parte ? `Parte ${parte}` : '',
             stage
           ].filter(Boolean).join(' · ');
-          // Cria o item na agenda do responsável (se tiver prazo)
           const agendaId = prazo ? await criarItemAgenda(userId, prazo, `🎬 ${partesTxt}`, taskId) : null;
-          // Cria a tarefa
           const { error } = await sb.from('production_tasks').insert({
             id: taskId, project: projeto, episode: episodio||null, part: parte||null,
             assignee_user_id: userId, assignee_name: perfil.display_name||'Ninja',
@@ -11830,67 +13205,134 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             created_by: myEmail||null, agenda_note_id: agendaId
           });
           if (error) throw error;
-          // Notificação
           try {
+            const quemAtribuiu = myProfile.display_name || myEmail || 'Um admin';
             await sb.from('task_notifications').insert({
               id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
               user_id: userId, task_id: taskId, project: projeto, stage,
-              message: `Nova tarefa: ${stage} — ${partesTxt}`, read: false
+              message: `${quemAtribuiu} adicionou uma nova tarefa pra você: ${stage} — ${partesTxt}`, read: false
             });
           } catch(e){}
         }
-
         await loadProducaoTasks();
         await loadTaskNotifs();
         if (userId === myUserId) await loadAgenda();
+        showToast(`🚀 ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}!`);
+        if (typeof aoConcluir === 'function') aoConcluir(); // fecha o modal de gestão
         renderProducao();
-        showToast(`✅ ${etapas.length} tarefa${etapas.length===1?'':'s'} atribuída${etapas.length===1?'':'s'} a ${perfil.display_name}.`);
       } catch(err){
         showToast('Erro ao atribuir: '+(err.message||''));
-        btnCriar.disabled = false; btnCriar.textContent = 'Atribuir tarefa(s)';
+        btnCriar.disabled = false; btnCriar.textContent = '🚀 Atribuir tarefa(s)';
       }
     });
   }
 
   function wireProducaoLista(){
-    // marcar como feita / desmarcar — também marca o item na agenda
-    document.querySelectorAll('.prod-done-check').forEach(cb => cb.addEventListener('change', async () => {
-      const taskId = cb.dataset.task;
-      const feita = cb.checked;
+    // editar prazo da tarefa (admin) — sincroniza com a agenda do responsável
+    document.querySelectorAll('.prod-prazo-edit[data-prazo-task]').forEach(badge => badge.addEventListener('click', async () => {
+      const taskId = badge.dataset.prazoTask;
       const t = producaoTasks.find(x => x.id === taskId);
+      if (!t) return;
+      const novaData = await pedirDataBonito({
+        titulo: '⏱ Prazo da tarefa',
+        valorInicial: t.due_date || '',
+        subtitulo: `${escapeHtml(t.stage)} · ${escapeHtml(t.assignee_name||'')}`
+      });
+      if (novaData === null) return; // cancelou
       try {
-        await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', taskId);
-        if (t){
-          t.done = feita; t.done_at = feita?new Date().toISOString():null;
-          // reflete na agenda (marca o checklist como feito também)
-          if (t.agenda_note_id){
-            try { await sb.from('agenda_notes').update({ done: feita }).eq('id', t.agenda_note_id); } catch(e){}
-            if (t.assignee_user_id === myUserId) await loadAgenda();
+        // 1) Atualiza a data na tarefa
+        await sb.from('production_tasks').update({ due_date: novaData || null }).eq('id', taskId);
+
+        // 2) Sincroniza com a agenda do responsável:
+        const partesTxt = [
+          nomeProjetoExibicao(t.project),
+          t.episode ? (t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`) : '',
+          t.part ? `Parte ${t.part}` : '',
+          t.stage
+        ].filter(Boolean).join(' · ');
+
+        if (t.agenda_note_id){
+          // já tinha item na agenda
+          if (novaData){
+            // move pra nova data
+            await sb.from('agenda_notes').update({ note_date: novaData }).eq('id', t.agenda_note_id);
+          } else {
+            // tirou o prazo → remove da agenda
+            await apagarItemAgendaDaTarefa(t.agenda_note_id);
+            await sb.from('production_tasks').update({ agenda_note_id: null }).eq('id', taskId);
+            t.agenda_note_id = null;
+          }
+        } else if (novaData){
+          // não tinha item e agora tem prazo → cria na agenda
+          const novoId = await criarItemAgenda(t.assignee_user_id, novaData, `🎬 ${partesTxt}`, taskId);
+          if (novoId){
+            await sb.from('production_tasks').update({ agenda_note_id: novoId }).eq('id', taskId);
+            t.agenda_note_id = novoId;
           }
         }
-        showToast(feita ? '✅ Tarefa concluída!' : 'Tarefa reaberta.');
-      } catch(err){ showToast('Erro: '+(err.message||'')); cb.checked = !feita; }
+
+        t.due_date = novaData || null;
+        if (t.assignee_user_id === myUserId) await loadAgenda();
+        renderProducao();
+        showToast(novaData ? '✅ Prazo definido e agenda atualizada.' : 'Prazo removido.');
+      } catch(err){ showToast('Erro ao definir prazo: '+(err.message||'')); }
     }));
 
-    // excluir tarefa (admin) — também apaga o item da agenda do responsável
-    document.querySelectorAll('.prod-del-btn').forEach(btn => btn.addEventListener('click', async () => {
+    // botão de observação do responsável
+    document.querySelectorAll('.prod-comment-btn[data-comment]').forEach(btn => btn.addEventListener('click', async () => {
+      const taskId = btn.dataset.comment;
+      const t = producaoTasks.find(x => x.id === taskId);
+      if (!t) return;
+      const novo = await pedirTextoBonito({
+        titulo: '💬 Sua observação',
+        placeholder: 'Escreva uma observação sobre esta tarefa...',
+        valorInicial: t.assignee_comment || '',
+        textoBotao: 'Salvar'
+      });
+      if (novo === null) return; // cancelou
+      try {
+        await sb.from('production_tasks').update({ assignee_comment: novo||null }).eq('id', taskId);
+        t.assignee_comment = novo;
+        renderProducao();
+        showToast('💬 Observação salva.');
+      } catch(err){ showToast('Erro ao salvar observação: '+(err.message||'')); }
+    }));
+
+    // marcar/desmarcar (clique no círculo)
+    document.querySelectorAll('.prod-check[data-task]').forEach(ck => ck.addEventListener('click', async () => {
+      const taskId = ck.dataset.task;
+      const t = producaoTasks.find(x => x.id === taskId);
+      if (!t) return;
+      const feita = !t.done;
+      try {
+        await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', taskId);
+        t.done = feita; t.done_at = feita?new Date().toISOString():null;
+        if (t.agenda_note_id){
+          try { await sb.from('agenda_notes').update({ done: feita }).eq('id', t.agenda_note_id); } catch(e){}
+          if (t.assignee_user_id === myUserId) await loadAgenda();
+        }
+        renderProducao();
+        showToast(feita ? '✅ Missão concluída!' : 'Missão reaberta.');
+      } catch(err){ showToast('Erro: '+(err.message||'')); }
+    }));
+
+    // excluir (admin)
+    document.querySelectorAll('.prod-del-mission[data-task]').forEach(btn => btn.addEventListener('click', async () => {
       const taskId = btn.dataset.task;
       const t = producaoTasks.find(x => x.id === taskId);
       const ok = await confirmarBonito({
-        titulo: 'Excluir tarefa?',
-        mensagem: 'Isso remove a tarefa e o item dela na agenda do responsável.',
+        titulo: 'Excluir missão?',
+        mensagem: 'Isso remove a missão e o item dela na agenda do responsável.',
         textoBotao: '🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️'
       });
       if (!ok) return;
       try {
-        // apaga o item de agenda vinculado
         if (t && t.agenda_note_id) await apagarItemAgendaDaTarefa(t.agenda_note_id);
         await sb.from('production_tasks').delete().eq('id', taskId);
         producaoTasks = producaoTasks.filter(x => x.id !== taskId);
         if (t && t.assignee_user_id === myUserId) await loadAgenda();
-        const filtroAtivo = document.querySelector('.prod-filtro-btn[style*="rgb(37"]')?.dataset.filtro || 'todas';
-        renderProducaoLista(filtroAtivo);
-        showToast('Tarefa excluída.');
+        renderProducao();
+        showToast('Missão excluída.');
       } catch(err){ showToast('Erro: '+(err.message||'')); }
     }));
   }
@@ -11901,16 +13343,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
-    const mencoesPanel = renderMencoesPanel();
-    const notifTarefasPanel = renderNotifTarefasPanel();
+    const minhasTarefasPanel = renderMinhasTarefasPanel();
+    const versiculoPanel = renderVersiculoDia();
     painelContent.innerHTML = `
+      ${versiculoPanel}
       <div class="painel-grid">
         ${renderPodio()}
-        ${renderChat()}
       </div>
+      ${minhasTarefasPanel}
       ${renderAgenda()}
-      ${notifTarefasPanel}
-      ${mencoesPanel}
       ${renderSegurancaPanel()}
       ${backupPanel}
       ${adminPanel}`;
@@ -11920,49 +13361,212 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const btnBackup = $('#btnFazerBackup');
     if (btnBackup) btnBackup.addEventListener('click', () => exportarBackupCompleto(btnBackup));
     wireSegurancaPanel();
-    wireMencoesPanel();
-    wireNotifTarefasPanel();
+    wireMinhasTarefasPanel();
+  }
+
+  // Painel "Minhas tarefas" no Meu Painel — resumo com filtros (hoje, atrasadas, etc.)
+  function renderMinhasTarefasPanel(){
+    const r = meuResumoTarefas();
+    if (r.totalPendentes === 0){
+      return `<div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">✅ Minhas tarefas</div>
+        <p style="color:var(--muted);font-size:13px;margin:0;">🎉 Você está em dia — nenhuma tarefa pendente!</p>
+      </div>`;
+    }
+    const chips = [];
+    if (r.atrasadas.length) chips.push(`<button class="mt-chip" data-mt="atrasadas" style="--c:#DC2626;--bg:#FEE2E2;">🔴 <b>${r.atrasadas.length}</b> atrasada${r.atrasadas.length>1?'s':''}</button>`);
+    if (r.hoje.length) chips.push(`<button class="mt-chip" data-mt="hoje" style="--c:#2563EB;--bg:#DBEAFE;">📅 <b>${r.hoje.length}</b> pra hoje</button>`);
+    if (r.urgentes.length) chips.push(`<button class="mt-chip" data-mt="urgentes" style="--c:#CA8A04;--bg:#FEF9C3;">⚡ <b>${r.urgentes.length}</b> urgente${r.urgentes.length>1?'s':''}</button>`);
+    if (r.semana.length) chips.push(`<button class="mt-chip" data-mt="semana" style="--c:#7C3AED;--bg:#EDE9FE;">🗓️ <b>${r.semana.length}</b> esta semana</button>`);
+    return `
+      <div class="painel-card" style="margin-top:20px;">
+        <div class="painel-title">📋 Minhas tarefas <span style="color:var(--muted);font-weight:400;font-size:12.5px;">(${r.totalPendentes} pendente${r.totalPendentes>1?'s':''})</span></div>
+        <p style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px;">Toque num filtro pra ver os detalhes:</p>
+        <div class="mt-chips" style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${chips.join('')}
+          <button class="mt-chip" data-mt="todas" style="--c:#334155;--bg:#F1F5F9;">📋 Todas</button>
+        </div>
+        <div id="mtDetalhe" style="margin-top:12px;"></div>
+      </div>`;
+  }
+
+  function wireMinhasTarefasPanel(){
+    painelContent.querySelectorAll('.mt-chip[data-mt]').forEach(chip => chip.addEventListener('click', () => {
+      painelContent.querySelectorAll('.mt-chip').forEach(c => c.classList.remove('mt-on'));
+      chip.classList.add('mt-on');
+      mostrarMinhasTarefasDetalhe(chip.dataset.mt);
+    }));
+  }
+
+  function mostrarMinhasTarefasDetalhe(tipo){
+    const box = $('#mtDetalhe');
+    if (!box) return;
+    const r = meuResumoTarefas();
+    let tarefas;
+    switch(tipo){
+      case 'atrasadas': tarefas = r.atrasadas; break;
+      case 'hoje': tarefas = r.hoje; break;
+      case 'urgentes': tarefas = r.urgentes; break;
+      case 'semana': tarefas = r.semana; break;
+      default: tarefas = (producaoTasks||[]).filter(t => t.assignee_user_id === myUserId && !t.done)
+        .sort((a,b)=>(a.due_date||'zzz').localeCompare(b.due_date||'zzz'));
+    }
+    if (!tarefas || tarefas.length === 0){
+      box.innerHTML = `<p style="color:var(--muted);font-size:12.5px;">Nenhuma tarefa nesse filtro. 🎉</p>`;
+      return;
+    }
+    box.innerHTML = tarefas.map(t => {
+      const si = stageInfo(t.stage);
+      const prazoTxt = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}) : 'sem prazo';
+      const atrasada = t.due_date && new Date(t.due_date+'T23:59:59') < new Date();
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'🎬 Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;">
+          <div style="width:34px;height:34px;border-radius:9px;background:${si.bg};display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto;">${si.ic}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:700;font-size:13px;">${escapeHtml(t.stage)}</div>
+            <div style="font-size:11px;color:var(--muted);">${escapeHtml(partesTxt)}</div>
+          </div>
+          <div style="text-align:right;flex:0 0 auto;">
+            <div style="font-size:11px;font-weight:700;color:${atrasada?'#DC2626':'var(--muted)'};">⏱ ${prazoTxt}</div>
+            ${t.priority===1?'<div style="font-size:10px;color:#CA8A04;font-weight:700;">⚡ urgente</div>':''}
+          </div>
+        </div>`;
+    }).join('') + `<button class="btn-ghost" onclick="void 0" id="mtIrProducao" style="width:100%;justify-content:center;margin-top:6px;font-size:12px;">Abrir aba Produção →</button>`;
+    const ir = $('#mtIrProducao');
+    if (ir) ir.addEventListener('click', () => switchView('producao'));
+  }
+
+  // Versículo/citação do dia — escolhe um item da lista baseado no dia do ano,
+  // então todo mundo vê o mesmo no mesmo dia, e muda a cada dia.
+  function renderVersiculoDia(){
+    const hoje = new Date();
+    const inicioAno = new Date(hoje.getFullYear(), 0, 0);
+    const diaDoAno = Math.floor((hoje - inicioAno) / (1000*60*60*24));
+    const item = VERSICULOS_CITACOES[diaDoAno % VERSICULOS_CITACOES.length];
+    return `
+      <div class="versiculo-card">
+        <div class="versiculo-quote">"</div>
+        <p class="versiculo-texto">${escapeHtml(item.texto)}</p>
+        <p class="versiculo-ref">— ${escapeHtml(item.ref)}</p>
+      </div>`;
   }
 
   // Painel de notificações de tarefa — mostra as tarefas atribuídas ao user.
+  // Calcula notificações de "prazo terminando" — tarefas suas com prazo
+  // hoje ou amanhã, ainda não concluídas.
+  function prazosTerminando(){
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const amanha = new Date(hoje.getTime() + 24*60*60*1000);
+    const depoisAmanha = new Date(hoje.getTime() + 2*24*60*60*1000);
+    return (producaoTasks||[]).filter(t => {
+      if (t.assignee_user_id !== myUserId || t.done || !t.due_date) return false;
+      const d = new Date(t.due_date+'T00:00:00');
+      return d < depoisAmanha; // hoje, amanhã, ou já passou
+    }).map(t => {
+      const d = new Date(t.due_date+'T00:00:00');
+      let quando;
+      if (d < hoje) quando = 'atrasada';
+      else if (d < amanha) quando = 'vence hoje';
+      else quando = 'vence amanhã';
+      return { ...t, _quando: quando };
+    });
+  }
+
   function renderNotifTarefasPanel(){
-    if (!taskNotifs || taskNotifs.length === 0) return '';
-    const naoLidas = taskNotifs.filter(n => !n.read);
-    const linha = (n) => `
-      <div class="prr-item" style="${n.read?'opacity:.6;':''}">
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:13px;">${escapeHtml(n.stage||'Tarefa')} · ${escapeHtml(nomeProjetoExibicao(n.project||''))}</div>
-          <div style="font-size:11.5px;color:var(--muted);">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
-        </div>
-        ${!n.read?`<button class="btn-ghost" data-lida-notif="${n.id}" style="padding:6px 10px;font-size:12px;">✓ Lida</button>`:''}
-      </div>`;
+    const naoLidasTask = (taskNotifs||[]).filter(n => !n.read);
+    const mencoes = (minhasMencoes||[]).filter(m => !m.read);
+    const prazos = prazosTerminando();
+    const totalNovas = naoLidasTask.length + mencoes.length + prazos.length;
+
+    if (totalNovas === 0 && (taskNotifs||[]).length === 0) return '';
+
+    // Monta as linhas de cada tipo
+    const itens = [];
+
+    // 1) Prazos terminando (urgente, aparece primeiro)
+    prazos.forEach(t => {
+      const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
+      const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${cor};">
+          <div class="notif-ic" style="background:${cor}22;">⏰</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)} — ${escapeHtml(partesTxt)}</div>
+            <div class="notif-sub">Prazo: ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    // 2) Novas tarefas atribuídas (e menções de chat)
+    naoLidasTask.forEach(n => {
+      const ehChat = n.project === '__chat__';
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
+          <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
+            <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    // 3) Marcações no chat/observações
+    mencoes.forEach(m => {
+      itens.push(`
+        <div class="notif-item" style="border-left:3px solid #7C3AED;">
+          <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
+          <div style="flex:1;min-width:0;">
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
+          </div>
+          <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+        </div>`);
+    });
+
+    const corpo = itens.length
+      ? itens.join('')
+      : `<p style="font-size:12.5px;color:var(--muted);margin:0;">🎉 Nenhuma notificação nova.</p>`;
+
     return `
       <div class="painel-card" style="margin-top:20px;">
-        <div class="painel-title">🎯 Suas tarefas (${naoLidas.length} nova${naoLidas.length===1?'':'s'})</div>
-        <p style="font-size:11.5px;color:var(--muted);margin:-6px 0 12px;">Tarefas que te atribuíram. Vá na aba <b>Produção</b> pra ver detalhes e marcar como feita.</p>
-        <div style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto;">
-          ${taskNotifs.slice(0,20).map(linha).join('')}
+        <div class="painel-title">🔔 Notificações ${totalNovas?`(${totalNovas})`:''}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow:auto;">
+          ${corpo}
         </div>
         <button class="btn-ghost" id="limparNotifs3dias" style="width:100%;justify-content:center;margin-top:12px;font-size:12.5px;">🧹 Limpar notificações dos últimos 3 dias</button>
       </div>`;
   }
 
   function wireNotifTarefasPanel(){
-    painelContent.querySelectorAll('[data-lida-notif]').forEach(btn => btn.addEventListener('click', async () => {
-      const id = btn.dataset.lidaNotif;
-      try {
-        await sb.from('task_notifications').update({ read:true }).eq('id', id);
-        const n = taskNotifs.find(x => x.id === id);
-        if (n) n.read = true;
-        renderBellBadge();
-        renderPainel();
-      } catch(e){}
+    // Botão "Conferir" — marca como lida e leva ao lugar certo
+    painelContent.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
+      const destino = btn.dataset.conf;
+      // marca a notificação de tarefa como lida
+      if (btn.dataset.lidaTask){
+        try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
+      }
+      // marca a menção como lida
+      if (btn.dataset.lidaMencao){
+        try { await sb.from('project_note_mentions').update({ read:true }).eq('id', btn.dataset.lidaMencao); const m = minhasMencoes.find(x=>x.id===btn.dataset.lidaMencao); if(m) m.read=true; } catch(e){}
+      }
+      renderBellBadge();
+      // vai pro destino
+      if (destino === 'producao'){ switchView('producao'); }
+      else if (destino === 'mencao'){
+        const proj = btn.dataset.mencaoProj;
+        switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+      }
     }));
+
     const btnLimpar = $('#limparNotifs3dias');
     if (btnLimpar) btnLimpar.addEventListener('click', async () => {
       const ok = await confirmarBonito({
         titulo: 'Limpar notificações?',
-        mensagem: 'Isso apaga as notificações de tarefa dos últimos 3 dias.',
+        mensagem: 'Isso apaga as notificações dos últimos 3 dias.',
         textoBotao: '🧹 Limpar', corBotao:'#7C3AED', icone:'🧹'
       });
       if (!ok) return;
@@ -12482,6 +14086,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         showToast('Erro ao enviar: '+error.message);
         chatIn.value = texto;
       } else {
+        // Detecta @menções no texto e notifica quem foi marcado
+        try {
+          const nomes = [...texto.matchAll(/@([\wÀ-ú]+(?:\s[\wÀ-ú]+)?)/g)].map(m => m[1].trim());
+          if (nomes.length){
+            const marcados = Object.values(profilesByUser||{}).filter(p =>
+              p.display_name && p.user_id !== myUserId &&
+              nomes.some(n => p.display_name.toLowerCase().startsWith(n.toLowerCase()) || n.toLowerCase().startsWith(p.display_name.toLowerCase().split(' ')[0]))
+            );
+            const quem = myProfile.display_name || 'Alguém';
+            for (const p of marcados){
+              await sb.from('task_notifications').insert({
+                id: (crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
+                user_id: p.user_id, task_id: null, project: '__chat__', stage: 'chat',
+                message: `${quem} te marcou no chat: "${texto.slice(0,60)}${texto.length>60?'…':''}"`, read: false
+              });
+            }
+          }
+        } catch(e){ console.warn('Erro ao notificar menção no chat:', e); }
         // Recarrega do banco pra pegar a mensagem recém-criada (com id do servidor)
         await reloadChatFromDB(true);
       }
@@ -12674,13 +14296,58 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   // Sincronização automática: recarrega quando alguém da equipe altera algo.
   let realtimeReady = false;
+  let _rtTimer = null;
+  // Re-renderiza a aba atual depois de recarregar os dados. Usa um pequeno
+  // atraso (debounce) pra agrupar várias mudanças que chegam juntas e evitar
+  // re-renderizar 10 vezes seguidas. Não re-renderiza se um modal de edição
+  // estiver aberto (pra não atrapalhar quem está no meio de uma edição).
+  function agendarRerender(){
+    clearTimeout(_rtTimer);
+    _rtTimer = setTimeout(() => {
+      // Se tiver um modal de edição de ficha aberto, não mexe (evita perder o que a pessoa digita)
+      const editando = document.querySelector('#modalOverlay.open, .modal-overlay.open input:focus, .modal-overlay.open textarea:focus');
+      if (currentView === 'home') renderProjetos();
+      else if (currentView === 'painel'){ if(!editando) renderPainel(); }
+      else if (currentView === 'producao'){ if(!editando) renderProducao(); }
+      else if (currentView === 'projetos') renderProjetos();
+      else if (currentView === 'audiobooks') renderAudiobooks();
+      else if (currentView === 'colecoes') renderColecoes();
+      else if (currentView === 'ranking') renderRanking();
+      else if (currentView === 'avaliacao') renderAvaliacao();
+      else if (currentView === 'fichas'){ if(!editando) render(); }
+    }, 400);
+  }
+
   function subscribeRealtime(){
     if (realtimeReady || !sb) return;
     realtimeReady = true;
-    sb.channel('catalogo-vozes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'people' }, () => loadPeople())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'entries' }, () => loadPeople())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_meta' }, async () => { await loadProjectMeta(); if(currentView==='home') renderHome(); })
+    sb.channel('catalogo-vozes-full')
+      // Catálogo (fichas, vozes, projetos) — loadPeople recarrega o conjunto principal
+      .on('postgres_changes', { event:'*', schema:'public', table:'people' },   async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'entries' },  async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_meta' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_categories' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'dub_order' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
+      // Coleções / franquias / temporadas (recarregados via loadPeople no conjunto geral)
+      .on('postgres_changes', { event:'*', schema:'public', table:'franchises' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'seasons' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      // Audiobooks
+      .on('postgres_changes', { event:'*', schema:'public', table:'audiobooks' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'audiobook_voices' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
+      // Produção (tarefas) + agenda
+      .on('postgres_changes', { event:'*', schema:'public', table:'production_tasks' }, async ()=>{ await loadProducaoTasks(); await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'mural_files' }, async ()=>{ await loadMuralFiles(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
+      // Avaliações e comentários de voz
+      .on('postgres_changes', { event:'*', schema:'public', table:'voice_user_ratings' }, async ()=>{ await loadRatings(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'voice_comments' }, async ()=>{ await loadComments(); agendarRerender(); })
+      // Participantes de projeto + menções + perfis
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_participants' }, async ()=>{ await loadParticipants(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_note_mentions' }, async ()=>{ await loadMinhasMencoes(); renderBellBadge(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'profiles' }, async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'admins' }, async ()=>{ await loadAdmins(); })
       .subscribe();
   }
 
