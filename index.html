@@ -3935,6 +3935,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           const img = document.createElement('img');
           img.className = 'photo ' + [...el.classList].filter(c => c!=='photo-fallback').join(' ');
           img.src = dataUrl; img.alt = el.dataset.name || '';
+          if (el.dataset.voz != null) img.dataset.voz = el.dataset.voz;
+          if (el.dataset.name != null) img.dataset.name = el.dataset.name;
+          if (el.dataset.abreFoto) img.dataset.abreFoto = el.dataset.abreFoto;
           el.replaceWith(img);
         }
       });
@@ -3954,6 +3957,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           img.className = 'photo ' + [...el.classList].filter(c => c!=='photo-fallback').join(' ');
           img.src = dataUrl;
           img.alt = el.dataset.name || '';
+          // preserva os dados usados pela navegação de fotos
+          if (el.dataset.voz != null) img.dataset.voz = el.dataset.voz;
+          if (el.dataset.name != null) img.dataset.name = el.dataset.name;
+          if (el.dataset.abreFoto) img.dataset.abreFoto = el.dataset.abreFoto;
           el.replaceWith(img);
         }
       });
@@ -5584,7 +5591,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       ${_lightboxItens.length>1?`<button class="lightbox-nav lightbox-prev" title="Anterior (←)">‹</button>`:''}
       ${_lightboxItens.length>1?`<button class="lightbox-nav lightbox-next" title="Próxima (→)">›</button>`:''}
       <div class="lightbox-content" onclick="event.stopPropagation()">
-        <img id="lbImg" src="${escapeHtml(url)}" alt="">
+        <img id="lbImg" src="${escapeHtml(url==='__iniciais__'?'':url)}" alt="">
+        <div id="lbSemFoto" style="display:none;width:220px;height:220px;border-radius:24px;background:linear-gradient(135deg,#2563EB,#14B8A6);color:#fff;font-size:72px;font-weight:800;align-items:center;justify-content:center;margin:0 auto;font-family:var(--font-head);"></div>
         <div class="lightbox-caption" id="lbCap"></div>
       </div>
     `;
@@ -5596,8 +5604,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const it = _lightboxItens[_lightboxIdx];
       const img = ov.querySelector('#lbImg');
       const cap = ov.querySelector('#lbCap');
-      img.src = it.url;
-      cap.innerHTML = `<div style="font-weight:800;font-size:16px;">${escapeHtml(it.nome||'')}</div>${it.voz?`<div style="font-size:13px;opacity:.85;margin-top:3px;">🎤 ${escapeHtml(it.voz)}</div>`:''}${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+      const semFoto = ov.querySelector('#lbSemFoto');
+      if (it.url && it.url !== '__iniciais__'){
+        // tem foto
+        img.src = it.url; img.style.display = 'block';
+        if (semFoto) semFoto.style.display = 'none';
+      } else {
+        // sem foto: mostra círculo com iniciais
+        img.style.display = 'none';
+        if (semFoto){
+          semFoto.style.display = 'flex';
+          semFoto.textContent = it.iniciais || (it.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+        }
+      }
+      cap.innerHTML = `<div style="font-weight:800;font-size:16px;">${escapeHtml(it.nome||'')}</div><div style="font-size:13px;opacity:.85;margin-top:3px;">🎤 ${escapeHtml(it.voz||'(voz não definida)')}</div>${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
     }
     mostrar(_lightboxIdx);
 
@@ -5621,42 +5641,44 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (next) next.addEventListener('click', (e)=>{ e.stopPropagation(); mostrar(_lightboxIdx+1); });
   }
 
-  // Listener global: qualquer <img class="photo"> clicada abre lightbox.
+  // Listener global: clicar numa foto/avatar abre o lightbox.
+  // Dentro da lista de dublagem, monta a navegação com TODAS as pessoas
+  // (tenham foto ou iniciais), mostrando nome + voz.
   document.addEventListener('click', (e) => {
-    const img = e.target.closest('img.photo');
-    if (!img) return;
-    if (e.target !== img) return;
-    if (img.closest('.suges-photo, .suges-buscar-item .ph, .proj-mini-ic')) return;
-    e.stopPropagation();
+    // alvo pode ser uma <img class="photo"> OU um <div> de iniciais marcado com data-abre-foto
+    const alvo = e.target.closest('[data-abre-foto], img.photo');
+    if (!alvo) return;
+    if (alvo.closest('.suges-photo, .suges-buscar-item .ph, .proj-mini-ic')) return;
 
-    // Se a foto está dentro de uma lista de dublagem (modal de projeto), monta
-    // a lista navegável de TODAS as fotos daquela lista, com nome + voz.
-    const dubList = img.closest('.dub-list');
-    const card = img.closest('[data-photo-for]');
+    const dubList = alvo.closest('.dub-list');
     if (dubList){
+      e.stopPropagation();
       const itens = [];
       let idxClicado = 0;
-      dubList.querySelectorAll('.dub-item').forEach((li, i) => {
-        const avatar = li.querySelector('[data-photo-for] img.photo, img.photo');
-        const nome = li.querySelector('.dub-voice .vn')?.textContent || '';
-        const voz = li.querySelector('.dub-voice .pn')?.textContent || '';
-        const imgEl = li.querySelector('img.photo');
-        if (imgEl && imgEl.src){
-          if (imgEl === img) idxClicado = itens.length;
-          itens.push({ url: imgEl.src, nome, voz });
-        }
+      dubList.querySelectorAll('.dub-item').forEach((li) => {
+        // o avatar é a img.photo (com foto) ou o div com data-abre-foto (iniciais)
+        const av = li.querySelector('img.photo, [data-abre-foto]');
+        const nome = li.querySelector('.dub-voice .vn')?.textContent || (av && av.dataset.name) || '';
+        const voz = li.querySelector('.dub-voice .pn')?.textContent || (av && av.dataset.voz) || '';
+        const isImg = av && av.tagName === 'IMG' && av.src;
+        if (av === alvo) idxClicado = itens.length;
+        itens.push({ url: isImg ? av.src : '', nome, voz, iniciais: !isImg ? (av?av.textContent:'') : '' });
       });
       if (itens.length){
         _lightboxItens = itens;
         _lightboxIdx = idxClicado;
-        abrirLightbox(itens[idxClicado].url);
+        abrirLightbox(itens[idxClicado].url || '__iniciais__');
         return;
       }
     }
 
-    // Caso geral: só a foto, com o nome (alt) como legenda
-    _lightboxItens = [];
-    abrirLightbox(img.src, img.alt || 'Foto');
+    // Caso geral: só a foto (img de verdade)
+    if (alvo.tagName === 'IMG'){
+      if (e.target !== alvo) return;
+      e.stopPropagation();
+      _lightboxItens = [];
+      abrirLightbox(alvo.src, alvo.alt || 'Foto');
+    }
   });
 
   // === DETECÇÃO DE PERSONAGENS COM NOMES SIMILARES ===
@@ -11105,8 +11127,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             ${pairs.map((pr,i)=>{
               const initials = pr.person.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
               const avatar = pr.hasPhoto
-                ? `<div class="dub-avatar photo-fallback" draggable="false" data-photo-for="${pr.personId}" data-name="${escapeHtml(pr.person)}">${initials}</div>`
-                : `<div class="dub-avatar photo-fallback" draggable="false">${initials}</div>`;
+                ? `<div class="dub-avatar photo-fallback" draggable="false" data-photo-for="${pr.personId}" data-name="${escapeHtml(pr.person)}" data-voz="${escapeHtml(pr.voice)}" data-abre-foto="1">${initials}</div>`
+                : `<div class="dub-avatar photo-fallback" draggable="false" data-name="${escapeHtml(pr.person)}" data-voz="${escapeHtml(pr.voice)}" data-abre-foto="1">${initials}</div>`;
               return `
               <li class="dub-item" data-voice="${escapeHtml(pr.voice)}" data-person-id="${pr.personId}" data-entry-id="${pr.entryId||''}">
                 <span class="dub-pos">${i+1}</span>
