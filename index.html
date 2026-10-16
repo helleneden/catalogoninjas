@@ -5641,45 +5641,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (next) next.addEventListener('click', (e)=>{ e.stopPropagation(); mostrar(_lightboxIdx+1); });
   }
 
-  // Listener global: clicar numa foto/avatar abre o lightbox.
-  // Dentro da lista de dublagem, monta a navegação com TODAS as pessoas
-  // (tenham foto ou iniciais), mostrando nome + voz.
-  document.addEventListener('click', (e) => {
-    // alvo pode ser uma <img class="photo"> OU um <div> de iniciais marcado com data-abre-foto
-    const alvo = e.target.closest('[data-abre-foto], img.photo');
-    if (!alvo) return;
-    if (alvo.closest('.suges-photo, .suges-buscar-item .ph, .proj-mini-ic')) return;
-
-    const dubList = alvo.closest('.dub-list');
-    if (dubList){
-      e.stopPropagation();
-      const itens = [];
-      let idxClicado = 0;
-      dubList.querySelectorAll('.dub-item').forEach((li) => {
-        // o avatar é a img.photo (com foto) ou o div com data-abre-foto (iniciais)
-        const av = li.querySelector('img.photo, [data-abre-foto]');
-        const nome = li.querySelector('.dub-voice .vn')?.textContent || (av && av.dataset.name) || '';
-        const voz = li.querySelector('.dub-voice .pn')?.textContent || (av && av.dataset.voz) || '';
-        const isImg = av && av.tagName === 'IMG' && av.src;
-        if (av === alvo) idxClicado = itens.length;
-        itens.push({ url: isImg ? av.src : '', nome, voz, iniciais: !isImg ? (av?av.textContent:'') : '' });
-      });
-      if (itens.length){
-        _lightboxItens = itens;
-        _lightboxIdx = idxClicado;
-        abrirLightbox(itens[idxClicado].url || '__iniciais__');
-        return;
-      }
-    }
-
-    // Caso geral: só a foto (img de verdade)
-    if (alvo.tagName === 'IMG'){
-      if (e.target !== alvo) return;
-      e.stopPropagation();
-      _lightboxItens = [];
-      abrirLightbox(alvo.src, alvo.alt || 'Foto');
-    }
-  });
+  // (A navegação de fotos da lista de dublagem é feita pelo listener de
+  // captura mais abaixo, que é o que realmente roda primeiro.)
 
   // === DETECÇÃO DE PERSONAGENS COM NOMES SIMILARES ===
   // Identifica pessoas cujos nomes podem ser duplicatas (só letra diferente,
@@ -6468,12 +6431,37 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
   // Ampliação de foto em QUALQUER lugar (cards, ordem de dublagem, etc.)
   document.addEventListener('click', async (e) => {
-    const photoEl = e.target.closest('img.photo, [data-photo-for]');
+    const photoEl = e.target.closest('img.photo, [data-photo-for], [data-abre-foto]');
     if (!photoEl) return;
     // não intercepta cliques dentro de formulários de upload
     if (photoEl.closest('.photo-upload-row')) return;
-    // impede que o clique feche o modal por trás (overlay) ou dispare edição
     e.stopPropagation();
+
+    // Se está dentro da lista de dublagem, abre com NAVEGAÇÃO (setas) + nome/voz
+    const dubList = photoEl.closest('.dub-list');
+    if (dubList){
+      const itens = [];
+      let idxClicado = 0;
+      const lis = [...dubList.querySelectorAll('.dub-item')];
+      for (const li of lis){
+        const av = li.querySelector('img.photo, [data-abre-foto], [data-photo-for]');
+        const nome = li.querySelector('.dub-voice .vn')?.textContent || (av && av.dataset.name) || '';
+        const voz = li.querySelector('.dub-voice .pn')?.textContent || (av && av.dataset.voz) || '';
+        let url = (av && av.tagName === 'IMG') ? av.src : '';
+        // se ainda não hidratou (é div com data-photo-for), busca a foto
+        if (!url && av && av.dataset.photoFor){ url = await fetchPhoto(av.dataset.photoFor) || ''; }
+        if (av === photoEl || (av && photoEl.closest('.dub-item') === li)) idxClicado = itens.length;
+        itens.push({ url, nome, voz, iniciais: !url ? (av?av.textContent.trim():'') : '' });
+      }
+      if (itens.length){
+        _lightboxItens = itens;
+        _lightboxIdx = idxClicado;
+        abrirLightbox(itens[idxClicado].url || '__iniciais__');
+        return;
+      }
+    }
+
+    // Fora da lista: comportamento antigo (foto simples)
     const pid = photoEl.dataset.photoFor || (photoEl.closest('[data-photo-for]') && photoEl.closest('[data-photo-for]').dataset.photoFor);
     const name = photoEl.dataset.name || (photoEl.alt || '');
     let dataUrl = photoEl.tagName === 'IMG' ? photoEl.src : null;
