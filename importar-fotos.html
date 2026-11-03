@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importar fotos do Trello → Catálogo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{ --bg:#F4F8FB; --surface:#fff; --ink:#0F172A; --muted:#64748B; --line:#E2E8F0; --blue:#2563EB; --blue-deep:#1D4ED8; --green:#10B981; }
+  *{ box-sizing:border-box; }
+  body{ font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--ink); margin:0; padding:24px; }
+  .wrap{ max-width:760px; margin:0 auto; }
+  h1{ font-size:22px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 6px 18px rgba(15,23,42,.06); }
+  .aviso{ background:#FEF9C3; border:1px solid #FDE68A; color:#78350F; border-radius:10px; padding:12px 14px; font-size:13.5px; line-height:1.5; margin-bottom:16px; }
+  button{ background:var(--blue); color:#fff; border:none; border-radius:10px; padding:11px 18px; font-size:14px; font-weight:700; cursor:pointer; }
+  button:disabled{ opacity:.5; cursor:default; }
+  input{ width:100%; padding:10px 12px; border:1.5px solid var(--line); border-radius:9px; font-size:14px; margin-top:4px; }
+  label{ font-size:12.5px; font-weight:600; color:var(--muted); }
+  .linha{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--line); font-size:13px; }
+  .linha img{ width:44px; height:44px; border-radius:8px; object-fit:cover; background:var(--bg); }
+  .st-ok{ color:var(--green); font-weight:700; }
+  .st-erro{ color:#DC2626; font-weight:700; }
+  .st-skip{ color:var(--muted); }
+  .st-run{ color:var(--blue); }
+  #log{ font-size:12px; color:var(--muted); white-space:pre-wrap; max-height:200px; overflow:auto; background:var(--bg); border-radius:8px; padding:10px; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📸 Importar fotos do Trello → Catálogo de Vozes</h1>
+
+  <div class="aviso">
+    <b>⚠️ Importante:</b> abra esta página <b>logada no Trello</b> no mesmo navegador (é o que permite baixar as fotos).
+    Esta é uma ferramenta de <b>uso único</b> — depois de importar, você não precisa mais dela.
+    Teste com o projeto <b>Matthew Henry</b> primeiro.
+  </div>
+
+  <div class="card">
+    <label>E-mail do admin (Supabase)</label>
+    <input type="email" id="email" placeholder="audiovisual1@edenpublicacoes.com.br">
+    <label style="margin-top:10px;display:block;">Senha</label>
+    <input type="password" id="senha" placeholder="sua senha">
+    <button id="loginBtn" style="margin-top:12px;">Entrar no Supabase</button>
+    <div id="loginStatus" style="font-size:13px;margin-top:8px;color:var(--muted);"></div>
+  </div>
+
+  <div class="card" id="importCard" style="display:none;">
+    <p style="font-size:13.5px;color:var(--muted);margin-top:0;">
+      Projeto de teste: <b>Matthew Henry</b> — 17 fotos.
+      A ferramenta vai: baixar cada foto do Trello → achar a ficha de mesmo nome no catálogo → subir a foto.
+    </p>
+    <button id="importBtn">▶️ Importar fotos do Matthew Henry</button>
+    <div id="lista" style="margin-top:16px;"></div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://jbvvjnhsbomtrajbgnvl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';
+const PHOTO_BUCKET = 'photos';
+
+// Diagnóstico de ambiente
+if (location.protocol === 'file:'){
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="background:#FEE2E2;border:2px solid #DC2626;color:#991B1B;padding:16px;border-radius:12px;margin-bottom:16px;font-size:14px;line-height:1.5;">'+
+    '<b>⚠️ Esta página foi aberta como arquivo local (file://)</b><br>'+
+    'O navegador bloqueia o acesso à internet assim. Você precisa abrir por um servidor. '+
+    'A forma mais fácil: <b>hospede este arquivo junto do app</b> (na Vercel, por exemplo) e abra pelo link https://, '+
+    'OU use a extensão "Live Server" no VS Code. Veja as instruções que o assistente te deu.'+
+    '</div>');
+}
+if (typeof supabase === 'undefined'){
+  document.body.insertAdjacentHTML('afterbegin',
+    '<div style="background:#FEE2E2;border:2px solid #DC2626;color:#991B1B;padding:16px;border-radius:12px;margin-bottom:16px;">'+
+    '<b>⚠️ A biblioteca do Supabase não carregou.</b> Verifique sua conexão com a internet e recarregue.</div>');
+}
+const sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+// Dados do Matthew Henry (nome do anexo + link da foto no Trello)
+const FOTOS = [{"anexo": "Apresentador - Philip Eveson - Horace", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf2326b22847f9ab987c2b/download/image.png"}, {"anexo": "Ian Hamilton - Solaris", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf242273e39f296e91ac0e/download/image.png"}, {"anexo": "Sinclair Ferguson - David", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf2457b3480c38845c5bbe/download/image.png"}, {"anexo": "Allan Harman - Jullian Deep", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf255da63a86fa99fbc4df/download/image.png"}, {"anexo": "Joel Beeke - Bradford", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf25a48e59f97723f06911/download/image.png"}, {"anexo": "David Antrobus - David Deep", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf25da700e8ae4ab82b636/download/image.png"}, {"anexo": "Jeremy Walker - Calvin", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67bf263c8f1c7a0cffe4fd30/download/image.png"}, {"anexo": "Dan Gosling - Tommy", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c840634191087fe6134af1/download/image.png"}, {"anexo": "James Fitsjerady", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c8798eb6b564639a594e3e/download/image.png"}, {"anexo": "Kerry Orchard - Fe - Anar", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c879f56052fbf33fbd1693/download/image.png"}, {"anexo": "Sara Jackson - Matilda", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c87ad1a50365835243a51e/download/image.png"}, {"anexo": "Nathan Munday - Paul", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c87b4dc00d60a7f3fdc27f/download/image.png"}, {"anexo": "Hywel George - Reverendo American", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c87bbc9612bc6ad277df60/download/image.png"}, {"anexo": "Stuart Olyoutt - Grandpa", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c87bfc58faf61101848576/download/image.png"}, {"anexo": "Matthew Henry - Harry", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67c87f861ace1a22860cc687/download/image.png"}, {"anexo": "Keite Bastone - John and Kind", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67d31a93127ac5fabbd4dfb6/download/image.png"}, {"anexo": "Robert Oliver -Leon Deep", "url": "https://trello.com/1/cards/67bf1fa71c702275d08c98bc/attachments/67d31b41742ccf6a1de2d982/download/image.png"}];
+
+function nomeDoPessoa(anexo){
+  // pega tudo antes do primeiro " - " ou " : "
+  return anexo.split(/\s*[-:]\s*/)[0].trim();
+}
+function log(msg){ const el = document.getElementById('log'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+
+let peopleCache = [];
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+  const st = document.getElementById('loginStatus');
+  st.textContent = 'Entrando...';
+  if (!sb){ st.textContent = '❌ Biblioteca Supabase não carregou. Recarregue a página.'; return; }
+  let error;
+  try {
+    const r = await sb.auth.signInWithPassword({ email, password: senha });
+    error = r.error;
+  } catch(e){
+    st.innerHTML = '❌ <b>Failed to fetch</b> — isso acontece quando a página é aberta como arquivo local (file://). Hospede este arquivo e abra pelo link https://. Veja as instruções do assistente.';
+    return;
+  }
+  if (error){ st.textContent = '❌ ' + error.message; return; }
+  st.textContent = '✅ Logado! Carregando fichas...';
+  // carrega todas as pessoas pra cruzar por nome
+  const { data } = await sb.from('people').select('id, name');
+  peopleCache = data || [];
+  st.textContent = `✅ Logado! ${peopleCache.length} fichas carregadas.`;
+  document.getElementById('importCard').style.display = 'block';
+});
+
+function acharFicha(nome){
+  const n = nome.toLowerCase().trim();
+  // match exato primeiro
+  let p = peopleCache.find(x => (x.name||'').toLowerCase().trim() === n);
+  if (p) return p;
+  // match aproximado (começa com, pra tolerar variações)
+  p = peopleCache.find(x => (x.name||'').toLowerCase().trim().startsWith(n) || n.startsWith((x.name||'').toLowerCase().trim()));
+  return p || null;
+}
+
+document.getElementById('importBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true;
+  const lista = document.getElementById('lista');
+  lista.innerHTML = '';
+  log('Iniciando importação...');
+
+  for (const item of FOTOS){
+    const nome = nomeDoPessoa(item.anexo);
+    const div = document.createElement('div');
+    div.className = 'linha';
+    div.innerHTML = `<div style="width:44px;height:44px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;">⏳</div>
+      <div style="flex:1;"><b>${nome}</b><br><span style="color:var(--muted);font-size:11px;">${item.anexo}</span></div>
+      <div class="st-run" style="flex:0 0 auto;">processando...</div>`;
+    lista.appendChild(div);
+    const statusEl = div.querySelector('div:last-child');
+
+    // 1) acha a ficha
+    const ficha = acharFicha(nome);
+    if (!ficha){
+      statusEl.className = 'st-skip'; statusEl.textContent = 'sem ficha com esse nome';
+      log(`SKIP: "${nome}" — nenhuma ficha encontrada`);
+      continue;
+    }
+
+    // 2) baixa a foto do Trello
+    let blob;
+    try {
+      const resp = await fetch(item.url, { credentials: 'include' });
+      if (!resp.ok) throw new Error('HTTP '+resp.status);
+      blob = await resp.blob();
+      if (blob.size < 100) throw new Error('arquivo vazio/bloqueado');
+    } catch(err){
+      statusEl.className = 'st-erro'; statusEl.textContent = 'erro ao baixar: '+err.message;
+      log(`ERRO download "${nome}": ${err.message}`);
+      continue;
+    }
+
+    // 3) sobe pro Supabase Storage — EXATAMENTE como o app faz:
+    //    path = personId + '.jpg', contentType image/jpeg
+    try {
+      const path = ficha.id + '.jpg';
+      let { error: upErr } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { upsert:true, contentType:'image/jpeg', cacheControl:'3600' });
+      if (upErr){
+        const r2 = await sb.storage.from(PHOTO_BUCKET).update(path, blob, { contentType:'image/jpeg', cacheControl:'3600' });
+        upErr = r2.error;
+      }
+      if (upErr) throw upErr;
+      // marca has_photo = true
+      await sb.from('people').update({ has_photo:true }).eq('id', ficha.id);
+      const url = URL.createObjectURL(blob);
+      div.querySelector('div:first-child').innerHTML = `<img src="${url}">`;
+      statusEl.className = 'st-ok'; statusEl.textContent = '✅ importada';
+      log(`OK: "${nome}" → ficha ${ficha.id}`);
+    } catch(err){
+      statusEl.className = 'st-erro'; statusEl.textContent = 'erro ao subir: '+err.message;
+      log(`ERRO upload "${nome}": ${err.message}`);
+    }
+  }
+  log('Concluído!');
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>
