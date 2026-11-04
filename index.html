@@ -339,6 +339,37 @@
     padding: 1px 3px;
   }
 
+  /* ---- Coleção/franquia do projeto — linha discreta ---- */
+  .proj-colecao-mini{ margin:2px 0 14px; }
+  .proj-colecao-mini > summary{
+    list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; color:var(--muted); padding:4px 10px; border-radius:20px;
+    border:1px solid var(--line); background:var(--surface-soft);
+  }
+  .proj-colecao-mini > summary::-webkit-details-marker{ display:none; }
+  .proj-colecao-mini > summary:hover{ border-color:var(--blue); color:var(--blue-deep); }
+  .pcm-alterar{ font-size:11px; text-decoration:underline; opacity:.75; }
+  .proj-colecao-mini[open] > summary .pcm-alterar{ display:none; }
+  .proj-colecao-mini[open] > .field{ margin-top:10px; }
+
+  /* ---- Observações em formato de comentários ---- */
+  .pnotes-list{ display:flex; flex-direction:column; gap:8px; max-height:340px; overflow:auto; padding:2px; }
+  .pnotes-vazio{ font-size:12.5px; color:var(--muted); padding:10px 12px; background:var(--surface-soft); border:1px dashed var(--line); border-radius:10px; }
+  .pnote{ display:flex; gap:10px; align-items:flex-start; background:var(--surface-soft); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .pnote-av{ width:32px; height:32px; border-radius:50%; object-fit:cover; flex:0 0 auto; background:#fff; }
+  .pnote-main{ flex:1; min-width:0; }
+  .pnote-head{ display:flex; align-items:center; gap:8px; font-size:13px; flex-wrap:wrap; }
+  .pnote-when{ font-size:11.5px; color:var(--muted); }
+  .pnote-acoes{ margin-left:auto; display:flex; gap:2px; opacity:.55; transition:opacity .15s; }
+  .pnote:hover .pnote-acoes{ opacity:1; }
+  .pnote-btn{ background:none; border:none; cursor:pointer; font-size:13px; padding:4px 7px; border-radius:7px; color:var(--blue-deep); }
+  .pnote-btn:hover{ background:rgba(37,99,235,.1); }
+  .pnote-del:hover{ background:rgba(220,38,38,.1); }
+  .pnote-body{ font-size:13.5px; line-height:1.5; margin-top:3px; word-wrap:break-word; color:var(--ink); }
+  .pnote-body ol{ margin:4px 0 4px 20px; padding:0; }
+  .pnote-body [style*="background-color"]{ border-radius:3px; padding:1px 3px; }
+  .pnote-editor{ min-height:50px; }
+
   /* ---- Marcação @menção dentro do texto ---- */
   .mention-tag{
     display: inline-block;
@@ -3544,6 +3575,163 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     editor.addEventListener('input', detectarArroba);
     editor.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharDropdown(); });
     editor.addEventListener('blur', () => { setTimeout(fecharDropdown, 150); });
+  }
+
+  // ==========================================================
+  // Observações de projeto em formato de comentários (tabela project_notes)
+  // ==========================================================
+  let notasProjetoAberto = null;
+
+  // Remove scripts/eventos do HTML colado no editor (o resto da formatação fica)
+  function limparHtmlNota(html){
+    const tpl = document.createElement('template');
+    tpl.innerHTML = html || '';
+    tpl.content.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach(n => n.remove());
+    tpl.content.querySelectorAll('*').forEach(el => {
+      [...el.attributes].forEach(at => {
+        if (/^on/i.test(at.name) || /javascript:/i.test(at.value)) el.removeAttribute(at.name);
+      });
+      if (el.classList.contains('mention-tag')) el.setAttribute('contenteditable','false');
+    });
+    return tpl.innerHTML.trim();
+  }
+  function textoPuroNota(html){
+    const d = document.createElement('div'); d.innerHTML = html || '';
+    return (d.textContent || '').replace(/\u00A0/g,' ').trim();
+  }
+
+  async function notificarMencoesNota(project, userIds, autorNome){
+    const ids = (userIds||[]).filter(uid => uid && uid !== myUserId);
+    if (!ids.length) return;
+    const linhas = ids.map(uid => ({
+      project, user_id: uid, display_name: (profilesByUser[uid]||{}).display_name||'Ninja',
+      author_name: autorNome, read: false
+    }));
+    try { await sb.from('project_note_mentions').insert(linhas); }
+    catch(e){ console.warn('Erro ao notificar marcações:', e); }
+  }
+
+  function quandoNota(iso){
+    if (!iso) return '';
+    const d = new Date(iso);
+    const hoje = new Date();
+    const ontem = new Date(); ontem.setDate(hoje.getDate()-1);
+    const hora = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    if (d.toDateString() === hoje.toDateString()) return 'hoje às ' + hora;
+    if (d.toDateString() === ontem.toDateString()) return 'ontem às ' + hora;
+    return d.toLocaleDateString('pt-BR') + ' às ' + hora;
+  }
+
+  async function carregarNotasProjeto(project){
+    const box = document.getElementById('projNotesList');
+    if (!box) return;
+    let notas = [];
+    let semTabela = false;
+    try {
+      const { data, error } = await sb.from('project_notes')
+        .select('*').eq('project', project).order('created_at', { ascending:true });
+      if (error) throw error;
+      notas = data || [];
+    } catch(e){
+      console.warn('project_notes indisponível:', e.message||e);
+      semTabela = true;
+    }
+    // o modal pode ter sido trocado enquanto carregava
+    if (notasProjetoAberto !== project || !document.body.contains(box)) return;
+
+    // Observação antiga (campo único) — mostra só se ainda não migrou
+    const antiga = projectMeta[project]?.notes;
+    if (semTabela && antiga && textoPuroNota(antiga)){
+      notas = [{ id:null, body: antiga, author_id: projectMeta[project].notes_author_id, author_name: projectMeta[project].notes_author_name || 'Equipe', created_at: projectMeta[project].notes_updated_at, legado:true }];
+    }
+
+    if (!notas.length){
+      box.innerHTML = semTabela
+        ? `<div class="pnotes-vazio">⚠️ Rode o SQL <b>SQL-observacoes-comentarios.sql</b> no Supabase pra ativar os comentários.</div>`
+        : `<div class="pnotes-vazio">Nenhuma observação ainda. Escreva a primeira abaixo.</div>`;
+      return;
+    }
+
+    box.innerHTML = notas.map(n => {
+      const prof = profilesByUser[n.author_id] || {};
+      const ninja = NINJAS[prof.ninja_color||'azul'] || NINJAS.azul;
+      const nome = prof.display_name || n.author_name || 'Alguém';
+      const podeMexer = !n.legado && n.id && (isAdmin || (myUserId && n.author_id === myUserId));
+      const editado = n.updated_at && n.created_at && (new Date(n.updated_at) - new Date(n.created_at) > 60000);
+      return `
+        <div class="pnote" data-note-id="${n.id||''}">
+          <img class="pnote-av" src="${ninja}" alt="">
+          <div class="pnote-main">
+            <div class="pnote-head">
+              <b>${escapeHtml(nome)}</b>
+              <span class="pnote-when">${quandoNota(n.created_at)}${editado?' · editado':''}</span>
+              ${podeMexer?`
+              <span class="pnote-acoes">
+                <button type="button" class="pnote-btn" data-note-edit="${n.id}" title="Editar / marcar alguém com @">✎</button>
+                <button type="button" class="pnote-btn pnote-del" data-note-del="${n.id}" title="Excluir">🗑️</button>
+              </span>`:''}
+            </div>
+            <div class="pnote-body">${limparHtmlNota(n.body)}</div>
+          </div>
+        </div>`;
+    }).join('');
+    box.querySelectorAll('.pnote-body .mention-tag').forEach(t => t.removeAttribute('contenteditable'));
+    box.scrollTop = box.scrollHeight;
+
+    // Excluir
+    box.querySelectorAll('[data-note-del]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const ok = await confirmarBonito({
+        titulo: 'Excluir esta observação?',
+        mensagem: 'Ela some pra toda a equipe.',
+        textoBotao: '🗑️ Sim, excluir',
+        corBotao: '#DC2626',
+        icone: '🗑️'
+      });
+      if (!ok) return;
+      const { error } = await sb.from('project_notes').delete().eq('id', btn.dataset.noteDel);
+      if (error){ showToast('❌ Erro ao excluir: '+error.message); return; }
+      showToast('Observação excluída.');
+      carregarNotasProjeto(project);
+    }));
+
+    // Editar no lugar (com @menções — quem for marcado agora é notificado)
+    box.querySelectorAll('[data-note-edit]').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.pnote');
+      const corpo = card.querySelector('.pnote-body');
+      if (card.classList.contains('editando')) return;
+      card.classList.add('editando');
+      const antes = [...new Set([...corpo.querySelectorAll('.mention-tag')].map(t => t.dataset.userId))];
+      const htmlOriginal = corpo.innerHTML;
+      corpo.innerHTML = `
+        <div class="notes-editor pnote-editor" contenteditable="true">${htmlOriginal}</div>
+        <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;">
+          <button type="button" class="btn-ghost pnote-cancel" style="padding:6px 12px;font-size:12.5px;">Cancelar</button>
+          <button type="button" class="btn-primary pnote-ok" style="padding:6px 14px;font-size:12.5px;">Salvar</button>
+        </div>`;
+      const ed = corpo.querySelector('.pnote-editor');
+      ed.querySelectorAll('.mention-tag').forEach(t => t.setAttribute('contenteditable','false'));
+      iniciarMencoesEditor(ed);
+      ed.focus();
+      try { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch(_){}
+      corpo.querySelector('.pnote-cancel').addEventListener('click', () => carregarNotasProjeto(project));
+      corpo.querySelector('.pnote-ok').addEventListener('click', async (ev) => {
+        const b = ev.currentTarget;
+        const body = limparHtmlNota(ed.innerHTML);
+        if (!textoPuroNota(body)){ showToast('A observação ficou vazia — use 🗑️ pra excluir.'); return; }
+        b.disabled = true; b.textContent = 'Salvando…';
+        const depois = [...new Set([...ed.querySelectorAll('.mention-tag')].map(t => t.dataset.userId).filter(Boolean))];
+        const novos = depois.filter(uid => !antes.includes(uid));
+        const { error } = await sb.from('project_notes')
+          .update({ body, updated_at: new Date().toISOString() }).eq('id', btn.dataset.noteEdit);
+        if (error){ showToast('❌ Erro ao salvar: '+error.message); b.disabled=false; b.textContent='Salvar'; return; }
+        await notificarMencoesNota(project, novos, myProfile.display_name || myEmail || 'Alguém');
+        showToast(novos.length ? `✅ Salvo e ${novos.length} pessoa${novos.length===1?'':'s'} notificada${novos.length===1?'':'s'}.` : '✅ Observação atualizada.');
+        renderBellBadge();
+        carregarNotasProjeto(project);
+      });
+    }));
   }
 
   function forcarLimpezaArrasteDub(){
@@ -11108,27 +11296,31 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>`:''}
         <div class="field">
           <label>📝 Observações da equipe</label>
-          ${isAdmin?`
-          <div class="notes-toolbar">
+          <div id="projNotesList" class="pnotes-list"><div class="pnotes-vazio">Carregando…</div></div>
+          <div class="notes-toolbar" style="margin-top:10px;">
             <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
             <button type="button" class="notes-tb-btn notes-tb-highlight" data-cmd="backColor" data-value="#FEF08A" title="Grifar em amarelo">🖍️ Grifar</button>
           </div>
-          <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Digite <b>@</b> seguido do nome pra marcar alguém da equipe — a pessoa recebe notificação quando você salvar.</p>`:''}
-          <div id="projNotesInput" class="notes-editor" ${isAdmin?'contenteditable="true"':''}
-            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências... use @ pra marcar alguém"
-            >${projectMeta[project]?.notes || ''}</div>
-          ${projectMeta[project]?.notes_author_name ? `
-            <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">
-              ✎ Última edição por <b>${escapeHtml(projectMeta[project].notes_author_name)}</b>${projectMeta[project].notes_updated_at ? ` · ${new Date(projectMeta[project].notes_updated_at).toLocaleString('pt-BR')}` : ''}
-            </p>` : ''}
-          ${isAdmin?`
+          <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Digite <b>@</b> seguido do nome pra marcar alguém da equipe — a pessoa recebe notificação quando você publicar.</p>
+          <div id="projNotesInput" class="notes-editor" contenteditable="true"
+            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências... use @ pra marcar alguém"></div>
           <div style="display:flex;gap:8px;margin-top:10px;">
-            <button type="button" class="btn-primary" id="projSaveNotes" style="flex:1;justify-content:center;">Salvar observação</button>
-            <button type="button" class="btn-danger-ghost" id="projClearNotes" title="Apagar tudo que foi escrito">🗑️</button>
-          </div>`:''}
+            <button type="button" class="btn-primary" id="projSaveNotes" style="flex:1;justify-content:center;">Publicar observação</button>
+            <button type="button" class="btn-danger-ghost" id="projClearNotes" title="Limpar a caixa de texto">🗑️</button>
+          </div>
         </div>
         <div class="field">
           <label>Ordem de dublagem${isAdmin?' <span style="text-transform:none; font-weight:400; color:var(--muted);">(arraste ⠿ para reordenar)</span>':''}</label>
+          ${coadjuvantesOfProject(project).length ? `
+          <div class="coadj-folder" id="coadjFolder" style="margin-bottom:6px;">
+            <span class="dub-pos">0</span>
+            <span class="coadj-ic">📁</span>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:13.5px;">Coadjuvantes</div>
+              <div style="font-size:11.5px; color:var(--muted);">${coadjuvantesOfProject(project).length} voz${coadjuvantesOfProject(project).length===1?'':'es'} · toque para ver</div>
+            </div>
+            <span style="color:var(--muted);">▸</span>
+          </div>`:''}
           ${pairs.length ? `<ol class="dub-list" id="dubList">
             ${pairs.map((pr,i)=>{
               const initials = pr.person.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
@@ -11182,7 +11374,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         `:''}
 
         ${isAdmin?`
-        <!-- BLOCO: Coleção (tipo) e Franquia -->
+        <!-- BLOCO: Coleção (tipo) e Franquia — discreto, abre só se clicar -->
+        ${(() => {
+          const fr = (franchises||[]).find(f => f.id === projectFranchise[project]);
+          const cat = fr ? (categories||[]).find(c => c.id === fr.category_id) : null;
+          const frNome = fr && (fr.name||'').trim().toLowerCase() !== project.trim().toLowerCase() ? fr.name : '';
+          const resumo = cat ? escapeHtml(cat.name) + (frNome ? ' · ' + escapeHtml(frNome) : '') : 'Sem coleção';
+          return `<details class="proj-colecao-mini">
+          <summary><span>🗂 ${resumo}</span><span class="pcm-alterar">alterar</span></summary>`;
+        })()}
         <div class="field">
           <label>🗂 Coleção (tipo do projeto)</label>
           <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Filme, Documentário, Desenho... A coleção agrupa projetos do mesmo tipo.</p>
@@ -11217,19 +11417,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <input type="text" id="projFranquiaNovaNome" placeholder="Nome da nova franquia" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
           </div>
         </div>
+        </details>
         `:''}
-        ${coadjuvantesOfProject(project).length ? `
-        <div class="field">
-          <div class="coadj-folder" id="coadjFolder">
-            <span class="coadj-ic">📁</span>
-            <div style="flex:1;">
-              <div style="font-weight:700; font-size:13.5px;">Coadjuvantes</div>
-              <div style="font-size:11.5px; color:var(--muted);">${coadjuvantesOfProject(project).length} voz${coadjuvantesOfProject(project).length===1?'':'es'} · toque para ver</div>
-            </div>
-            <span style="color:var(--muted);">▸</span>
-          </div>
-        </div>`:''}
-
         <div class="field">
           <label>🥷 Quem trabalhou neste projeto</label>
           <div id="participantesBox">${renderParticipantesBox(project)}</div>
@@ -11256,90 +11445,66 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const cf = $('#coadjFolder');
     if (cf) cf.addEventListener('click', ()=> openCoadjuvantesModal(project));
 
-    // Toolbar de formatação das observações (numerar / grifar)
+    // ===== Observações da equipe (estilo comentários) =====
+    // Cada observação publicada vira um comentário na lista ACIMA da caixa,
+    // com autor + data. Autor (ou admin) pode editar — inclusive marcar
+    // gente com @ depois — e excluir.
     const notesEditor = $('#projNotesInput');
     ov.querySelectorAll('.notes-tb-btn').forEach(btn => {
+      btn.addEventListener('mousedown', (e) => e.preventDefault()); // não tira o foco/seleção da caixa
       btn.addEventListener('click', () => {
-        if (notesEditor) notesEditor.focus();
-        const cmd = btn.dataset.cmd;
-        const valor = btn.dataset.value || null;
-        try { document.execCommand(cmd, false, valor); } catch(e){ console.warn('Formatação não suportada:', e); }
+        const alvo = (document.activeElement && document.activeElement.isContentEditable) ? document.activeElement : notesEditor;
+        if (alvo) alvo.focus();
+        try { document.execCommand(btn.dataset.cmd, false, btn.dataset.value || null); } catch(e){ console.warn('Formatação não suportada:', e); }
       });
     });
+    if (notesEditor) iniciarMencoesEditor(notesEditor);
 
-    // Sistema de @menção DENTRO do próprio texto — digitar "@nome" mostra
-    // uma lista de ninjas da equipe pra escolher, e escolher insere uma
-    // marcação destacada no meio do texto (em vez de um painel separado).
-    if (notesEditor && isAdmin) iniciarMencoesEditor(notesEditor);
-
-    // Apagar tudo que foi escrito na observação
     const btnClearNotes = $('#projClearNotes');
-    if (btnClearNotes) btnClearNotes.addEventListener('click', async () => {
-      const ok = await confirmarBonito({
-        titulo: 'Apagar toda a observação?',
-        mensagem: 'Isso apaga TUDO que está escrito no campo de observações deste projeto.',
-        destaque: 'Esta ação não pode ser desfeita depois de salvar.',
-        textoBotao: '🗑️ Sim, apagar tudo',
-        corBotao: '#DC2626',
-        icone: '🗑️'
-      });
-      if (!ok) return;
-      if (notesEditor) notesEditor.innerHTML = '';
+    if (btnClearNotes) btnClearNotes.addEventListener('click', () => {
+      if (notesEditor){ notesEditor.innerHTML = ''; notesEditor.focus(); }
     });
 
-    // Salvar observações da equipe (com autor + notifica quem foi marcado
-    // com @ dentro do texto)
+    notasProjetoAberto = project;
+    carregarNotasProjeto(project);
+
     const btnSaveNotes = $('#projSaveNotes');
     if (btnSaveNotes) btnSaveNotes.addEventListener('click', async () => {
-      const notes = (notesEditor ? notesEditor.innerHTML : '').trim();
-      // Extrai quem foi marcado direto das marcações @ presentes no texto
+      const body = limparHtmlNota(notesEditor ? notesEditor.innerHTML : '');
+      if (!textoPuroNota(body)){ showToast('Escreva algo antes de publicar.'); return; }
       const marcados = notesEditor
-        ? [...new Set([...notesEditor.querySelectorAll('.mention-tag')].map(s => s.dataset.userId))]
+        ? [...new Set([...notesEditor.querySelectorAll('.mention-tag')].map(s => s.dataset.userId).filter(Boolean))]
         : [];
       btnSaveNotes.disabled = true;
-      btnSaveNotes.textContent = 'Salvando…';
+      btnSaveNotes.textContent = 'Publicando…';
       try {
         const autorNome = myProfile.display_name || myEmail || 'Alguém';
         const agora = new Date().toISOString();
-        let { error } = await sb.from('project_meta').upsert({
-          project, notes,
-          notes_author_id: myUserId || null,
-          notes_author_name: autorNome,
-          notes_updated_at: agora,
-          updated_at: agora
-        }, { onConflict: 'project' });
-        // Se o banco ainda não tem as colunas de autor/data (SQL de menções
-        // não rodado), salva pelo menos o TEXTO — nunca perde o que foi escrito.
-        if (error && /column|schema cache/i.test(error.message||'')){
-          console.warn('Colunas de autor ausentes em project_meta — salvando só o texto. Rode SQL-observacoes-autor.sql.', error.message);
-          ({ error } = await sb.from('project_meta').upsert({ project, notes }, { onConflict: 'project' }));
-        }
-        if (error) throw error;
-        projectMeta[project] = {
-          ...(projectMeta[project]||{}),
-          notes, notes_author_id: myUserId||null, notes_author_name: autorNome, notes_updated_at: agora
+        const nova = {
+          id: (crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback()),
+          project, body,
+          author_id: myUserId || null,
+          author_name: autorNome,
+          created_at: agora, updated_at: agora
         };
-
-        // Cria as notificações pra quem foi marcado com @ no texto
-        if (marcados.length > 0){
-          const linhas = marcados.map(uid => ({
-            project, user_id: uid, display_name: (profilesByUser[uid]||{}).display_name||'Ninja',
-            author_name: autorNome, read: false
-          }));
-          try { await sb.from('project_note_mentions').insert(linhas); }
-          catch(e){ console.warn('Erro ao notificar marcações:', e); }
-        }
-
+        const { error } = await sb.from('project_notes').insert(nova);
+        if (error) throw error;
+        await notificarMencoesNota(project, marcados, autorNome);
+        if (notesEditor) notesEditor.innerHTML = '';
         showToast(marcados.length > 0
-          ? `✅ Observação salva e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.`
-          : '✅ Observação salva.');
+          ? `✅ Observação publicada e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.`
+          : '✅ Observação publicada.');
+        await carregarNotasProjeto(project);
         renderBellBadge();
       } catch(err){
-        console.error('Erro ao salvar observação:', err);
-        showToast('❌ Erro ao salvar: '+(err.message||'erro desconhecido'));
+        console.error('Erro ao publicar observação:', err);
+        const msg = (err.message||'');
+        showToast(/project_notes|schema cache|relation/i.test(msg)
+          ? '❌ Falta rodar o SQL "SQL-observacoes-comentarios.sql" no Supabase.'
+          : '❌ Erro ao publicar: '+(msg||'erro desconhecido'));
       } finally {
         btnSaveNotes.disabled = false;
-        btnSaveNotes.textContent = 'Salvar observação';
+        btnSaveNotes.textContent = 'Publicar observação';
       }
     });
 
@@ -14416,6 +14581,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       .on('postgres_changes', { event:'*', schema:'public', table:'voice_comments' }, async ()=>{ await loadComments(); agendarRerender(); })
       // Participantes de projeto + menções + perfis
       .on('postgres_changes', { event:'*', schema:'public', table:'project_participants' }, async ()=>{ await loadParticipants(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'project_notes' }, ()=>{
+        // atualiza a lista do projeto aberto, a não ser que alguém esteja editando uma observação
+        if (notasProjetoAberto && $('#colOverlay')?.classList.contains('open') && !document.querySelector('.pnote.editando')) carregarNotasProjeto(notasProjetoAberto);
+      })
       .on('postgres_changes', { event:'*', schema:'public', table:'project_note_mentions' }, async ()=>{ await loadMinhasMencoes(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'profiles' }, async ()=>{ await loadPeople(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'admins' }, async ()=>{ await loadAdmins(); })
