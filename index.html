@@ -2544,6 +2544,52 @@
   .badge.ok{ background: var(--green-soft); color: var(--green-deep); }
   .badge.tipo{ background: var(--surface-soft); color: var(--blue-ink); }
   .tipo-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex-basis:100%; }
+  /* ---- Cronograma (Lançamentos + Renderização) ---- */
+  .cr-head{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
+  .cr-head h1{ font-family:var(--font-brand); font-weight:600; font-size:26px; margin:0; letter-spacing:-.3px; }
+  .cr-nav{ margin-left:auto; display:flex; align-items:center; gap:6px; }
+  .cr-nav button{ width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; font-size:16px; }
+  .cr-nav b{ min-width:150px; text-align:center; font-size:15px; }
+  .cr-resumo{ display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:0 0 18px; }
+  .cr-resumo b{ color:var(--ink); }
+  .cr-bar{ height:4px; border-radius:4px; background:var(--line); overflow:hidden; width:120px; display:inline-block; vertical-align:middle; margin-left:6px; }
+  .cr-bar i{ display:block; height:100%; background:linear-gradient(90deg,var(--blue),var(--accent)); }
+  .cr-semana{ border:1px solid var(--line); border-radius:16px; background:var(--surface); margin-bottom:14px; overflow:hidden; }
+  .cr-semana.atual{ border-color:rgba(74,155,224,.55); box-shadow:0 0 0 1px rgba(74,155,224,.18); }
+  .cr-semana-head{ display:flex; align-items:baseline; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .cr-semana-head b{ font-size:14px; }
+  .cr-semana-head span{ font-size:12px; color:var(--muted); }
+  .cr-semana-head .cr-tag-atual{ margin-left:auto; font-size:11px; font-weight:700; color:var(--blue-deep); letter-spacing:.6px; text-transform:uppercase; }
+  .cr-cols{ display:grid; grid-template-columns:1fr 1fr; }
+  .cr-col{ padding:12px 16px 14px; }
+  .cr-col + .cr-col{ border-left:1px solid var(--line); }
+  @media (max-width:720px){ .cr-cols{ grid-template-columns:1fr; } .cr-col + .cr-col{ border-left:none; border-top:1px solid var(--line); } }
+  .cr-col-title{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; display:flex; justify-content:space-between; }
+  .cr-item{ display:flex; align-items:center; gap:9px; padding:6px 0; font-size:13.5px; }
+  .cr-item input[type=checkbox]{ width:16px; height:16px; accent-color:var(--blue); flex:0 0 auto; cursor:pointer; }
+  .cr-item.done .cr-txt{ color:var(--muted); text-decoration:line-through; }
+  .cr-txt{ flex:1; min-width:0; }
+  .cr-cat{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; flex:0 0 auto; }
+  .cr-del{ border:none; background:none; color:var(--muted); cursor:pointer; opacity:0; font-size:13px; padding:2px 4px; }
+  .cr-item:hover .cr-del{ opacity:1; }
+  @media (hover:none){ .cr-del{ opacity:.6; } }
+  .cr-add{ display:flex; gap:6px; margin-top:6px; }
+  .cr-add input{ flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; }
+  .cr-add select{ padding:7px 6px; border:1px solid var(--line); border-radius:9px; font-size:12px; max-width:120px; }
+  .cr-add button{ padding:7px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); cursor:pointer; font-weight:700; }
+  .cr-vazio{ font-size:12.5px; color:var(--muted); padding:4px 0; }
+  /* A fazer (backlog) na Produção */
+  .bk-card{ border:1px solid var(--line); border-radius:16px; background:var(--surface); padding:14px 16px; margin-bottom:16px; }
+  .bk-card summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; }
+  .bk-card summary::-webkit-details-marker{ display:none; }
+  .bk-card summary .bk-n{ color:var(--muted); font-weight:600; font-size:12.5px; }
+  .bk-card summary::after{ content:'▸'; margin-left:auto; color:var(--muted); }
+  .bk-card[open] summary::after{ content:'▾'; }
+  .bk-item{ display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); font-size:13.5px; }
+  .bk-item:first-of-type{ border-top:none; }
+  .bk-btn{ border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .bk-btn.go{ border-color:var(--blue); color:var(--blue-deep); }
+
   /* ---- Ficha enxuta (Todas as fichas) ---- */
   .voice-card.vc-clean{ box-shadow:none; gap:10px; padding:14px 14px 10px; }
   .voice-card.vc-clean::before{ display:none; }
@@ -3086,6 +3132,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <button class="tab" data-view="home" role="tab">🏠 Home</button>
       <button class="tab active" data-view="painel" role="tab">👤 Meu Painel</button>
       <button class="tab" data-view="producao" role="tab">🎯 Produção</button>
+      <button class="tab" data-view="cronograma" role="tab">📅 Cronograma</button>
       <button class="tab" data-view="audiobooks" role="tab">🎧 Audiobooks</button>
       <button class="tab" data-view="colecoes" role="tab">🗂 Coleções</button>
       <button class="tab" data-view="fichas" role="tab">📇 Todas as fichas</button>
@@ -3125,6 +3172,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
 <main id="producaoView" style="display:none;">
   <div id="producaoContent" style="max-width:1100px;margin:0 auto;padding:20px 16px;"></div>
+</main>
+
+<main id="cronogramaView" style="display:none;">
+  <div id="cronogramaContent" style="max-width:1100px;margin:0 auto;padding:20px 16px;"></div>
 </main>
 
 <main id="projetosView" style="display:none;">
@@ -4012,6 +4063,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadMinhasMencoes(),
       loadProducaoTasks(),
       loadMetaCards(),
+      loadCronograma(),
       loadMuralFiles(),
       loadTaskNotifs(),
     ]);
@@ -7120,6 +7172,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const home = view === 'home';
     const painel = view === 'painel';
     const producao = view === 'producao';
+    const cronograma = view === 'cronograma';
     const audiobooks = view === 'audiobooks';
     const colecoes = view === 'colecoes';
     const fichas = view === 'fichas';
@@ -7128,6 +7181,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $('#homeView').style.display = home ? '' : 'none';
     $('#painelView').style.display = painel ? '' : 'none';
     $('#producaoView').style.display = producao ? '' : 'none';
+    $('#cronogramaView').style.display = cronograma ? '' : 'none';
     $('#audiobooksView').style.display = audiobooks ? '' : 'none';
     $('#colecoesView').style.display = colecoes ? '' : 'none';
     mainContent.style.display = fichas ? '' : 'none';
@@ -7143,6 +7197,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (home) renderProjetos(); // Home unificada com Projetos
     if (painel) renderPainel();
     if (producao) renderProducao();
+    if (cronograma) renderCronograma();
     if (audiobooks) renderAudiobooks();
     if (ranking) renderRanking();
     if (colecoes) renderColecoes();
@@ -8708,6 +8763,235 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const { data } = await sb.from('meta_cards').select('*').eq('mes', mesAtualStr()).order('semana').order('created_at');
       metaCards = data || [];
     }catch(e){ metaCards = []; }
+  }
+
+  // ==========================================================
+  // CRONOGRAMA — Lançamentos no app (app_releases) + Renderização
+  // (meta_cards, por semana do mês; semana 6 = "Extra Points") +
+  // A fazer (backlog_items). Espelha as listas do Trello.
+  // ==========================================================
+  let lancamentos = [];       // app_releases
+  let metaCardsTodos = [];    // meta_cards de todos os meses
+  let backlogItens = [];      // backlog_items
+  let cronoMes = mesAtualStr();
+  let cronoTabelasOk = true;
+  const CRONO_CATS = ['Filme','Documentário','Desenho','Série','Estudo','Audiobook','Infantil','Legenda','Outro'];
+
+  async function loadCronograma(){
+    try{
+      const [r1, r2, r3] = await Promise.all([
+        sb.from('app_releases').select('*').order('mes').order('semana').order('position').order('created_at'),
+        sb.from('meta_cards').select('*').order('mes').order('semana').order('created_at'),
+        sb.from('backlog_items').select('*').order('position').order('created_at'),
+      ]);
+      cronoTabelasOk = !r1.error && !r3.error;
+      lancamentos = r1.data || [];
+      metaCardsTodos = r2.data || [];
+      backlogItens = r3.data || [];
+    }catch(e){ cronoTabelasOk = false; }
+  }
+
+  // sextas-feiras do mês (as semanas de lançamento)
+  function sextasDoMes(mes){
+    const [a, m] = mes.split('-').map(Number);
+    const out = [];
+    const d = new Date(a, m-1, 1);
+    while (d.getMonth() === m-1){ if (d.getDay() === 5) out.push(new Date(d)); d.setDate(d.getDate()+1); }
+    return out;
+  }
+  function mesNome(mes){
+    const [a, m] = mes.split('-').map(Number);
+    const nome = new Date(a, m-1, 1).toLocaleDateString('pt-BR', { month:'long' });
+    return nome.charAt(0).toUpperCase() + nome.slice(1) + ' ' + a;
+  }
+  function mesSomar(mes, n){
+    const [a, m] = mes.split('-').map(Number);
+    const d = new Date(a, m-1+n, 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  function crCatTag(cat){
+    const cc = metaCatCor(cat);
+    return `<span class="cr-cat" style="background:${cc.bg};color:${cc.c};">${escapeHtml(cat||'Outro')}</span>`;
+  }
+  function crItemHtml(it, tabela){
+    return `<div class="cr-item${it.done?' done':''}">
+      <input type="checkbox" ${it.done?'checked':''} ${isAdmin?'':'disabled'} data-cr-check="${tabela}" data-id="${it.id}" title="${tabela==='app_releases'?'Lançado no app':'Renderizado'}">
+      <span class="cr-txt">${escapeHtml(it.titulo||'')}</span>
+      ${crCatTag(it.categoria)}
+      ${isAdmin?`<button class="cr-del" data-cr-del="${tabela}" data-id="${it.id}" title="Remover">✕</button>`:''}
+    </div>`;
+  }
+  function crAddHtml(tabela, semana){
+    if (!isAdmin) return '';
+    return `<div class="cr-add" data-cr-add="${tabela}" data-semana="${semana}">
+      <input type="text" placeholder="${tabela==='app_releases'?'Adicionar lançamento…':'Adicionar à renderização…'}">
+      <select>${CRONO_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+      <button type="button">+</button>
+    </div>`;
+  }
+
+  function renderCronograma(){
+    const cont = $('#cronogramaContent');
+    if (!cont) return;
+    if (!cronoTabelasOk){
+      cont.innerHTML = `<div class="empty-state"><h2>Falta rodar o SQL</h2><p>Rode o arquivo <b>SQL-cronograma.sql</b> no Supabase para ativar o Cronograma.</p></div>`;
+      return;
+    }
+    const mes = cronoMes;
+    const sextas = sextasDoMes(mes);
+    const lancMes = lancamentos.filter(x => x.mes === mes);
+    const rendMes = metaCardsTodos.filter(x => x.mes === mes);
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const idxAtual = sextas.findIndex(d => d >= hoje);
+    const pct = (a,b) => b ? Math.round(a/b*100) : 0;
+    const lancOk = lancMes.filter(x=>x.done).length, rendOk = rendMes.filter(x=>x.done).length;
+
+    const semanas = sextas.map((d, i) => {
+      const n = i+1;
+      const L = lancMes.filter(x => Number(x.semana) === n);
+      const R = rendMes.filter(x => Number(x.semana) === n);
+      const atual = (mes === mesAtualStr()) && i === idxAtual;
+      return `<section class="cr-semana${atual?' atual':''}">
+        <div class="cr-semana-head"><b>Semana ${n}</b><span>sexta, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>${atual?'<span class="cr-tag-atual">Esta semana</span>':''}</div>
+        <div class="cr-cols">
+          <div class="cr-col">
+            <div class="cr-col-title"><span>🚀 Lançamentos no app</span><span>${L.filter(x=>x.done).length}/${L.length}</span></div>
+            ${L.length ? L.map(it => crItemHtml(it,'app_releases')).join('') : '<div class="cr-vazio">Nada programado.</div>'}
+            ${crAddHtml('app_releases', n)}
+          </div>
+          <div class="cr-col">
+            <div class="cr-col-title"><span>⚙️ Renderização</span><span>${R.filter(x=>x.done).length}/${R.length}</span></div>
+            ${R.length ? R.map(it => crItemHtml(it,'meta_cards')).join('') : '<div class="cr-vazio">Nada programado.</div>'}
+            ${crAddHtml('meta_cards', n)}
+          </div>
+        </div>
+      </section>`;
+    }).join('');
+    const extras = rendMes.filter(x => Number(x.semana) === 6);
+    const extraHtml = `<section class="cr-semana">
+        <div class="cr-semana-head"><b>Extra Points</b><span>material extra do mês</span></div>
+        <div class="cr-col">
+          ${extras.length ? extras.map(it => crItemHtml(it,'meta_cards')).join('') : '<div class="cr-vazio">Nenhum extra.</div>'}
+          ${crAddHtml('meta_cards', 6)}
+        </div>
+      </section>`;
+
+    cont.innerHTML = `
+      <div class="cr-head">
+        <h1>Cronograma</h1>
+        <div class="cr-nav">
+          <button type="button" id="crPrev" title="Mês anterior">‹</button>
+          <b>${mesNome(mes)}</b>
+          <button type="button" id="crNext" title="Próximo mês">›</button>
+          ${mes !== mesAtualStr() ? `<button type="button" id="crHoje" title="Voltar para o mês atual" style="width:auto;padding:0 10px;font-size:12px;font-weight:700;">Hoje</button>` : ''}
+        </div>
+      </div>
+      <div class="cr-resumo">
+        <span>Lançados <b>${lancOk}/${lancMes.length}</b><span class="cr-bar"><i style="width:${pct(lancOk,lancMes.length)}%"></i></span></span>
+        <span>Renderizados (meta do mês) <b>${rendOk}/${rendMes.length}</b><span class="cr-bar"><i style="width:${pct(rendOk,rendMes.length)}%"></i></span></span>
+      </div>
+      ${semanas}
+      ${extraHtml}`;
+
+    $('#crPrev').addEventListener('click', () => { cronoMes = mesSomar(cronoMes,-1); renderCronograma(); });
+    $('#crNext').addEventListener('click', () => { cronoMes = mesSomar(cronoMes, 1); renderCronograma(); });
+    const h = $('#crHoje'); if (h) h.addEventListener('click', () => { cronoMes = mesAtualStr(); renderCronograma(); });
+
+    cont.querySelectorAll('[data-cr-check]').forEach(cb => cb.addEventListener('change', async () => {
+      const tabela = cb.dataset.crCheck, id = cb.dataset.id;
+      const lista = tabela === 'app_releases' ? lancamentos : metaCardsTodos;
+      const it = lista.find(x => x.id === id); if (it) it.done = cb.checked;
+      const { error } = await sb.from(tabela).update({ done: cb.checked }).eq('id', id);
+      if (error){ showToast('❌ ' + error.message); return; }
+      if (tabela === 'meta_cards') await loadMetaCards();
+      renderCronograma();
+    }));
+    cont.querySelectorAll('[data-cr-del]').forEach(b => b.addEventListener('click', async () => {
+      const tabela = b.dataset.crDel, id = b.dataset.id;
+      const { error } = await sb.from(tabela).delete().eq('id', id);
+      if (error){ showToast('❌ ' + error.message); return; }
+      if (tabela === 'app_releases') lancamentos = lancamentos.filter(x => x.id !== id);
+      else { metaCardsTodos = metaCardsTodos.filter(x => x.id !== id); await loadMetaCards(); }
+      renderCronograma();
+    }));
+    cont.querySelectorAll('[data-cr-add]').forEach(box => {
+      const inp = box.querySelector('input'), sel = box.querySelector('select'), btn = box.querySelector('button');
+      const add = async () => {
+        const titulo = inp.value.trim(); if (!titulo) return;
+        const tabela = box.dataset.crAdd;
+        const novo = { id: (crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback()), mes: cronoMes, semana: Number(box.dataset.semana), categoria: sel.value, titulo, done: false, created_by: myProfile.display_name || myEmail || null };
+        btn.disabled = true;
+        const { error } = await sb.from(tabela).insert(novo);
+        btn.disabled = false;
+        if (error){ showToast('❌ ' + error.message); return; }
+        if (tabela === 'app_releases') lancamentos.push(novo); else { metaCardsTodos.push(novo); await loadMetaCards(); }
+        renderCronograma();
+        const de = document.querySelector(`[data-cr-add="${tabela}"][data-semana="${novo.semana}"] input`); if (de) de.focus();
+      };
+      btn.addEventListener('click', add);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); add(); } });
+    });
+  }
+
+  // ---- A FAZER (backlog) — mostrado no topo da Produção ----
+  function backlogHtml(){
+    if (!cronoTabelasOk) return '';
+    const pend = backlogItens.filter(x => !x.started);
+    return `<details class="bk-card" ${pend.length && pend.length <= 6 ? 'open' : ''}>
+      <summary>📝 A fazer <span class="bk-n">${pend.length} na fila</span></summary>
+      <div style="margin-top:10px;">
+        ${pend.length ? pend.map(x => `
+          <div class="bk-item">
+            <span style="flex:1;min-width:0;">${escapeHtml(x.titulo)}</span>
+            ${crCatTag(x.categoria)}
+            ${isAdmin?`<button class="bk-btn go" data-bk-start="${x.id}" title="Cria o projeto como 'Em produção' e tira da fila">▶ Iniciar</button>
+            <button class="bk-btn" data-bk-del="${x.id}" title="Remover da fila">✕</button>`:''}
+          </div>`).join('') : '<div class="cr-vazio">Nada na fila.</div>'}
+        ${isAdmin?`<div class="cr-add" id="bkAdd"><input type="text" placeholder="Adicionar projeto à fila…"><select>${CRONO_CATS.map(c=>`<option>${c}</option>`).join('')}</select><button type="button">+</button></div>`:''}
+      </div>
+    </details>`;
+  }
+  function wireBacklog(cont){
+    cont.querySelectorAll('[data-bk-del]').forEach(b => b.addEventListener('click', async () => {
+      const ok = await confirmarBonito({ titulo:'Remover da fila?', mensagem:'O item sai da lista "A fazer".', textoBotao:'Remover', corBotao:'#DC2626', icone:'📝' });
+      if (!ok) return;
+      const { error } = await sb.from('backlog_items').delete().eq('id', b.dataset.bkDel);
+      if (error){ showToast('❌ '+error.message); return; }
+      backlogItens = backlogItens.filter(x => x.id !== b.dataset.bkDel);
+      renderProducao();
+    }));
+    cont.querySelectorAll('[data-bk-start]').forEach(b => b.addEventListener('click', async () => {
+      const it = backlogItens.find(x => x.id === b.dataset.bkStart); if (!it) return;
+      const nome = it.titulo.trim();
+      b.disabled = true;
+      try{
+        const { error } = await sb.from('project_meta').upsert({ project: nome, in_production: true, archived: false }, { onConflict:'project' });
+        if (error) throw error;
+        const tipo = it.categoria === 'Estudo' ? 'Estudo Bíblico' : it.categoria;
+        if (tipo && tipo !== 'Outro') await sb.from('project_categories').upsert({ project: nome, category: tipo }, { onConflict:'project' });
+        await sb.from('backlog_items').update({ started: true }).eq('id', it.id);
+        it.started = true;
+        projectMeta[nome] = { ...(projectMeta[nome]||{}), in_production: true, archived: false };
+        if (tipo && tipo !== 'Outro') projectCats[nome] = tipo;
+        showToast(`▶ "${nome}" agora está em produção.`);
+        renderProducao();
+      }catch(err){ showToast('❌ '+(err.message||'')); b.disabled = false; }
+    }));
+    const box = cont.querySelector('#bkAdd');
+    if (box){
+      const inp = box.querySelector('input'), sel = box.querySelector('select'), btn = box.querySelector('button');
+      const add = async () => {
+        const titulo = inp.value.trim(); if (!titulo) return;
+        const novo = { id:(crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback()), titulo, categoria: sel.value, started:false, position: backlogItens.length, created_by: myProfile.display_name || myEmail || null };
+        const { error } = await sb.from('backlog_items').insert(novo);
+        if (error){ showToast('❌ '+error.message); return; }
+        backlogItens.push(novo);
+        renderProducao();
+        const n = document.querySelector('#bkAdd input'); if (n) n.focus();
+      };
+      btn.addEventListener('click', add);
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); add(); } });
+    }
   }
 
   // Carrega os arquivos do mural (mais recentes primeiro)
@@ -12946,9 +13230,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
   // Cor por categoria (pros badges dos cartões)
   const META_CAT_COR = {
-    'Filme':{c:'#2563EB',bg:'#DBEAFE'}, 'Desenho':{c:'#DB2777',bg:'#FCE7F3'},
-    'Estudo':{c:'#16A34A',bg:'#DCFCE7'}, 'Documentário':{c:'#EA580C',bg:'#FFEDD5'},
-    'Infantil':{c:'#CA8A04',bg:'#FEF9C3'}, 'Série':{c:'#7C3AED',bg:'#EDE9FE'}, 'Outro':{c:'#64748B',bg:'#F1F5F9'}
+    'Filme':{c:'#4A9BE0',bg:'rgba(74,155,224,.15)'}, 'Desenho':{c:'#E0609A',bg:'rgba(224,96,154,.15)'},
+    'Estudo':{c:'#34C38F',bg:'rgba(52,195,143,.15)'}, 'Documentário':{c:'#E8875A',bg:'rgba(232,135,90,.15)'},
+    'Infantil':{c:'#D9A520',bg:'rgba(217,165,32,.15)'}, 'Série':{c:'#9B7BEA',bg:'rgba(155,123,234,.15)'},
+    'Audiobook':{c:'#2DB3B3',bg:'rgba(45,179,179,.15)'}, 'Legenda':{c:'#8A96AB',bg:'rgba(138,150,171,.15)'},
+    'Outro':{c:'#8A96AB',bg:'rgba(138,150,171,.15)'}
   };
   const metaCatCor = (cat) => META_CAT_COR[cat] || META_CAT_COR['Outro'];
 
@@ -12970,7 +13256,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         return `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:${cc.bg};color:${cc.c};${c.done?'opacity:.5;text-decoration:line-through;':''}">${c.done?'✓ ':''}${escapeHtml(c.categoria)}${c.titulo?` · ${escapeHtml(c.titulo)}`:''}</span>`;
       }).join(' ');
       return `<div style="margin-top:8px;">
-        <div style="font-size:11px;font-weight:700;color:var(--ok-ink);margin-bottom:4px;">Semana ${sem} <span style="font-weight:400;color:var(--ok-ink);">(${feitos}/${cards.length})</span></div>
+        <div style="font-size:11px;font-weight:700;color:var(--ok-ink);margin-bottom:4px;">${String(sem)==='6'?'Extra Points':'Semana '+sem} <span style="font-weight:400;color:var(--ok-ink);">(${feitos}/${cards.length})</span></div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;">${chips}</div>
       </div>`;
     }).join('');
@@ -13449,6 +13735,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>
       </div>
 
+      ${backlogHtml()}
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
         <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
@@ -13480,6 +13767,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const btnMural = $('#abrirMuralBtn');
     if (btnMural) btnMural.addEventListener('click', openMural);
     wireVistaEfiltros();
+    wireBacklog(cont);
     wireChatProducao(); // liga o chat que está agora dentro da produção
     renderProducaoLista('todas'); // começa mostrando todas — cada um vê o que os outros fazem
   }
@@ -14854,6 +15142,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       if (currentView === 'home') renderProjetos();
       else if (currentView === 'painel'){ if(!editando) renderPainel(); }
       else if (currentView === 'producao'){ if(!editando) renderProducao(); }
+      else if (currentView === 'cronograma'){ if(!editando) renderCronograma(); }
       else if (currentView === 'projetos') renderProjetos();
       else if (currentView === 'audiobooks') renderAudiobooks();
       else if (currentView === 'colecoes') renderColecoes();
@@ -14881,7 +15170,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       .on('postgres_changes', { event:'*', schema:'public', table:'audiobook_voices' }, async ()=>{ await loadAudiobooks(); agendarRerender(); })
       // Produção (tarefas) + agenda
       .on('postgres_changes', { event:'*', schema:'public', table:'production_tasks' }, async ()=>{ await loadProducaoTasks(); await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
-      .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); await loadCronograma(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'app_releases' }, async ()=>{ await loadCronograma(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'backlog_items' }, async ()=>{ await loadCronograma(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'mural_files' }, async ()=>{ await loadMuralFiles(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
