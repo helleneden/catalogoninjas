@@ -108,8 +108,8 @@
     scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
   }
-  .view-tabs::-webkit-scrollbar{ height:5px; }
-  .view-tabs::-webkit-scrollbar-thumb{ background:var(--line); border-radius:99px; }
+  .view-tabs{ scrollbar-width: none !important; -ms-overflow-style: none; }
+  .view-tabs::-webkit-scrollbar{ display:none; height:0; }
   .view-tabs .tab{
     border: none;
     background: transparent;
