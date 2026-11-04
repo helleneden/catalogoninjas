@@ -2353,6 +2353,7 @@
     margin-bottom: 8px;
   }
 
+  .voice-card[data-id]{ cursor:pointer; }
   .voice-card{
     background: var(--surface);
     color: var(--ink);
@@ -6660,6 +6661,30 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     }
 
+    // Dentro da pasta de Coadjuvantes: mesma navegação com setas ← →
+    const coadjCard = photoEl.closest('.coadj-card');
+    const coadjGrid = coadjCard && coadjCard.closest('.card-grid');
+    if (coadjGrid){
+      const itens = [];
+      let idxClicado = 0;
+      for (const card of coadjGrid.querySelectorAll('.coadj-card')){
+        const av = card.querySelector('img.photo, [data-abre-foto], [data-photo-for]');
+        const nome = card.querySelector('.card-name')?.textContent || (av && av.dataset.name) || '';
+        const voz = card.querySelector('.voice-summary')?.textContent.trim() || (av && av.dataset.voz) || '';
+        let url = (av && av.tagName === 'IMG') ? av.src : '';
+        const pidCard = card.dataset.id;
+        if (!url && av && (av.dataset.photoFor || (people.find(p=>p.id===pidCard)||{}).hasPhoto)){ url = await fetchPhoto(av.dataset.photoFor || pidCard) || ''; }
+        if (card === coadjCard) idxClicado = itens.length;
+        itens.push({ url, nome, voz, iniciais: !url ? (av ? av.textContent.trim() : '') : '' });
+      }
+      if (itens.length){
+        _lightboxItens = itens;
+        _lightboxIdx = idxClicado;
+        abrirLightbox(itens[idxClicado].url || '__iniciais__');
+        return;
+      }
+    }
+
     // Fora da lista: comportamento antigo (foto simples)
     const pid = photoEl.dataset.photoFor || (photoEl.closest('[data-photo-for]') && photoEl.closest('[data-photo-for]').dataset.photoFor);
     const name = photoEl.dataset.name || (photoEl.alt || '');
@@ -6671,6 +6696,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   mainContent.addEventListener('click', async (e) => {
     const editBtn = e.target.closest('[data-action="edit"]');
     if (editBtn){ openModal(editBtn.dataset.id); return; }
+
+    // Clicar em qualquer parte da ficha (fora dos botões, da foto e da
+    // lista de entradas) também abre a edição.
+    const cardClicado = e.target.closest('.voice-card[data-id]');
+    if (cardClicado
+        && !e.target.closest('button, a, input, select, textarea, details, [data-action], [data-photo-for], img.photo, .photo-fallback')){
+      openModal(cardClicado.dataset.id);
+      return;
+    }
 
     const askBtn = e.target.closest('[data-action="delete-ask"]');
     if (askBtn){
@@ -10215,8 +10249,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const cards = list.map(c => {
       const initials = c.person.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
       const photo = c.hasPhoto
-        ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}">${initials}</div>`
-        : `<div class="photo-fallback">${initials}</div>`;
+        ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}" data-voz="${escapeHtml(c.voice)}" data-abre-foto="1">${initials}</div>`
+        : `<div class="photo-fallback" data-name="${escapeHtml(c.person)}" data-voz="${escapeHtml(c.voice)}" data-abre-foto="1">${initials}</div>`;
       return `
         <div class="voice-card coadj-card" data-id="${c.personId}">
           <div class="card-top">
@@ -10303,7 +10337,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // clicar num coadjuvante abre a ficha para editar (foto/voz)
     ov.querySelectorAll('.voice-card[data-id]').forEach(card => {
       card.addEventListener('click', (e)=>{
-        if (e.target.closest('img.photo, [data-photo-for]')) return; // foto amplia
+        if (e.target.closest('img.photo, [data-photo-for], [data-abre-foto]')) return; // foto amplia
         if (e.target.closest('[data-remover-coadj]')) return; // botão de tirar
         if (e.target.closest('[data-editar-coadj]')) return; // botão de editar
         openModal(card.dataset.id);
