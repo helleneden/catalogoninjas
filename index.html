@@ -293,6 +293,7 @@
     box-shadow:0 2px 12px rgba(37,99,235,.10);
   }
   .dub-item.draggable{ cursor:default; }
+  #dubList .dub-item{ cursor:pointer; }
   .dub-item.dragging{
     opacity:.5; transform:scale(.98) rotate(-.5deg);
     box-shadow:0 8px 24px rgba(30,58,138,.20);
@@ -11644,6 +11645,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         showToast('❌ Erro: '+(err.message||''));
         btn.disabled = false;
       }
+    }));
+
+    // Clicar em qualquer parte da linha (fora dos botões, foto, alça de
+    // arrastar e checkbox) abre o mesmo "Editar nome e voz" do botão ✎.
+    ov.querySelectorAll('#dubList .dub-item').forEach(li => li.addEventListener('click', (e) => {
+      if (e.target.closest('button, input, a, .dub-handle, .dub-copy-wrap, [data-abre-foto], [data-photo-for], img.photo, [data-edit-voz]')) return;
+      const btnEdit = li.querySelector('[data-edit-voz-btn]');
+      if (btnEdit) btnEdit.click();
     }));
 
     // lixeira: remover a entrada (voz) daquele projeto para aquela pessoa
