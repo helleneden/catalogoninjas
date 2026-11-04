@@ -2213,6 +2213,8 @@
   }
   .pill.green strong{ color: var(--green-deep); }
   .pill.alert strong{ color: var(--alert); }
+  .pill.alert.on{ border-color: var(--gold); background: rgba(226,177,79,.12); }
+  .pill.alert.on strong{ color: var(--gold); }
 
   /* ---------- Toolbar ---------- */
   .toolbar{
@@ -4279,12 +4281,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       p.entries.forEach(e => { voiceSet.add(e.voice); projectSet.add(e.project); });
       if (new Set(p.entries.map(e => e.voice)).size > 1) inconsistentCount++;
     });
-    statPlates.innerHTML = `
-      <div class="pill" data-stat="fichas" title="Ver todas as fichas"><strong>${totalFichas}</strong><span>fichas</span></div>
-      <div class="pill green" data-stat="vozes" title="Ver ranking de vozes"><strong>${voiceSet.size}</strong><span>vozes</span></div>
-      <div class="pill" data-stat="projetos" title="Ver todos os projetos"><strong>${projectSet.size}</strong><span>projetos</span></div>
-      <div class="pill alert" data-stat="trocadas" title="Filtrar só vozes trocadas"><strong>${inconsistentCount}</strong><span>voz trocada</span></div>
-    `;
+    // Home: fichas / vozes / projetos · Todas as fichas: só "voz trocada" · demais abas: nada
+    const view = (typeof currentView !== 'undefined') ? currentView : 'home';
+    if (view === 'home'){
+      statPlates.style.display = '';
+      statPlates.innerHTML = `
+        <div class="pill" data-stat="fichas" title="Ver todas as fichas"><strong>${totalFichas}</strong><span>fichas</span></div>
+        <div class="pill green" data-stat="vozes" title="Ver ranking de vozes"><strong>${voiceSet.size}</strong><span>vozes</span></div>
+        <div class="pill" data-stat="projetos" title="Ir para a lista de projetos"><strong>${projectSet.size}</strong><span>projetos</span></div>`;
+    } else if (view === 'fichas'){
+      statPlates.style.display = '';
+      const ativo = inconsistentToggle.checked;
+      statPlates.innerHTML = `
+        <div class="pill alert${ativo?' on':''}" data-stat="trocadas" title="${ativo?'Mostrar todas as fichas':'Filtrar só vozes trocadas'}"><strong>${inconsistentCount}</strong><span>voz trocada</span></div>`;
+    } else {
+      statPlates.style.display = 'none';
+      statPlates.innerHTML = '';
+    }
   }
 
   // Atalhos ao clicar nas plaquinhas de estatística
@@ -4303,16 +4316,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     } else if (acao === 'vozes'){
       switchView('ranking');
     } else if (acao === 'projetos'){
-      switchView('projetos');
+      // "Projetos" e "Home" foram unificados: vai pra Home e rola até a lista
+      switchView('home');
+      requestAnimationFrame(() => { const t = document.getElementById('homeProjetosTitulo'); if (t) t.scrollIntoView({ behavior:'smooth', block:'start' }); });
     } else if (acao === 'trocadas'){
       // vai pras fichas já filtrando só as vozes trocadas
       searchInput.value = '';
       voiceFilter.value = '';
       projectFilter.value = '';
-      inconsistentToggle.checked = true;
+      const ligar = !(currentView === 'fichas' && inconsistentToggle.checked);
+      inconsistentToggle.checked = ligar;
       switchView('fichas');
       render();
-      showToast('Mostrando só personagens com voz trocada.');
+      showToast(ligar ? 'Mostrando só personagens com voz trocada.' : 'Mostrando todas as fichas.');
     }
   });
 
@@ -7132,6 +7148,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (colecoes) renderColecoes();
     if (avaliacao) renderAvaliacao();
     if (fichas) render();
+    renderStats();
   }
 
   // Mede a altura real do header e posiciona a barra A-Z logo abaixo.
@@ -9151,7 +9168,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           </div>
         </div>
       </div>
-      <div class="home-section-title" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div class="home-section-title" id="homeProjetosTitulo" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;scroll-margin-top:170px;">
         <span>🎬 Projetos</span>
         ${isAdmin?`<button class="btn-primary admin-only" id="btnNovoProjeto" style="white-space:nowrap;padding:8px 16px;font-size:13px;">+ Novo projeto</button>`:''}
       </div>
