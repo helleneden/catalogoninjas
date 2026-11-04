@@ -2545,39 +2545,74 @@
   .badge.tipo{ background: var(--surface-soft); color: var(--blue-ink); }
   .tipo-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex-basis:100%; }
   /* ---- Cronograma (Lançamentos + Renderização) ---- */
-  .cr-head{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px; }
-  .cr-head h1{ font-family:var(--font-brand); font-weight:600; font-size:26px; margin:0; letter-spacing:-.3px; }
+  .cr-head{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .cr-head h1{ font-family:var(--font-brand); font-weight:600; font-size:28px; margin:0; letter-spacing:-.3px; }
   .cr-nav{ margin-left:auto; display:flex; align-items:center; gap:6px; }
   .cr-nav button{ width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; font-size:16px; }
+  .cr-nav .cr-hoje{ width:auto; padding:0 12px; font-size:12px; font-weight:700; }
   .cr-nav b{ min-width:150px; text-align:center; font-size:15px; }
-  .cr-resumo{ display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:0 0 18px; }
-  .cr-resumo b{ color:var(--ink); }
-  .cr-bar{ height:4px; border-radius:4px; background:var(--line); overflow:hidden; width:120px; display:inline-block; vertical-align:middle; margin-left:6px; }
+  .cr-abas{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px; }
+  @media (max-width:640px){ .cr-abas{ grid-template-columns:1fr; } }
+  .cr-aba{ text-align:left; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:14px; padding:12px 14px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; transition:border-color .15s, background .15s; }
+  .cr-aba:hover{ border-color:var(--line-strong); }
+  .cr-aba.on{ border-color:var(--blue); background:rgba(74,155,224,.08); box-shadow:inset 0 0 0 1px rgba(74,155,224,.25); }
+  .cr-aba-tit{ font-weight:700; font-size:14.5px; }
+  .cr-aba-sub{ font-size:12px; color:var(--muted); }
+  .cr-aba-prog{ font-size:12px; color:var(--muted); margin-top:4px; display:flex; align-items:center; gap:6px; }
+  .cr-aba-prog b{ color:var(--ink); }
+  .cr-bar{ height:4px; border-radius:4px; background:var(--line); overflow:hidden; flex:1; max-width:140px; display:inline-block; }
   .cr-bar i{ display:block; height:100%; background:linear-gradient(90deg,var(--blue),var(--accent)); }
-  .cr-semana{ border:1px solid var(--line); border-radius:16px; background:var(--surface); margin-bottom:14px; overflow:hidden; }
-  .cr-semana.atual{ border-color:rgba(74,155,224,.55); box-shadow:0 0 0 1px rgba(74,155,224,.18); }
-  .cr-semana-head{ display:flex; align-items:baseline; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); }
-  .cr-semana-head b{ font-size:14px; }
-  .cr-semana-head span{ font-size:12px; color:var(--muted); }
-  .cr-semana-head .cr-tag-atual{ margin-left:auto; font-size:11px; font-weight:700; color:var(--blue-deep); letter-spacing:.6px; text-transform:uppercase; }
-  .cr-cols{ display:grid; grid-template-columns:1fr 1fr; }
-  .cr-col{ padding:12px 16px 14px; }
-  .cr-col + .cr-col{ border-left:1px solid var(--line); }
-  @media (max-width:720px){ .cr-cols{ grid-template-columns:1fr; } .cr-col + .cr-col{ border-left:none; border-top:1px solid var(--line); } }
-  .cr-col-title{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; display:flex; justify-content:space-between; }
-  .cr-item{ display:flex; align-items:center; gap:9px; padding:6px 0; font-size:13.5px; }
-  .cr-item input[type=checkbox]{ width:16px; height:16px; accent-color:var(--blue); flex:0 0 auto; cursor:pointer; }
-  .cr-item.done .cr-txt{ color:var(--muted); text-decoration:line-through; }
-  .cr-txt{ flex:1; min-width:0; }
+  .cr-dica{ font-size:12px; color:var(--muted); margin:6px 0 16px; }
+  .cr-lista{ display:flex; flex-direction:column; gap:12px; }
+  .cr-sem{ display:flex; gap:14px; align-items:flex-start; }
+  .cr-sem.passada{ opacity:.6; }
+  .cr-sem.passada:hover{ opacity:1; }
+  .cr-data{ flex:0 0 64px; text-align:center; border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:8px 4px; display:flex; flex-direction:column; line-height:1.1; }
+  .cr-data b{ font-family:var(--font-brand); font-size:26px; font-weight:600; }
+  .cr-data span{ font-size:11px; font-weight:700; letter-spacing:1.2px; color:var(--blue-deep); margin-top:2px; }
+  .cr-data small{ font-size:10.5px; color:var(--muted); margin-top:3px; }
+  .cr-data.extra b{ color:var(--gold); font-size:22px; }
+  .cr-data.extra span{ color:var(--gold); }
+  .cr-sem.atual .cr-data{ border-color:var(--blue); background:rgba(74,155,224,.12); }
+  .cr-sem-corpo{ flex:1; min-width:0; border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:10px 12px 8px; }
+  .cr-sem.atual .cr-sem-corpo{ border-color:rgba(74,155,224,.55); }
+  .cr-sem-topo{ display:flex; align-items:center; justify-content:space-between; padding:0 4px 6px; }
+  .cr-sem-nome{ font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); }
+  .cr-sem-nome em{ font-style:normal; color:var(--blue-deep); margin-left:6px; }
+  .cr-sem-cont{ font-size:12px; color:var(--muted); font-weight:600; }
+  .cr-linha{ display:flex; align-items:center; gap:10px; padding:8px 6px; border-radius:10px; cursor:pointer; transition:background .12s; }
+  .cr-linha:hover{ background:var(--surface-soft); }
+  .cr-dot{ width:4px; align-self:stretch; border-radius:4px; background:var(--cat); flex:0 0 auto; }
+  .cr-linha-txt{ flex:1; min-width:0; }
+  .cr-linha-titulo{ font-size:14px; font-weight:600; line-height:1.3; }
+  .cr-linha.done .cr-linha-titulo{ color:var(--muted); font-weight:500; }
+  .cr-linha-meta{ font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .cr-proj{ color:var(--blue-deep); }
+  .cr-status{ flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:999px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
+  .cr-status:hover:not(:disabled){ border-color:var(--blue); color:var(--blue-deep); }
+  .cr-status.ok{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.12); color:var(--ok-ink); }
+  .cr-status:disabled{ cursor:default; }
   .cr-cat{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; flex:0 0 auto; }
-  .cr-del{ border:none; background:none; color:var(--muted); cursor:pointer; opacity:0; font-size:13px; padding:2px 4px; }
-  .cr-item:hover .cr-del{ opacity:1; }
-  @media (hover:none){ .cr-del{ opacity:.6; } }
-  .cr-add{ display:flex; gap:6px; margin-top:6px; }
-  .cr-add input{ flex:1; min-width:0; padding:7px 10px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; }
-  .cr-add select{ padding:7px 6px; border:1px solid var(--line); border-radius:9px; font-size:12px; max-width:120px; }
-  .cr-add button{ padding:7px 12px; border-radius:9px; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); cursor:pointer; font-weight:700; }
-  .cr-vazio{ font-size:12.5px; color:var(--muted); padding:4px 0; }
+  .cr-vazio{ font-size:12.5px; color:var(--muted); padding:6px 4px; }
+  .cr-add-link{ border:none; background:none; color:var(--muted); font-size:12.5px; font-weight:600; cursor:pointer; padding:6px 4px; font-family:inherit; }
+  .cr-add-link:hover{ color:var(--blue-deep); }
+  .cr-add{ display:flex; gap:6px; margin:6px 0 4px; }
+  .cr-add[hidden]{ display:none; }
+  .cr-add input{ flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; }
+  .cr-add select{ padding:8px 6px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; max-width:130px; }
+  .cr-add button{ padding:8px 12px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:12.5px; }
+  .cr-modal{ max-width:560px; }
+  .cr-modal-eyebrow{ font-size:11.5px; color:var(--muted); margin:0; font-weight:600; }
+  .cr-modal-linha{ display:flex; align-items:center; gap:8px; }
+  .cr-tarefas{ display:flex; flex-direction:column; gap:2px; max-height:300px; overflow:auto; }
+  .cr-tarefa{ display:flex; align-items:center; gap:10px; padding:7px 4px; border-bottom:1px solid var(--line); }
+  .cr-tarefa img{ width:30px; height:30px; border-radius:50%; object-fit:cover; flex:0 0 auto; }
+  .cr-tarefa-nome{ font-size:13.5px; font-weight:600; }
+  .cr-tarefa-meta{ font-size:11.5px; color:var(--muted); }
+  .cr-tarefa.done{ opacity:.55; }
+  .prod-proj-chip{ display:inline-flex; align-items:center; gap:8px; border:1px solid var(--blue); background:rgba(74,155,224,.1); color:var(--blue-ink); border-radius:999px; padding:6px 8px 6px 14px; font-size:13px; margin-bottom:12px; }
+  .prod-proj-chip[hidden]{ display:none; }
+  .prod-proj-chip button{ border:none; background:rgba(74,155,224,.18); color:var(--ink); width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:11px; }
   /* A fazer (backlog) na Produção */
   .bk-card{ border:1px solid var(--line); border-radius:16px; background:var(--surface); padding:14px 16px; margin-bottom:16px; }
   .bk-card summary{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; }
@@ -3913,18 +3948,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const PRODUCAO_STAGES = ['Dublar', 'Revisar', 'Casting', 'Pós edição', 'Team Project', 'Renderizar', 'Dropbox', 'Controle de qualidade', 'Correção de qualidade', 'Finalizar'];
   // Identidade visual de cada etapa (ícone + cor) — dá a "cara de missão"
   const STAGE_INFO = {
-    'Dublar':                { ic:'🎙️', cor:'#2563EB', bg:'#DBEAFE' },
-    'Revisar':               { ic:'🔍', cor:'#7C3AED', bg:'#EDE9FE' },
-    'Casting':               { ic:'🎭', cor:'#DB2777', bg:'#FCE7F3' },
-    'Pós edição':            { ic:'✂️', cor:'#EA580C', bg:'#FFEDD5' },
-    'Team Project':          { ic:'🤝', cor:'#0891B2', bg:'#CFFAFE' },
-    'Renderizar':            { ic:'⚙️', cor:'#4F46E5', bg:'#E0E7FF' },
-    'Dropbox':               { ic:'☁️', cor:'#0284C7', bg:'#E0F2FE' },
-    'Controle de qualidade': { ic:'🛡️', cor:'#16A34A', bg:'#DCFCE7' },
-    'Correção de qualidade': { ic:'🔧', cor:'#CA8A04', bg:'#FEF9C3' },
-    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#D1FAE5' }
+    'Dublar':                { ic:'🎙️', cor:'#2563EB', bg:'#2563EB26' },
+    'Revisar':               { ic:'🔍', cor:'#7C3AED', bg:'#7C3AED26' },
+    'Casting':               { ic:'🎭', cor:'#DB2777', bg:'#DB277726' },
+    'Pós edição':            { ic:'✂️', cor:'#EA580C', bg:'#EA580C26' },
+    'Team Project':          { ic:'🤝', cor:'#0891B2', bg:'#0891B226' },
+    'Renderizar':            { ic:'⚙️', cor:'#4F46E5', bg:'#4F46E526' },
+    'Dropbox':               { ic:'☁️', cor:'#0284C7', bg:'#0284C726' },
+    'Controle de qualidade': { ic:'🛡️', cor:'#16A34A', bg:'#16A34A26' },
+    'Correção de qualidade': { ic:'🔧', cor:'#CA8A04', bg:'#CA8A0426' },
+    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#05966926' }
   };
-  const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#64748B', bg:'#F1F5F9' };
+  const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#8A96AB', bg:'#8A96AB26' };
 
   // Versículos bíblicos + citações de reformadores e puritanos.
   // Um por dia (rotaciona pelo dia do ano). Sempre com a referência.
@@ -8813,20 +8848,39 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const cc = metaCatCor(cat);
     return `<span class="cr-cat" style="background:${cc.bg};color:${cc.c};">${escapeHtml(cat||'Outro')}</span>`;
   }
-  function crItemHtml(it, tabela){
-    return `<div class="cr-item${it.done?' done':''}">
-      <input type="checkbox" ${it.done?'checked':''} ${isAdmin?'':'disabled'} data-cr-check="${tabela}" data-id="${it.id}" title="${tabela==='app_releases'?'Lançado no app':'Renderizado'}">
-      <span class="cr-txt">${escapeHtml(it.titulo||'')}</span>
-      ${crCatTag(it.categoria)}
-      ${isAdmin?`<button class="cr-del" data-cr-del="${tabela}" data-id="${it.id}" title="Remover">✕</button>`:''}
-    </div>`;
+  let cronoAba = 'lancamentos';   // 'lancamentos' | 'render'
+
+  // Liga um item do cronograma a um projeto do app: usa o campo "project"
+  // salvo; se não houver, tenta adivinhar pelo título.
+  function cronoProjetoDoItem(it){
+    if (it.project) return it.project;
+    const norm = x => (x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ');
+    const STOP = new Set(['vozes','voz','filme','documentario','desenho','serie','audiobook','ep','eps','episodio','episodios','de','do','da','dos','das','a','o','e','em','the','parte','aula','aulas','mini','legendas','temporada']);
+    const toks = x => norm(x).split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w));
+    const ti = new Set(toks(it.titulo));
+    if (!ti.size) return null;
+    let best = null, bs = 0;
+    allProjectsList().forEach(pr => {
+      const tp = toks(pr); if (!tp.length) return;
+      const hit = tp.filter(w => ti.has(w)).length;
+      const sc = hit / tp.length;
+      if (hit && sc > bs){ bs = sc; best = pr; }
+    });
+    return bs >= 0.5 ? best : null;
   }
-  function crAddHtml(tabela, semana){
-    if (!isAdmin) return '';
-    return `<div class="cr-add" data-cr-add="${tabela}" data-semana="${semana}">
-      <input type="text" placeholder="${tabela==='app_releases'?'Adicionar lançamento…':'Adicionar à renderização…'}">
-      <select>${CRONO_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
-      <button type="button">+</button>
+
+  function crLinhaHtml(it, tabela){
+    const cc = metaCatCor(it.categoria);
+    const proj = cronoProjetoDoItem(it);
+    const nTarefas = proj ? producaoTasks.filter(t => t.project === proj).length : 0;
+    const rotuloOk = tabela === 'app_releases' ? 'Lançado' : 'Renderizado';
+    return `<div class="cr-linha${it.done?' done':''}" data-cr-abrir="${tabela}" data-id="${it.id}" style="--cat:${cc.c}">
+      <span class="cr-dot"></span>
+      <div class="cr-linha-txt">
+        <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
+        <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${proj ? ` · <span class="cr-proj">${escapeHtml(proj)}${nTarefas?` · ${nTarefas} tarefa${nTarefas===1?'':'s'}`:''}</span>` : ''}</div>
+      </div>
+      <button type="button" class="cr-status${it.done?' ok':''}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?'Clique para alternar':''}">${it.done ? '✓ '+rotuloOk : 'Pendente'}</button>
     </div>`;
   }
 
@@ -8838,43 +8892,45 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return;
     }
     const mes = cronoMes;
+    const ehLanc = cronoAba === 'lancamentos';
+    const tabela = ehLanc ? 'app_releases' : 'meta_cards';
     const sextas = sextasDoMes(mes);
     const lancMes = lancamentos.filter(x => x.mes === mes);
     const rendMes = metaCardsTodos.filter(x => x.mes === mes);
+    const itensMes = ehLanc ? lancMes : rendMes;
     const hoje = new Date(); hoje.setHours(0,0,0,0);
-    const idxAtual = sextas.findIndex(d => d >= hoje);
+    const mesAtual = mesAtualStr();
+    const idxAtual = mes === mesAtual ? sextas.findIndex(d => d >= hoje) : -1;
     const pct = (a,b) => b ? Math.round(a/b*100) : 0;
     const lancOk = lancMes.filter(x=>x.done).length, rendOk = rendMes.filter(x=>x.done).length;
+    const MES_CURTO = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
-    const semanas = sextas.map((d, i) => {
-      const n = i+1;
-      const L = lancMes.filter(x => Number(x.semana) === n);
-      const R = rendMes.filter(x => Number(x.semana) === n);
-      const atual = (mes === mesAtualStr()) && i === idxAtual;
-      return `<section class="cr-semana${atual?' atual':''}">
-        <div class="cr-semana-head"><b>Semana ${n}</b><span>sexta, ${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</span>${atual?'<span class="cr-tag-atual">Esta semana</span>':''}</div>
-        <div class="cr-cols">
-          <div class="cr-col">
-            <div class="cr-col-title"><span>🚀 Lançamentos no app</span><span>${L.filter(x=>x.done).length}/${L.length}</span></div>
-            ${L.length ? L.map(it => crItemHtml(it,'app_releases')).join('') : '<div class="cr-vazio">Nada programado.</div>'}
-            ${crAddHtml('app_releases', n)}
+    const blocos = sextas.map((d, i) => ({ n:i+1, d })).concat(ehLanc ? [] : [{ n:6, d:null }]);
+    const semanasHtml = blocos.map(({n, d}) => {
+      const itens = itensMes.filter(x => Number(x.semana) === n).sort((a,b) => (a.position||0)-(b.position||0));
+      const feitos = itens.filter(x => x.done).length;
+      const atual = d && (i => i === idxAtual)(n-1);
+      const passada = d && d < hoje && !atual;
+      const data = d
+        ? `<div class="cr-data"><b>${String(d.getDate()).padStart(2,'0')}</b><span>${MES_CURTO[d.getMonth()]}</span><small>sexta</small></div>`
+        : `<div class="cr-data extra"><b>★</b><span>EXTRA</span><small>do mês</small></div>`;
+      return `<section class="cr-sem${atual?' atual':''}${passada?' passada':''}">
+        ${data}
+        <div class="cr-sem-corpo">
+          <div class="cr-sem-topo">
+            <span class="cr-sem-nome">${d ? 'Semana '+n : 'Extra Points'}${atual?' <em>esta semana</em>':''}</span>
+            ${itens.length ? `<span class="cr-sem-cont">${feitos}/${itens.length}</span>` : ''}
           </div>
-          <div class="cr-col">
-            <div class="cr-col-title"><span>⚙️ Renderização</span><span>${R.filter(x=>x.done).length}/${R.length}</span></div>
-            ${R.length ? R.map(it => crItemHtml(it,'meta_cards')).join('') : '<div class="cr-vazio">Nada programado.</div>'}
-            ${crAddHtml('meta_cards', n)}
-          </div>
+          ${itens.length ? itens.map(it => crLinhaHtml(it, tabela)).join('') : `<div class="cr-vazio">Nada programado.</div>`}
+          ${isAdmin ? `<button type="button" class="cr-add-link" data-cr-novo="${n}">+ Adicionar</button>
+            <div class="cr-add" data-cr-add="${tabela}" data-semana="${n}" hidden>
+              <input type="text" placeholder="Nome do ${ehLanc?'lançamento':'item'}…">
+              <select>${CRONO_CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+              <button type="button">Salvar</button>
+            </div>` : ''}
         </div>
       </section>`;
     }).join('');
-    const extras = rendMes.filter(x => Number(x.semana) === 6);
-    const extraHtml = `<section class="cr-semana">
-        <div class="cr-semana-head"><b>Extra Points</b><span>material extra do mês</span></div>
-        <div class="cr-col">
-          ${extras.length ? extras.map(it => crItemHtml(it,'meta_cards')).join('') : '<div class="cr-vazio">Nenhum extra.</div>'}
-          ${crAddHtml('meta_cards', 6)}
-        </div>
-      </section>`;
 
     cont.innerHTML = `
       <div class="cr-head">
@@ -8883,54 +8939,172 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <button type="button" id="crPrev" title="Mês anterior">‹</button>
           <b>${mesNome(mes)}</b>
           <button type="button" id="crNext" title="Próximo mês">›</button>
-          ${mes !== mesAtualStr() ? `<button type="button" id="crHoje" title="Voltar para o mês atual" style="width:auto;padding:0 10px;font-size:12px;font-weight:700;">Hoje</button>` : ''}
+          ${mes !== mesAtual ? `<button type="button" id="crHoje" class="cr-hoje">Hoje</button>` : ''}
         </div>
       </div>
-      <div class="cr-resumo">
-        <span>Lançados <b>${lancOk}/${lancMes.length}</b><span class="cr-bar"><i style="width:${pct(lancOk,lancMes.length)}%"></i></span></span>
-        <span>Renderizados (meta do mês) <b>${rendOk}/${rendMes.length}</b><span class="cr-bar"><i style="width:${pct(rendOk,rendMes.length)}%"></i></span></span>
+      <div class="cr-abas" role="tablist">
+        <button type="button" class="cr-aba${ehLanc?' on':''}" data-cr-aba="lancamentos" role="tab">
+          <span class="cr-aba-tit">🚀 Lançamentos no app</span>
+          <span class="cr-aba-sub">O que vai ao ar em cada sexta</span>
+          <span class="cr-aba-prog"><b>${lancOk}/${lancMes.length}</b> lançados<span class="cr-bar"><i style="width:${pct(lancOk,lancMes.length)}%"></i></span></span>
+        </button>
+        <button type="button" class="cr-aba${!ehLanc?' on':''}" data-cr-aba="render" role="tab">
+          <span class="cr-aba-tit">⚙️ Renderização</span>
+          <span class="cr-aba-sub">O que precisa ficar pronto (meta do mês)</span>
+          <span class="cr-aba-prog"><b>${rendOk}/${rendMes.length}</b> renderizados<span class="cr-bar"><i style="width:${pct(rendOk,rendMes.length)}%"></i></span></span>
+        </button>
       </div>
-      ${semanas}
-      ${extraHtml}`;
+      <p class="cr-dica">Clique num item para ver quem está fazendo cada etapa na Produção.</p>
+      <div class="cr-lista">${semanasHtml}</div>`;
 
     $('#crPrev').addEventListener('click', () => { cronoMes = mesSomar(cronoMes,-1); renderCronograma(); });
     $('#crNext').addEventListener('click', () => { cronoMes = mesSomar(cronoMes, 1); renderCronograma(); });
     const h = $('#crHoje'); if (h) h.addEventListener('click', () => { cronoMes = mesAtualStr(); renderCronograma(); });
+    cont.querySelectorAll('[data-cr-aba]').forEach(b => b.addEventListener('click', () => { cronoAba = b.dataset.crAba; renderCronograma(); }));
 
-    cont.querySelectorAll('[data-cr-check]').forEach(cb => cb.addEventListener('change', async () => {
-      const tabela = cb.dataset.crCheck, id = cb.dataset.id;
-      const lista = tabela === 'app_releases' ? lancamentos : metaCardsTodos;
-      const it = lista.find(x => x.id === id); if (it) it.done = cb.checked;
-      const { error } = await sb.from(tabela).update({ done: cb.checked }).eq('id', id);
-      if (error){ showToast('❌ ' + error.message); return; }
-      if (tabela === 'meta_cards') await loadMetaCards();
+    // alternar status (Pendente ⇄ Lançado/Renderizado)
+    cont.querySelectorAll('[data-cr-toggle]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!isAdmin) return;
+      const tab = btn.dataset.crToggle, id = btn.dataset.id;
+      const lista = tab === 'app_releases' ? lancamentos : metaCardsTodos;
+      const it = lista.find(x => x.id === id); if (!it) return;
+      it.done = !it.done;
       renderCronograma();
+      const { error } = await sb.from(tab).update({ done: it.done }).eq('id', id);
+      if (error){ it.done = !it.done; showToast('❌ ' + error.message); renderCronograma(); return; }
+      if (tab === 'meta_cards') loadMetaCards();
     }));
-    cont.querySelectorAll('[data-cr-del]').forEach(b => b.addEventListener('click', async () => {
-      const tabela = b.dataset.crDel, id = b.dataset.id;
-      const { error } = await sb.from(tabela).delete().eq('id', id);
-      if (error){ showToast('❌ ' + error.message); return; }
-      if (tabela === 'app_releases') lancamentos = lancamentos.filter(x => x.id !== id);
-      else { metaCardsTodos = metaCardsTodos.filter(x => x.id !== id); await loadMetaCards(); }
-      renderCronograma();
+    // abrir detalhes
+    cont.querySelectorAll('[data-cr-abrir]').forEach(row => row.addEventListener('click', () => abrirItemCronograma(row.dataset.crAbrir, row.dataset.id)));
+    // adicionar
+    cont.querySelectorAll('[data-cr-novo]').forEach(link => link.addEventListener('click', () => {
+      const box = link.nextElementSibling; link.hidden = true; box.hidden = false; box.querySelector('input').focus();
     }));
     cont.querySelectorAll('[data-cr-add]').forEach(box => {
       const inp = box.querySelector('input'), sel = box.querySelector('select'), btn = box.querySelector('button');
       const add = async () => {
         const titulo = inp.value.trim(); if (!titulo) return;
-        const tabela = box.dataset.crAdd;
+        const tab = box.dataset.crAdd;
         const novo = { id: (crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback()), mes: cronoMes, semana: Number(box.dataset.semana), categoria: sel.value, titulo, done: false, created_by: myProfile.display_name || myEmail || null };
         btn.disabled = true;
-        const { error } = await sb.from(tabela).insert(novo);
+        const { error } = await sb.from(tab).insert(novo);
         btn.disabled = false;
         if (error){ showToast('❌ ' + error.message); return; }
-        if (tabela === 'app_releases') lancamentos.push(novo); else { metaCardsTodos.push(novo); await loadMetaCards(); }
+        if (tab === 'app_releases') lancamentos.push(novo); else { metaCardsTodos.push(novo); loadMetaCards(); }
         renderCronograma();
-        const de = document.querySelector(`[data-cr-add="${tabela}"][data-semana="${novo.semana}"] input`); if (de) de.focus();
       };
       btn.addEventListener('click', add);
-      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); add(); } });
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); add(); } if (e.key === 'Escape'){ renderCronograma(); } });
     });
+  }
+
+  // Janela de detalhes do item: status, projeto ligado e "quem faz o quê"
+  function abrirItemCronograma(tabela, id){
+    const lista = tabela === 'app_releases' ? lancamentos : metaCardsTodos;
+    const it = lista.find(x => x.id === id); if (!it) return;
+    const proj = cronoProjetoDoItem(it);
+    const tarefas = proj ? producaoTasks.filter(t => t.project === proj) : [];
+    const feitas = tarefas.filter(t => t.done).length;
+    const rotuloOk = tabela === 'app_releases' ? 'Lançado no app' : 'Renderizado';
+    const projetos = allProjectsList();
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open';
+    ov.style.zIndex = '400';
+    const linhasTarefas = tarefas
+      .sort((a,b) => (a.done-b.done) || String(a.episode||'').localeCompare(String(b.episode||''),'pt-BR',{numeric:true}) || String(a.part||'').localeCompare(String(b.part||''),'pt-BR',{numeric:true}))
+      .map(t => {
+        const si = stageInfo(t.stage);
+        const perfil = profilesByUser[t.assignee_user_id] || {};
+        const ninja = NINJAS[perfil.ninja_color||'azul'] || NINJAS.azul;
+        const onde = [t.episode && t.episode !== 'Filme' ? 'Ep '+t.episode : '', t.part ? 'Parte '+t.part : ''].filter(Boolean).join(' · ');
+        const prazo = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '';
+        return `<div class="cr-tarefa${t.done?' done':''}">
+          <img src="${ninja}" alt="">
+          <div style="flex:1;min-width:0;">
+            <div class="cr-tarefa-nome">${escapeHtml(t.assignee_name || perfil.display_name || 'Sem responsável')}</div>
+            <div class="cr-tarefa-meta"><span style="color:${si.cor}">${si.ic} ${escapeHtml(t.stage)}</span>${onde?` · ${escapeHtml(onde)}`:''}${prazo?` · até ${prazo}`:''}</div>
+          </div>
+          <span class="cr-tarefa-st">${t.done ? '✓' : '⏳'}</span>
+        </div>`;
+      }).join('');
+    ov.innerHTML = `
+      <div class="modal cr-modal">
+        <p class="cr-modal-eyebrow">${tabela==='app_releases'?'🚀 Lançamento':'⚙️ Renderização'} · ${it.semana==6?'Extra Points':'Semana '+it.semana} · ${mesNome(it.mes)}</p>
+        <h2 style="margin:4px 0 6px;">${escapeHtml(it.titulo)}</h2>
+        <div class="cr-modal-linha">
+          ${crCatTag(it.categoria)}
+          <button type="button" class="cr-status${it.done?' ok':''}" id="crModalStatus" ${isAdmin?'':'disabled'}>${it.done ? '✓ '+rotuloOk : 'Pendente'}</button>
+        </div>
+
+        <div class="field" style="margin-top:16px;">
+          <label>Projeto no app</label>
+          ${isAdmin ? `<div style="display:flex;gap:8px;">
+            <select id="crModalProj" style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+              <option value="">— Nenhum —</option>
+              ${projetos.map(p => `<option value="${escapeHtml(p)}" ${p===proj?'selected':''}>${escapeHtml(p)}</option>`).join('')}
+            </select>
+            <button type="button" class="btn-ghost" id="crModalProjSalvar" style="padding:8px 14px;font-size:13px;">Ligar</button>
+          </div>` : `<div style="font-size:14px;">${proj?escapeHtml(proj):'<span style="color:var(--muted)">Nenhum projeto ligado</span>'}</div>`}
+        </div>
+
+        <div class="field">
+          <label>Quem faz o quê ${tarefas.length?`<span style="text-transform:none;font-weight:500;color:var(--muted);">· ${feitas}/${tarefas.length} etapas feitas</span>`:''}</label>
+          ${!proj ? `<div class="cr-vazio">Ligue este item a um projeto para ver as tarefas da equipe.</div>`
+            : tarefas.length ? `<div class="cr-tarefas">${linhasTarefas}</div>`
+            : `<div class="cr-vazio">Ainda não há tarefas delegadas para "${escapeHtml(proj)}".</div>`}
+        </div>
+
+        <div class="modal-actions">
+          ${isAdmin?`<button class="btn-danger-ghost" id="crModalDel" style="margin-right:auto;" title="Remover do cronograma">🗑️ Remover</button>`:''}
+          <button class="btn-ghost" id="crModalFechar">Fechar</button>
+          ${proj ? `<button class="btn-primary" id="crModalProd">Abrir na Produção →</button>` : ''}
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.querySelector('#crModalFechar').addEventListener('click', fechar);
+    fecharAoClicarFora(ov, fechar);
+    const st = ov.querySelector('#crModalStatus');
+    if (st && isAdmin) st.addEventListener('click', async () => {
+      it.done = !it.done;
+      const { error } = await sb.from(tabela).update({ done: it.done }).eq('id', it.id);
+      if (error){ it.done = !it.done; showToast('❌ '+error.message); return; }
+      st.classList.toggle('ok', it.done); st.textContent = it.done ? '✓ '+rotuloOk : 'Pendente';
+      if (tabela === 'meta_cards') loadMetaCards();
+      renderCronograma();
+    });
+    const pr = ov.querySelector('#crModalProd');
+    if (pr) pr.addEventListener('click', () => { fechar(); abrirProducaoDoProjeto(proj); });
+    const ps = ov.querySelector('#crModalProjSalvar');
+    if (ps) ps.addEventListener('click', async () => {
+      const val = ov.querySelector('#crModalProj').value || null;
+      const { error } = await sb.from(tabela).update({ project: val }).eq('id', it.id);
+      if (error){ showToast(/project/i.test(error.message) ? '❌ Rode o SQL-cronograma-v2.sql para poder ligar projetos.' : '❌ '+error.message); return; }
+      it.project = val;
+      fechar(); renderCronograma(); abrirItemCronograma(tabela, id);
+      showToast(val ? `🔗 Ligado a "${val}"` : 'Projeto desligado.');
+    });
+    const del = ov.querySelector('#crModalDel');
+    if (del) del.addEventListener('click', async () => {
+      const ok = await confirmarBonito({ titulo:'Remover do cronograma?', mensagem:`<b style="color:var(--ink);">"${escapeHtml(it.titulo)}"</b>`, textoBotao:'🗑️ Remover', corBotao:'#DC2626', icone:'📅' });
+      if (!ok) return;
+      const { error } = await sb.from(tabela).delete().eq('id', it.id);
+      if (error){ showToast('❌ '+error.message); return; }
+      if (tabela === 'app_releases') lancamentos = lancamentos.filter(x => x.id !== it.id);
+      else { metaCardsTodos = metaCardsTodos.filter(x => x.id !== it.id); loadMetaCards(); }
+      fechar(); renderCronograma();
+    });
+  }
+
+  // Leva para a Produção já filtrando um projeto
+  let prodProjetoFiltro = null;
+  function abrirProducaoDoProjeto(proj){
+    prodProjetoFiltro = proj;
+    prodFiltroAtual = 'todas';
+    prodVistaAtual = 'projeto';
+    switchView('producao');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ---- A FAZER (backlog) — mostrado no topo da Produção ----
@@ -13736,6 +13910,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>
 
       ${backlogHtml()}
+      <div id="prodProjetoChip" class="prod-proj-chip" hidden></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
         <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
@@ -13842,6 +14017,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (layout) layout.classList.toggle('kanban-mode', prodVistaAtual === 'kanban');
 
     let tarefas = [...producaoTasks];
+    if (prodProjetoFiltro) tarefas = tarefas.filter(t => t.project === prodProjetoFiltro);
+    const chipProj = document.getElementById('prodProjetoChip');
+    if (chipProj){
+      chipProj.hidden = !prodProjetoFiltro;
+      chipProj.innerHTML = prodProjetoFiltro ? `Projeto: <b>${escapeHtml(prodProjetoFiltro)}</b> <button type="button" title="Ver todos os projetos">✕</button>` : '';
+      const x = chipProj.querySelector('button'); if (x) x.onclick = () => { prodProjetoFiltro = null; renderProducaoLista(); };
+    }
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
     if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
 
@@ -13849,7 +14031,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       box.innerHTML = `
         <div style="text-align:center;padding:50px 20px;background:var(--surface);border-radius:16px;border:2px dashed var(--line);">
           <div style="font-size:48px;margin-bottom:10px;">🗂️</div>
-          <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
+          <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${prodProjetoFiltro ? 'delegada para este projeto ainda' : filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
           ${isAdmin && filtro!=='minhas' ? '<p style="color:var(--muted);font-size:12.5px;">Use o formulário acima pra criar a primeira!</p>' : ''}
         </div>`;
       return;
