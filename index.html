@@ -3124,7 +3124,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <p style="font-size:11px;color:var(--muted);margin:6px 0 0;">Pode deixar em branco — se preencher a voz sem escolher um projeto, a ficha fica marcada como "sem projeto ainda" automaticamente. Se preencher o projeto, precisa ser um que já existe (pra criar um novo, vá em <b>Projetos → + Novo projeto</b>).</p>
       <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;">
         <input type="checkbox" id="novaFichaCoadjCheck" style="width:16px;height:16px;accent-color:#7C3AED;cursor:pointer;">
-        ☾ Esta pessoa é coadjuvante neste projeto
+        👥 Esta pessoa é coadjuvante neste projeto
       </label>
       <p style="font-size:11px;color:var(--muted);margin:4px 0 0;">Se marcar, a ficha vai direto pra pasta de coadjuvantes do projeto e some de "Todas as fichas".</p>
     </div>
@@ -4168,7 +4168,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </details>
         <div class="card-actions" data-role="actions">
           <button data-action="edit" data-id="${p.id}">Editar</button>
-          <button data-action="mark-coadj" data-id="${p.id}" title="Move para a pasta de coadjuvantes do projeto">☾ Coadjuvante</button>
+          <button data-action="mark-coadj" data-id="${p.id}" title="Move para a pasta de coadjuvantes do projeto">👥 Coadjuvante</button>
           <button class="danger" data-action="delete-ask" data-id="${p.id}">Excluir</button>
         </div>
       </div>
@@ -5410,13 +5410,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       ov.style.zIndex = '10002';
       ov.innerHTML = `
         <div class="modal confirm-modal" style="max-width:400px;">
-          <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">☾</div>
+          <div class="confirm-icon" style="background:linear-gradient(135deg,#EDE9FE,#DDD6FE);">👥</div>
           <h2 style="text-align:center; margin:8px 0 4px;">Esta pessoa é coadjuvante?</h2>
           <p style="text-align:center; font-size:13px; color:var(--muted); margin:0 0 16px;">
             Se for coadjuvante, vai pra pasta de coadjuvantes do projeto com o nome <b>"Coadjuvante ${proxNum}"</b> automaticamente, e fica escondida de "Todas as fichas".
           </p>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button type="button" id="coadjSimBtn" data-nome="Coadjuvante ${proxNum}" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">☾ Sim, é coadjuvante</button>
+            <button type="button" id="coadjSimBtn" data-nome="Coadjuvante ${proxNum}" style="width:100%;padding:12px;border:none;border-radius:12px;background:#7C3AED;color:#fff;font-weight:700;font-size:14px;cursor:pointer;">👥 Sim, é coadjuvante</button>
             <button type="button" id="coadjNaoBtn" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font-weight:700;font-size:14px;cursor:pointer;">Não é coadjuvante</button>
             <button type="button" id="coadjCancelBtn" style="width:100%;padding:8px;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;">Cancelar</button>
           </div>
@@ -6500,9 +6500,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const ok = await confirmarBonito({
         titulo: 'Marcar como coadjuvante?',
         mensagem: `<b style="color:var(--ink);">"${escapeHtml(person.name)}"</b><br><span style="font-size:12px;">As entradas serão movidas para a pasta de coadjuvantes de cada projeto. A pessoa deixa de aparecer na lista principal.</span>`,
-        textoBotao: '☾ Sim, marcar como coadjuvante',
+        textoBotao: '👥 Sim, marcar como coadjuvante',
         corBotao: '#7C3AED',
-        icone: '☾'
+        icone: '👥'
       });
       if (!ok) return;
 
@@ -8194,6 +8194,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (pmRes.error){
         console.warn('Colunas novas de project_meta indisponíveis:', pmRes.error.message);
         pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived, notes, notes_author_id, notes_author_name, notes_updated_at');
+        if (pmRes.error){
+          pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived, notes');
+        }
         if (pmRes.error){
           pmRes = await sb.from('project_meta').select('project, in_production, has_cover, archived');
         }
@@ -11139,7 +11142,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
-                ${isAdmin && pr.entryId?`<button class="dub-coadj-btn" title="Mover para Coadjuvantes (mantém nome e voz)" data-to-coadj="${pr.entryId}" data-to-coadj-nome="${escapeHtml(pr.person)}">☾</button>`:''}
+                ${isAdmin && pr.entryId?`<button class="dub-coadj-btn" title="Mover para Coadjuvantes (mantém nome e voz)" data-to-coadj="${pr.entryId}" data-to-coadj-nome="${escapeHtml(pr.person)}">👥</button>`:''}
                 ${isAdmin?`<button class="dub-edit-btn" title="Editar nome e voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
                 <div class="dub-copy-wrap">
                   <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
@@ -11162,7 +11165,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div id="coadjBulkBar" style="display:none;align-items:center;gap:10px;margin-top:10px;padding:10px 12px;background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;">
             <span style="font-size:12.5px;color:#6D28D9;font-weight:600;flex:1;"><span id="coadjBulkCount">0</span> selecionado(s)</span>
             <button type="button" class="btn-ghost" id="coadjBulkCancel" style="padding:6px 12px;font-size:12.5px;">Cancelar</button>
-            <button type="button" id="coadjBulkMark" style="padding:6px 14px;font-size:12.5px;border:none;border-radius:8px;background:#7C3AED;color:#fff;font-weight:700;cursor:pointer;">☾ Marcar como coadjuvante</button>
+            <button type="button" id="coadjBulkMark" style="padding:6px 14px;font-size:12.5px;border:none;border-radius:8px;background:#7C3AED;color:#fff;font-weight:700;cursor:pointer;">👥 Marcar como coadjuvante</button>
           </div>`:''}
           ${isAdmin?`
           <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -11298,13 +11301,19 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       try {
         const autorNome = myProfile.display_name || myEmail || 'Alguém';
         const agora = new Date().toISOString();
-        const { error } = await sb.from('project_meta').upsert({
+        let { error } = await sb.from('project_meta').upsert({
           project, notes,
           notes_author_id: myUserId || null,
           notes_author_name: autorNome,
           notes_updated_at: agora,
           updated_at: agora
         }, { onConflict: 'project' });
+        // Se o banco ainda não tem as colunas de autor/data (SQL de menções
+        // não rodado), salva pelo menos o TEXTO — nunca perde o que foi escrito.
+        if (error && /column|schema cache/i.test(error.message||'')){
+          console.warn('Colunas de autor ausentes em project_meta — salvando só o texto. Rode SQL-observacoes-autor.sql.', error.message);
+          ({ error } = await sb.from('project_meta').upsert({ project, notes }, { onConflict: 'project' }));
+        }
         if (error) throw error;
         projectMeta[project] = {
           ...(projectMeta[project]||{}),
@@ -11407,7 +11416,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
     }));
 
-    // ☾ Mover UMA pessoa pra pasta de coadjuvantes — mantém o nome e a voz
+    // 👥 Mover UMA pessoa pra pasta de coadjuvantes — mantém o nome e a voz
     // já escolhidos; só muda o project da entrada para "X ⟫ Coadjuvantes".
     // Pra voltar, use "↩ Tirar" dentro da pasta 📁 Coadjuvantes.
     ov.querySelectorAll('[data-to-coadj]').forEach(btn => btn.addEventListener('click', async (e) => {
@@ -11418,9 +11427,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const ok = await confirmarBonito({
         titulo: 'Mover para coadjuvantes?',
         mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b><br><span style="font-size:12px;">Vai pra pasta 📁 Coadjuvantes de "${escapeHtml(baseProject(project))}" com o mesmo nome e voz. Dá pra voltar a qualquer momento pelo botão ↩ Tirar.</span>`,
-        textoBotao: '☾ Sim, mover',
+        textoBotao: '👥 Sim, mover',
         corBotao: '#7C3AED',
-        icone: '☾'
+        icone: '👥'
       });
       if (!ok) return;
       btn.disabled = true;
@@ -11429,7 +11438,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         if (error) throw error;
         await loadPeople();
         invalidarCacheSimilares();
-        showToast(`☾ "${nome}" foi para os coadjuvantes.`);
+        showToast(`👥 "${nome}" foi para os coadjuvantes.`);
         openProjetoModal(project);
       } catch(err){
         console.error('Erro ao mover pra coadjuvante:', err);
@@ -11885,9 +11894,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const ok = await confirmarBonito({
           titulo: `Marcar ${selecionados.length} pessoa${selecionados.length===1?'':'s'} como coadjuvante?`,
           mensagem: `<span style="font-size:12px;">${selecionados.map(s=>escapeHtml(s.nome)).join(', ')}</span><br><br><span style="font-size:12px;">A entrada de cada um NESTE projeto vai pra pasta de coadjuvantes e some da lista principal de dublagem.</span>`,
-          textoBotao: '☾ Sim, marcar como coadjuvante',
+          textoBotao: '👥 Sim, marcar como coadjuvante',
           corBotao: '#7C3AED',
-          icone: '☾'
+          icone: '👥'
         });
         if (!ok) return;
 
@@ -11906,7 +11915,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           console.error('Erro ao marcar coadjuvantes:', err);
           showToast('❌ Erro: '+(err.message||''));
           btnCoadjMark.disabled = false;
-          btnCoadjMark.textContent = '☾ Marcar como coadjuvante';
+          btnCoadjMark.textContent = '👥 Marcar como coadjuvante';
         }
       });
 
