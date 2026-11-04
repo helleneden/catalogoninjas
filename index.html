@@ -2482,6 +2482,18 @@
   }
   .badge.warn{ background: var(--alert-soft); color: var(--alert); }
   .badge.ok{ background: var(--green-soft); color: var(--green-deep); }
+  .badge.tipo{ background: var(--surface-soft); color: var(--blue-ink); }
+  .tipo-chips{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; flex-basis:100%; }
+  .tipo-chips-label{ font-size:12px; font-weight:700; color:var(--muted); margin-right:2px; }
+  .tipo-chip{
+    border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    border-radius:999px; padding:5px 11px; font-size:12.5px; font-weight:600;
+    cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:5px;
+    transition:background .12s, border-color .12s, color .12s;
+  }
+  .tipo-chip:hover{ border-color:var(--blue); }
+  .tipo-chip.on{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .tipo-chip-n{ font-size:11px; opacity:.7; font-weight:700; }
 
   .waveform{ display:flex; align-items:flex-end; gap: 3px; height: 22px; margin-top: 2px; }
   .waveform i{
@@ -3014,6 +3026,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       <input type="checkbox" id="similarToggle"> só nomes similares
     </label>
     <button class="btn-primary desktop-only" id="addBtn">+ Nova ficha</button>
+    <div id="tipoChipsFichas" style="flex-basis:100%;"></div>
   </div>
 
   <div id="similarNotice" style="display:none;"></div>
@@ -3270,7 +3283,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
-  const CATEGORIES = ['Documentários', 'Estudos e Aconselhamentos', 'Materiais Infantis', 'Filmes'];
+  const CATEGORIES = ['Documentário', 'Filme', 'Desenho', 'Série', 'Estudo Bíblico', 'Audiobook'];
   const NO_CAT = 'Sem categoria';
   let people = [];
   let projectCats = {};
@@ -4251,10 +4264,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const sortedProjects = [...projects].sort((a,b)=>a.localeCompare(b,'pt-BR'));
     const groups = {};
     sortedProjects.forEach(p => {
-      const cat = projectCats[p] && CATEGORIES.includes(projectCats[p]) ? projectCats[p] : NO_CAT;
+      const cat = tipoDoProjeto(p) || NO_CAT;
       (groups[cat] = groups[cat] || []).push(p);
     });
-    const orderedCats = [...CATEGORIES, NO_CAT].filter(c => groups[c] && groups[c].length);
+    const orderedCats = [...ordenarTipos(Object.keys(groups).filter(c => c !== NO_CAT)), NO_CAT].filter(c => groups[c] && groups[c].length);
     projectFilter.innerHTML = '<option value="">Todos os projetos</option>' +
       orderedCats.map(cat => `
         <optgroup label="${escapeHtml(cat)}">
@@ -4266,6 +4279,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if ([...projects].includes(currentProject)) projectFilter.value = currentProject;
   }
 
+  function renderTipoChipsFichas(){
+    const box = document.getElementById('tipoChipsFichas');
+    if (!box) return;
+    const contagem = {};
+    visiblePeople().forEach(p => tiposDaPessoa(p).forEach(t => { contagem[t] = (contagem[t]||0) + 1; }));
+    box.innerHTML = tipoChipsHtml(filtroTiposFichas, contagem, 'fichas');
+    ligarTipoChips(box, filtroTiposFichas, () => render());
+  }
+
   function getFiltered(){
     const q = searchInput.value.trim().toLowerCase();
     const v = (voiceFilter.value || '').trim();
@@ -4274,7 +4296,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const onlySimilar = document.getElementById('similarToggle')?.checked;
     const idsSimilares = onlySimilar ? idsComSimilar() : null;
 
-    return mainPeople().filter(p => {
+    // Com tipo escolhido, usa TODAS as fichas (inclusive coadjuvantes) e
+    // fica só com quem tem alguma entrada daquele(s) tipo(s).
+    const comTipo = filtroTiposFichas.size > 0;
+    const base = comTipo ? visiblePeople() : mainPeople();
+    return base.filter(p => {
+      if (comTipo && !p.entries.some(e => tiposDaEntrada(e).some(t => filtroTiposFichas.has(t)))) return false;
       // busca: nome da pessoa, projeto ou voz (comparação case-insensitive normalizada)
       const matchesSearch = !q ||
         p.name.toLowerCase().includes(q) ||
@@ -4328,6 +4355,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const badges = `
       <span class="badge">${totalProjects} projeto${totalProjects === 1 ? '' : 's'}</span>
       ${distinctVoices > 1 ? `<span class="badge warn">⚑ voz trocada</span>` : `<span class="badge ok">✓ voz única</span>`}
+      ${ordenarTipos([...tiposDaPessoa(p)].filter(t => t !== TIPO_NENHUM)).map(t => `<span class="badge tipo">${iconeTipoFiltro(t)} ${escapeHtml(t)}</span>`).join('')}
     `;
 
     const summarySorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
@@ -4377,6 +4405,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (currentView !== 'fichas') return;
 
     populateFilterOptions();
+    renderTipoChipsFichas();
     const filtered = getFiltered();
     renderAzRail(filtered);
 
@@ -4564,6 +4593,83 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (n.includes('trailer') || n.includes('vinheta')) return '🎞️';
     return '📁';
   }
+  // ==========================================================
+  // TIPOS DE VOZ (Desenho, Filme, Documentário...) — vêm do TIPO do
+  // projeto (tabela project_categories). Uma ficha "é" de um tipo se
+  // tem alguma entrada num projeto daquele tipo. Coadjuvantes viram um
+  // tipo à parte (e também contam no tipo do projeto).
+  // ==========================================================
+  const TIPO_COADJ = 'Coadjuvantes';
+  const TIPO_NENHUM = 'Sem tipo';
+  function tipoCanonico(cat){
+    const bruto = (cat||'').toString().trim();
+    if (!bruto) return '';
+    const n = bruto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const p = TIPOS_PADRAO.find(t => {
+      const tn = t.nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return tn === n || tn === n.replace(/s$/,'') || tn.replace(/s$/,'') === n;
+    });
+    if (p) return p.nome;
+    if (n.includes('documentari')) return 'Documentário';
+    if (n.includes('filme') || n.includes('longa')) return 'Filme';
+    if (n.includes('desenho') || n.includes('animac') || n.includes('infanti')) return 'Desenho';
+    if (n.includes('serie')) return 'Série';
+    if (n.includes('biblic') || n.includes('estudo') || n.includes('aconselh')) return 'Estudo Bíblico';
+    if (n.includes('audiobook')) return 'Audiobook';
+    return bruto;
+  }
+  function tipoDoProjeto(proj){
+    const b = baseProject(proj);
+    return tipoCanonico(projectCats[b] || projectCats[proj]);
+  }
+  function tiposDaEntrada(e){
+    const t = [];
+    const tp = tipoDoProjeto(e.project);
+    if (tp) t.push(tp);
+    if (isCoadjProject(e.project)) t.push(TIPO_COADJ);
+    if (!t.length) t.push(TIPO_NENHUM);
+    return t;
+  }
+  function tiposDaPessoa(p){
+    const s = new Set();
+    (p.entries||[]).forEach(e => tiposDaEntrada(e).forEach(t => s.add(t)));
+    return s;
+  }
+  function iconeTipoFiltro(t){
+    if (t === TIPO_COADJ) return '👥';
+    if (t === TIPO_NENHUM) return '❔';
+    return iconeDoTipo(t);
+  }
+  // ordem: tipos padrão, depois extras, Coadjuvantes e "Sem tipo" no fim
+  function ordenarTipos(lista){
+    const ordem = TIPOS_PADRAO.map(t => t.nome);
+    const peso = t => t === TIPO_COADJ ? 900 : t === TIPO_NENHUM ? 999 : (ordem.includes(t) ? ordem.indexOf(t) : 500);
+    return [...lista].sort((a,b) => peso(a)-peso(b) || a.localeCompare(b,'pt-BR'));
+  }
+  // Barra de "chips" de tipo (multi-seleção). contagem = {tipo: n}
+  function tipoChipsHtml(selecionados, contagem, rotuloUnidade){
+    const tipos = ordenarTipos(Object.keys(contagem).filter(t => contagem[t] > 0));
+    const todos = selecionados.size === 0;
+    return `
+      <div class="tipo-chips" role="group" aria-label="Filtrar por tipo">
+        <span class="tipo-chips-label">Tipo:</span>
+        <button type="button" class="tipo-chip${todos?' on':''}" data-tipo-chip="">Todos</button>
+        ${tipos.map(t => `<button type="button" class="tipo-chip${selecionados.has(t)?' on':''}" data-tipo-chip="${escapeHtml(t)}" title="${contagem[t]} ${rotuloUnidade}">${iconeTipoFiltro(t)} ${escapeHtml(t)} <span class="tipo-chip-n">${contagem[t]}</span></button>`).join('')}
+      </div>`;
+  }
+  function ligarTipoChips(container, selecionados, aoMudar){
+    if (!container) return;
+    container.querySelectorAll('[data-tipo-chip]').forEach(btn => btn.addEventListener('click', () => {
+      const t = btn.dataset.tipoChip;
+      if (!t) selecionados.clear();
+      else if (selecionados.has(t)) selecionados.delete(t);
+      else selecionados.add(t);
+      aoMudar();
+    }));
+  }
+  const filtroTiposFichas = new Set();
+  const filtroTiposAval = new Set();
+
   let tipoSelecionado = null;   // nome do tipo escolhido
   let pendingCapaFicha = null;  // dataURL da capa nova
 
@@ -6998,7 +7104,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span style="font-size:13px; font-weight:600;">${escapeHtml(p)}</span>
         <select data-project="${escapeHtml(p)}" style="padding:9px 10px; border-radius:10px; border:1px solid var(--line); font-size:13px; background:var(--bg);">
           <option value="">${NO_CAT}</option>
-          ${CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${projectCats[p] === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+          ${CATEGORIES.map(c => `<option value="${escapeHtml(c)}" ${tipoDoProjeto(p) === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
         </select>
       </div>
     `).join('');
@@ -8061,9 +8167,26 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
   }
 
+  // tipos em que cada voz já foi usada (olha todas as fichas, inclusive coadjuvantes)
+  function tiposPorVoz(){
+    const mapa = {};
+    visiblePeople().forEach(p => p.entries.forEach(e => {
+      const v = e.voice; if (!v) return;
+      (mapa[v] = mapa[v] || new Set());
+      tiposDaEntrada(e).forEach(t => mapa[v].add(t));
+    }));
+    return mapa;
+  }
+
   function renderAvaliacao(){
     const counts = allVoices();
+    const tiposVoz = tiposPorVoz();
     let voices = Object.keys(counts);
+    const contagemTipos = {};
+    voices.forEach(v => (tiposVoz[v] || new Set([TIPO_NENHUM])).forEach(t => { contagemTipos[t] = (contagemTipos[t]||0) + 1; }));
+    if (filtroTiposAval.size){
+      voices = voices.filter(v => [...(tiposVoz[v] || [])].some(t => filtroTiposAval.has(t)));
+    }
     if (avalSearch){ const q = avalSearch.toLowerCase(); voices = voices.filter(v => v.toLowerCase().includes(q)); }
     if (avalSort === 'nome') voices.sort((a,b)=>a.localeCompare(b,'pt-BR'));
     else if (avalSort === 'usos') voices.sort((a,b)=>counts[b]-counts[a]);
@@ -8089,6 +8212,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             </span>`:''}
           </div>
           <div class="aval-used">usada ${counts[voice]}× · ${nR? `avaliada por ${nR} pessoa${nR===1?'':'s'}` : 'sem avaliações'}</div>
+          ${tiposVoz[voice] && tiposVoz[voice].size ? `<div class="badges" style="margin:2px 0 6px;">${ordenarTipos([...tiposVoz[voice]].filter(t => t !== TIPO_NENHUM)).map(t => `<span class="badge tipo">${iconeTipoFiltro(t)} ${escapeHtml(t)}</span>`).join('')}</div>` : ''}
           ${crits}
           <button class="cmt-toggle" data-toggle="${escapeHtml(voice)}">💬 ${nCmt? nCmt+' comentário'+(nCmt===1?'':'s') : 'Comentar'} ${aberto?'▲':'▼'}</button>
           ${aberto? commentsHtml(voice) : ''}
@@ -8105,6 +8229,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <option value="usos" ${avalSort==='usos'?'selected':''}>Ordenar: mais usadas</option>
           <option value="nota" ${avalSort==='nota'?'selected':''}>Ordenar: melhor nota</option>
         </select>
+        <div id="tipoChipsAval" style="flex-basis:100%;">${tipoChipsHtml(filtroTiposAval, contagemTipos, 'vozes')}</div>
       </div>
       ${voices.length? `<div class="aval-grid">${cards}</div>`
         : `<div class="aval-empty"><h2 style="font-family:var(--font-head)">Nenhuma voz encontrada</h2><p>Cadastre projetos e vozes para avaliá-las aqui.</p></div>`}`;
@@ -8113,6 +8238,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (si){ si.addEventListener('input', (e)=>{ avalSearch=e.target.value; const pos=e.target.selectionStart; renderAvaliacao(); const ni=$('#avalSearchInput'); if(ni){ni.focus(); ni.setSelectionRange(pos,pos);} }); }
     const ss = $('#avalSortSel');
     if (ss) ss.addEventListener('change', (e)=>{ avalSort=e.target.value; renderAvaliacao(); });
+    ligarTipoChips($('#tipoChipsAval'), filtroTiposAval, () => renderAvaliacao());
 
     // Botão excluir voz (só admin): remove avaliações e comentários dela
     if (isAdmin){
@@ -11414,9 +11540,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           const fr = (franchises||[]).find(f => f.id === projectFranchise[project]);
           const cat = fr ? (categories||[]).find(c => c.id === fr.category_id) : null;
           const frNome = fr && (fr.name||'').trim().toLowerCase() !== project.trim().toLowerCase() ? fr.name : '';
-          const resumo = cat ? escapeHtml(cat.name) + (frNome ? ' · ' + escapeHtml(frNome) : '') : 'Sem coleção';
+          const tipoP = tipoDoProjeto(project);
+          const resumo = (tipoP ? iconeDoTipo(tipoP) + ' ' + escapeHtml(tipoP) + ' · ' : '❔ Sem tipo · ')
+            + (cat ? escapeHtml(cat.name) + (frNome ? ' · ' + escapeHtml(frNome) : '') : 'Sem coleção');
           return `<details class="proj-colecao-mini">
-          <summary><span>🗂 ${resumo}</span><span class="pcm-alterar">alterar</span></summary>`;
+          <summary><span>${resumo}</span><span class="pcm-alterar">alterar</span></summary>
+          <div class="field" style="margin-top:10px;">
+            <label>🏷 Tipo do projeto</label>
+            <p style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px;">Define em qual tipo de voz (Desenho, Filme, Documentário…) as fichas deste projeto aparecem nos filtros.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="projTipoSel" style="flex:1;min-width:180px;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;background:var(--surface);">
+                <option value="">— Sem tipo —</option>
+                ${tiposDisponiveis().map(t => `<option value="${escapeHtml(t.nome)}" ${tipoCanonico(t.nome)===tipoP?'selected':''}>${t.icone} ${escapeHtml(t.nome)}</option>`).join('')}
+              </select>
+              <button type="button" class="btn-ghost" id="projSalvarTipo" style="padding:8px 14px;font-size:13px;">Salvar tipo</button>
+            </div>
+          </div>`;
         })()}
         <div class="field">
           <label>🗂 Coleção (tipo do projeto)</label>
@@ -11767,6 +11906,30 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             if (nameInp) nameInp.focus();
           }
         }, 100);
+      });
+
+      // === TIPO DO PROJETO ===
+      const btnSalvarTipo = $('#projSalvarTipo');
+      if (btnSalvarTipo) btnSalvarTipo.addEventListener('click', async () => {
+        const novo = ($('#projTipoSel')||{}).value || '';
+        btnSalvarTipo.disabled = true;
+        try {
+          if (novo){
+            const { error } = await sb.from('project_categories').upsert({ project, category: novo }, { onConflict: 'project' });
+            if (error) throw error;
+            projectCats[project] = novo;
+          } else {
+            const { error } = await sb.from('project_categories').delete().eq('project', project);
+            if (error) throw error;
+            delete projectCats[project];
+          }
+          showToast(novo ? `✅ Tipo salvo: ${novo}` : '✅ Tipo removido.');
+          openProjetoModal(project);
+          render();
+        } catch(err){
+          showToast('❌ Erro ao salvar tipo: ' + (err.message||''));
+          btnSalvarTipo.disabled = false;
+        }
       });
 
       // === COLEÇÃO E FRANQUIA ===
