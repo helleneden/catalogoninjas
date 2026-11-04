@@ -3022,7 +3022,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     <label class="toggle-inconsist">
       <input type="checkbox" id="inconsistentToggle"> só vozes trocadas
     </label>
-    <label class="toggle-inconsist">
+    <label class="toggle-inconsist" style="display:none;">
       <input type="checkbox" id="similarToggle"> só nomes similares
     </label>
     <button class="btn-primary desktop-only" id="addBtn">+ Nova ficha</button>
@@ -4386,7 +4386,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </details>
         <div class="card-actions" data-role="actions">
           <button data-action="edit" data-id="${p.id}">Editar</button>
-          <button data-action="mark-coadj" data-id="${p.id}" title="Move para a pasta de coadjuvantes do projeto">👥 Coadjuvante</button>
+          ${(p.entries.some(e => !isCoadjProject(e.project)) && !(filtroTiposFichas.size === 1 && filtroTiposFichas.has(TIPO_COADJ)))
+            ? `<button data-action="mark-coadj" data-id="${p.id}" title="Move para a pasta de coadjuvantes do projeto">👥 Coadjuvante</button>` : ''}
           <button class="danger" data-action="delete-ask" data-id="${p.id}">Excluir</button>
         </div>
       </div>
