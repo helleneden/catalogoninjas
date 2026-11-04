@@ -2591,6 +2591,13 @@
   .cr-status{ flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:999px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
   .cr-status:hover:not(:disabled){ border-color:var(--blue); color:var(--blue-deep); }
   .cr-status.ok{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.12); color:var(--ok-ink); }
+  .cr-status.parcial{ border-color:rgba(226,177,79,.5); color:var(--warn-ink); }
+  .cr-expandir{ flex:0 0 auto; width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:transparent; color:var(--muted); cursor:pointer; font-size:12px; }
+  .cr-expandir:hover, .cr-expandir.on{ border-color:var(--blue); color:var(--blue-deep); }
+  .cr-eps{ display:flex; flex-wrap:wrap; gap:6px; padding:4px 6px 10px 20px; }
+  .cr-ep{ border:1px solid var(--line); background:var(--surface-soft); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .cr-ep:hover:not(:disabled){ border-color:var(--blue); color:var(--ink); }
+  .cr-ep.ok{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.12); color:var(--ok-ink); }
   .cr-status:disabled{ cursor:default; }
   .cr-cat{ font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; flex:0 0 auto; }
   .cr-vazio{ font-size:12.5px; color:var(--muted); padding:6px 4px; }
@@ -8869,18 +8876,60 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return bs >= 0.5 ? best : null;
   }
 
+  // "Ep. 1 a 4", "1-4", "Episódios 23, 24, 25", "Aulas 1 a 30"… → lista de episódios
+  function epsDoTitulo(titulo){
+    const t = (titulo||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    let rot = 'Episódio';
+    if (/\baulas?\b/.test(t)) rot = 'Aula';
+    else if (/\bpalestras?\b/.test(t)) rot = 'Palestra';
+    else if (/\bpartes?\b/.test(t)) rot = 'Parte';
+    let nums = null;
+    const r = t.match(/(\d{1,3})\s*(?:a|ao|-|–|ate)\s*(\d{1,3})(?!\s*\/)/);
+    if (r){ const a = +r[1], b = +r[2]; if (b > a && b - a <= 60) nums = Array.from({length:b-a+1}, (_,i)=>a+i); }
+    if (!nums){
+      const l = t.match(/(?:eps?\.?|episodios?|aulas?|palestras?|partes?)\s*:?\s*((?:\d{1,3}\s*(?:,|e)\s*)+\d{1,3})/);
+      if (l){ const v = l[1].split(/\s*(?:,|e)\s*/).map(Number).filter(n => !isNaN(n)); if (v.length >= 2) nums = [...new Set(v)]; }
+    }
+    return nums ? { nums, rot } : null;
+  }
+  // Conta cada episódio como 1 unidade (um item "1 a 4" vale 4)
+  function crUnidades(it){
+    const eps = epsDoTitulo(it.titulo);
+    if (!eps) return { total:1, feitos: it.done ? 1 : 0, eps:null, feitosSet:null };
+    const feitosSet = new Set((Array.isArray(it.eps_done) ? it.eps_done : []).map(Number));
+    if (it.done) eps.nums.forEach(n => feitosSet.add(n));
+    return { total: eps.nums.length, feitos: eps.nums.filter(n => feitosSet.has(n)).length, eps, feitosSet };
+  }
+  function crSomar(lista){
+    return lista.reduce((acc, it) => { const u = crUnidades(it); acc.total += u.total; acc.feitos += u.feitos; return acc; }, { total:0, feitos:0 });
+  }
+  const crExpandidos = new Set();
+
   function crLinhaHtml(it, tabela){
     const cc = metaCatCor(it.categoria);
     const proj = cronoProjetoDoItem(it);
     const nTarefas = proj ? producaoTasks.filter(t => t.project === proj).length : 0;
     const rotuloOk = tabela === 'app_releases' ? 'Lançado' : 'Renderizado';
-    return `<div class="cr-linha${it.done?' done':''}" data-cr-abrir="${tabela}" data-id="${it.id}" style="--cat:${cc.c}">
-      <span class="cr-dot"></span>
-      <div class="cr-linha-txt">
-        <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
-        <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${proj ? ` · <span class="cr-proj">${escapeHtml(proj)}${nTarefas?` · ${nTarefas} tarefa${nTarefas===1?'':'s'}`:''}</span>` : ''}</div>
+    const u = crUnidades(it);
+    const completo = u.feitos === u.total;
+    const aberto = crExpandidos.has(it.id);
+    const statusTxt = u.eps
+      ? (completo ? `✓ ${u.total}/${u.total}` : `${u.feitos}/${u.total}`)
+      : (completo ? '✓ '+rotuloOk : 'Pendente');
+    const epsHtml = u.eps && aberto ? `<div class="cr-eps">${u.eps.nums.map(n => `
+        <button type="button" class="cr-ep${u.feitosSet.has(n)?' ok':''}" data-cr-ep="${tabela}" data-id="${it.id}" data-n="${n}" ${isAdmin?'':'disabled'}>${u.feitosSet.has(n)?'✓ ':''}${u.eps.rot} ${n}</button>`).join('')}
+      </div>` : '';
+    return `<div class="cr-item-wrap">
+      <div class="cr-linha${completo?' done':''}" data-cr-abrir="${tabela}" data-id="${it.id}" style="--cat:${cc.c}">
+        <span class="cr-dot"></span>
+        <div class="cr-linha-txt">
+          <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
+          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${proj ? ` · <span class="cr-proj">${escapeHtml(proj)}${nTarefas?` · ${nTarefas} tarefa${nTarefas===1?'':'s'}`:''}</span>` : ''}</div>
+        </div>
+        ${u.eps ? `<button type="button" class="cr-expandir${aberto?' on':''}" data-cr-expandir="${it.id}" title="${aberto?'Recolher':'Marcar episódio por episódio'}">${aberto?'▾':'▸'}</button>` : ''}
+        <button type="button" class="cr-status${completo?' ok':(u.feitos?' parcial':'')}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?(u.eps?'Marcar/desmarcar todos':'Clique para alternar'):''}">${statusTxt}</button>
       </div>
-      <button type="button" class="cr-status${it.done?' ok':''}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?'Clique para alternar':''}">${it.done ? '✓ '+rotuloOk : 'Pendente'}</button>
+      ${epsHtml}
     </div>`;
   }
 
@@ -8902,13 +8951,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const mesAtual = mesAtualStr();
     const idxAtual = mes === mesAtual ? sextas.findIndex(d => d >= hoje) : -1;
     const pct = (a,b) => b ? Math.round(a/b*100) : 0;
-    const lancOk = lancMes.filter(x=>x.done).length, rendOk = rendMes.filter(x=>x.done).length;
+    const somaL = crSomar(lancMes), somaR = crSomar(rendMes);
     const MES_CURTO = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
 
     const blocos = sextas.map((d, i) => ({ n:i+1, d })).concat(ehLanc ? [] : [{ n:6, d:null }]);
     const semanasHtml = blocos.map(({n, d}) => {
       const itens = itensMes.filter(x => Number(x.semana) === n).sort((a,b) => (a.position||0)-(b.position||0));
-      const feitos = itens.filter(x => x.done).length;
+      const somaSem = crSomar(itens);
       const atual = d && (i => i === idxAtual)(n-1);
       const passada = d && d < hoje && !atual;
       const data = d
@@ -8919,7 +8968,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="cr-sem-corpo">
           <div class="cr-sem-topo">
             <span class="cr-sem-nome">${d ? 'Semana '+n : 'Extra Points'}${atual?' <em>esta semana</em>':''}</span>
-            ${itens.length ? `<span class="cr-sem-cont">${feitos}/${itens.length}</span>` : ''}
+            ${itens.length ? `<span class="cr-sem-cont">${somaSem.feitos}/${somaSem.total}</span>` : ''}
           </div>
           ${itens.length ? itens.map(it => crLinhaHtml(it, tabela)).join('') : `<div class="cr-vazio">Nada programado.</div>`}
           ${isAdmin ? `<button type="button" class="cr-add-link" data-cr-novo="${n}">+ Adicionar</button>
@@ -8946,12 +8995,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <button type="button" class="cr-aba${ehLanc?' on':''}" data-cr-aba="lancamentos" role="tab">
           <span class="cr-aba-tit">🚀 Lançamentos no app</span>
           <span class="cr-aba-sub">O que vai ao ar em cada sexta</span>
-          <span class="cr-aba-prog"><b>${lancOk}/${lancMes.length}</b> lançados<span class="cr-bar"><i style="width:${pct(lancOk,lancMes.length)}%"></i></span></span>
+          <span class="cr-aba-prog"><b>${somaL.feitos}/${somaL.total}</b> lançados<span class="cr-bar"><i style="width:${pct(somaL.feitos,somaL.total)}%"></i></span></span>
         </button>
         <button type="button" class="cr-aba${!ehLanc?' on':''}" data-cr-aba="render" role="tab">
           <span class="cr-aba-tit">⚙️ Renderização</span>
           <span class="cr-aba-sub">O que precisa ficar pronto (meta do mês)</span>
-          <span class="cr-aba-prog"><b>${rendOk}/${rendMes.length}</b> renderizados<span class="cr-bar"><i style="width:${pct(rendOk,rendMes.length)}%"></i></span></span>
+          <span class="cr-aba-prog"><b>${somaR.feitos}/${somaR.total}</b> renderizados<span class="cr-bar"><i style="width:${pct(somaR.feitos,somaR.total)}%"></i></span></span>
         </button>
       </div>
       <p class="cr-dica">Clique num item para ver quem está fazendo cada etapa na Produção.</p>
@@ -8969,10 +9018,45 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const tab = btn.dataset.crToggle, id = btn.dataset.id;
       const lista = tab === 'app_releases' ? lancamentos : metaCardsTodos;
       const it = lista.find(x => x.id === id); if (!it) return;
-      it.done = !it.done;
+      const u = crUnidades(it);
+      const marcar = u.feitos < u.total;          // se falta algo, marca tudo; senão desmarca tudo
+      const antes = { done: it.done, eps_done: it.eps_done };
+      it.done = marcar;
+      const patch = { done: marcar };
+      if (u.eps){ it.eps_done = marcar ? [...u.eps.nums] : []; patch.eps_done = it.eps_done; }
       renderCronograma();
-      const { error } = await sb.from(tab).update({ done: it.done }).eq('id', id);
-      if (error){ it.done = !it.done; showToast('❌ ' + error.message); renderCronograma(); return; }
+      let { error } = await sb.from(tab).update(patch).eq('id', id);
+      if (error && patch.eps_done && /eps_done/i.test(error.message)){ ({ error } = await sb.from(tab).update({ done: marcar }).eq('id', id)); }
+      if (error){ Object.assign(it, antes); showToast('❌ ' + error.message); renderCronograma(); return; }
+      if (tab === 'meta_cards') loadMetaCards();
+    }));
+    // expandir episódios
+    cont.querySelectorAll('[data-cr-expandir]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = b.dataset.crExpandir;
+      if (crExpandidos.has(id)) crExpandidos.delete(id); else crExpandidos.add(id);
+      renderCronograma();
+    }));
+    // marcar um episódio
+    cont.querySelectorAll('[data-cr-ep]').forEach(b => b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!isAdmin) return;
+      const tab = b.dataset.crEp, id = b.dataset.id, n = Number(b.dataset.n);
+      const lista = tab === 'app_releases' ? lancamentos : metaCardsTodos;
+      const it = lista.find(x => x.id === id); if (!it) return;
+      const u = crUnidades(it);
+      const set = new Set(u.feitosSet);
+      if (set.has(n)) set.delete(n); else set.add(n);
+      const antes = { done: it.done, eps_done: it.eps_done };
+      it.eps_done = u.eps.nums.filter(x => set.has(x));
+      it.done = it.eps_done.length === u.eps.nums.length;
+      renderCronograma();
+      const { error } = await sb.from(tab).update({ eps_done: it.eps_done, done: it.done }).eq('id', id);
+      if (error){
+        Object.assign(it, antes); renderCronograma();
+        showToast(/eps_done/i.test(error.message) ? '❌ Rode o SQL-cronograma-v3.sql para marcar episódio por episódio.' : '❌ ' + error.message);
+        return;
+      }
       if (tab === 'meta_cards') loadMetaCards();
     }));
     // abrir detalhes
@@ -13399,8 +13483,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   let prodVistaAtual = 'projeto'; // 'projeto' ou 'kanban'
 
   // Meta do mês agora é baseada nos cartões de meta.
-  function getMetaMensal(){ return metaCards.length; }
-  function contarProjetosConcluidosMes(){ return metaCards.filter(c => c.done).length; }
+  function getMetaMensal(){ return (typeof crSomar === 'function') ? crSomar(metaCards).total : metaCards.length; }
+  function contarProjetosConcluidosMes(){ return (typeof crSomar === 'function') ? crSomar(metaCards).feitos : metaCards.filter(c => c.done).length; }
 
   // Cor por categoria (pros badges dos cartões)
   const META_CAT_COR = {
