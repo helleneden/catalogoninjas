@@ -432,6 +432,13 @@
     color:var(--blue-deep); padding:0; flex:0 0 auto; font-weight:700;
   }
   .dub-edit-btn:hover{ background:rgba(37,99,235,.1); }
+  .dub-coadj-btn{
+    background:none; border:none; cursor:pointer; font-size:16px;
+    width:32px; height:32px; line-height:1; display:flex;
+    align-items:center; justify-content:center; border-radius:8px;
+    color:#7C3AED; padding:0; flex:0 0 auto; font-weight:700;
+  }
+  .dub-coadj-btn:hover{ background:rgba(124,58,237,.12); }
   .dub-copy-wrap{ position:relative; flex:0 0 auto; }
   .dub-copy{
     background:none; border:none; cursor:pointer; font-size:15px;
@@ -10087,11 +10094,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         });
         if (!ok) return;
         try {
-          await sb.from('entries').update({ project: base }).eq('id', entryId);
+          const { error } = await sb.from('entries').update({ project: base }).eq('id', entryId);
+          if (error) throw error;
           await loadPeople();
           invalidarCacheSimilares();
           showToast(`"${nome}" voltou pra lista principal.`);
-          openCoadjuvantesModal(project); // reabre atualizado
+          // atualiza o modal do projeto que fica atrás (lista principal)
+          if ($('#colOverlay')?.classList.contains('open')) openProjetoModal(base);
+          if (coadjuvantesOfProject(base).length) openCoadjuvantesModal(project); // reabre atualizado
+          else $('#colOverlay2')?.classList.remove('open');
         } catch(err){
           showToast('Erro: '+(err.message||''));
         }
@@ -11128,6 +11139,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin?'<span class="dub-handle" title="Arraste para reordenar">⠿</span>':''}
                 ${avatar}
                 <div class="dub-voice"><div class="vn">${escapeHtml(pr.person)}</div><div class="pn" draggable="false" data-edit-voz="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}" title="Clique para editar a voz">${escapeHtml(pr.voice)}</div></div>
+                ${isAdmin && pr.entryId?`<button class="dub-coadj-btn" title="Mover para Coadjuvantes (mantém nome e voz)" data-to-coadj="${pr.entryId}" data-to-coadj-nome="${escapeHtml(pr.person)}">☾</button>`:''}
                 ${isAdmin?`<button class="dub-edit-btn" title="Editar nome e voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
                 <div class="dub-copy-wrap">
                   <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
@@ -11393,6 +11405,37 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       abrirAlterarVozData(pessoa, entryIdOuIdx, project, vozAtual, dataAtual, () => {
         openProjetoModal(project);
       });
+    }));
+
+    // ☾ Mover UMA pessoa pra pasta de coadjuvantes — mantém o nome e a voz
+    // já escolhidos; só muda o project da entrada para "X ⟫ Coadjuvantes".
+    // Pra voltar, use "↩ Tirar" dentro da pasta 📁 Coadjuvantes.
+    ov.querySelectorAll('[data-to-coadj]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const entryId = btn.dataset.toCoadj;
+      const nome = btn.dataset.toCoadjNome || 'essa pessoa';
+      if (!entryId) return;
+      const ok = await confirmarBonito({
+        titulo: 'Mover para coadjuvantes?',
+        mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b><br><span style="font-size:12px;">Vai pra pasta 📁 Coadjuvantes de "${escapeHtml(baseProject(project))}" com o mesmo nome e voz. Dá pra voltar a qualquer momento pelo botão ↩ Tirar.</span>`,
+        textoBotao: '☾ Sim, mover',
+        corBotao: '#7C3AED',
+        icone: '☾'
+      });
+      if (!ok) return;
+      btn.disabled = true;
+      try {
+        const { error } = await sb.from('entries').update({ project: coadjProjectOf(project) }).eq('id', entryId);
+        if (error) throw error;
+        await loadPeople();
+        invalidarCacheSimilares();
+        showToast(`☾ "${nome}" foi para os coadjuvantes.`);
+        openProjetoModal(project);
+      } catch(err){
+        console.error('Erro ao mover pra coadjuvante:', err);
+        showToast('❌ Erro: '+(err.message||''));
+        btn.disabled = false;
+      }
     }));
 
     // lixeira: remover a entrada (voz) daquele projeto para aquela pessoa
