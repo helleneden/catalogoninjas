@@ -2617,6 +2617,8 @@
   .cr-add select{ padding:8px 6px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; max-width:130px; }
   .cr-add button{ padding:8px 12px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:12.5px; }
   .cr-modal{ max-width:560px; }
+  .cr-ligar-existente{ margin:4px 0 6px; font-size:12.5px; color:var(--muted); }
+  .cr-ligar-existente summary{ cursor:pointer; }
   .cr-modal-eyebrow{ font-size:11.5px; color:var(--muted); margin:0; font-weight:600; }
   .cr-modal-linha{ display:flex; align-items:center; gap:8px; }
   .cr-tarefas{ display:flex; flex-direction:column; gap:2px; max-height:300px; overflow:auto; }
@@ -9005,7 +9007,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function crLinhaHtml(it, tabela){
     const cc = metaCatCor(it.categoria);
     const proj = cronoProjetoDoItem(it);
-    const nTarefas = proj ? producaoTasks.filter(t => t.project === proj).length : 0;
+    const pipeIt = typeof pipelineDoItem === 'function' ? pipelineDoItem(it) : null;
+    const nTarefas = 0;
     const rotuloOk = tabela === 'app_releases' ? 'Lançado' : 'Renderizado';
     const u = crUnidades(it);
     const completo = u.feitos === u.total;
@@ -9021,7 +9024,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="cr-dot"></span>
         <div class="cr-linha-txt">
           <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
-          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${proj ? ` · <span class="cr-proj">${escapeHtml(proj)}${nTarefas?` · ${nTarefas} tarefa${nTarefas===1?'':'s'}`:''}</span>` : ''}</div>
+          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${pipeIt ? ` · <span class="cr-proj">🏭 ${(() => { const rr = pipeResumo(pipeIt); return rr.atual ? escapeHtml(rr.atual.nome) : '✓ produção concluída'; })()} · ${pipeResumo(pipeIt).pct}%</span>` : proj ? ` · <span class="cr-proj">${escapeHtml(proj)}</span>` : ''}</div>
         </div>
         ${u.eps ? `<button type="button" class="cr-expandir${aberto?' on':''}" data-cr-expandir="${it.id}" title="${aberto?'Recolher':'Marcar episódio por episódio'}">${aberto?'▾':'▸'}</button>` : ''}
         <button type="button" class="cr-status${completo?' ok':(u.feitos?' parcial':'')}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?(u.eps?'Marcar/desmarcar todos':'Clique para alternar'):''}">${statusTxt}</button>
@@ -9101,7 +9104,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <span class="cr-aba-prog"><b>${somaR.feitos}/${somaR.total}</b> renderizados<span class="cr-bar"><i style="width:${pct(somaR.feitos,somaR.total)}%"></i></span></span>
         </button>
       </div>
-      <p class="cr-dica">Clique num item para ver quem está fazendo cada etapa na Produção.</p>
+      <p class="cr-dica">Clique num item para abrir ou criar a linha de produção dele.</p>
       <div class="cr-lista">${semanasHtml}</div>`;
 
     $('#crPrev').addEventListener('click', () => { cronoMes = mesSomar(cronoMes,-1); renderCronograma(); });
@@ -9182,34 +9185,76 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // Janela de detalhes do item: status, projeto ligado e "quem faz o quê"
+  // ---- nomes: "Trilha Selvagem Ep. 9" → base "trilha selvagem" (pra achar a série/franquia) ----
+  function limparTituloCrono(t){
+    return (t||'').replace(/^\s*(audiobook|desenho|filme|mini-?document[aá]rio|document[aá]rio|s[eé]rie|curso|palestras?)\s*:\s*/i, '')
+      .replace(/^vozes\s*-?\s*/i, '').replace(/[“”"]/g, '').trim();
+  }
+  function baseSerie(nome){
+    return (nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
+      .replace(/^\s*(audiobook|desenho|filme|mini-?documentario|documentario|serie|vozes)\s*[:\-]?\s*/, '')
+      .replace(/\(.*?\)/g, ' ')
+      .replace(/\b(ep|eps|episodios?|aulas?|palestras?|partes?|temporada|season|t)\b\.?\s*\d+(\s*(a|e|-|,)\s*\d+)*/g, ' ')
+      .replace(/\b\d+\s*(a|-)\s*\d+\b/g, ' ')
+      .replace(/\b(t|s)\d{1,2}\b/g, ' ')
+      .replace(/[^a-z0-9 ]+/g, ' ').replace(/\b\d+\b\s*$/, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function episodioDoTitulo(t){
+    const n = (t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+    const eps = epsDoTitulo(t);
+    if (eps) return eps.nums.length > 1 ? `${eps.nums[0]} a ${eps.nums[eps.nums.length-1]}` : String(eps.nums[0]);
+    const m = n.match(/\b(?:ep|episodio)s?\.?\s*(\d{1,3})\b/);
+    return m ? m[1] : null;
+  }
+  // Sugere nome/episódio/categoria da linha de produção a partir do item do cronograma
+  function sugestaoDoItem(it){
+    const limpo = limparTituloCrono(it.titulo);
+    const base = baseSerie(limpo);
+    const existente = it.project || allProjectsList().find(pr => baseSerie(pr) === base) || null;
+    const ep = episodioDoTitulo(it.titulo);
+    const cat = it.categoria === 'Estudo' ? 'Estudo' : it.categoria;
+    return {
+      nome: existente || (ep ? limpo.replace(/\s*[-–:]?\s*\b(ep|eps|epis[oó]dios?)\b\.?\s*[\d\s,ae-]+$/i, '').trim() : limpo),
+      episode: ep,
+      categoria: cat,
+      kind: it.categoria === 'Audiobook' ? 'audiobook' : 'video',
+      autor: it.categoria === 'Audiobook' ? ((limpo.match(/\(([^)]+)\)\s*$/) || [])[1] || '') : '',
+    };
+  }
+  // A linha de produção ligada ao item (pelo projeto + episódio)
+  function pipelineDoItem(it){
+    const proj = it.project; if (!proj) return null;
+    const doProj = pipelines.filter(p => p.project === proj);
+    if (!doProj.length) return null;
+    const ep = episodioDoTitulo(it.titulo);
+    return doProj.find(p => (p.episode||null) === (ep||null)) || (doProj.length === 1 ? doProj[0] : null);
+  }
+  // "Esse projeto é a sequência da franquia X da coleção Y?"
+  function sugestaoFranquia(nome){
+    if (!nome || projectFranchise[nome]) return null;
+    const base = baseSerie(nome); if (!base) return null;
+    const candidatos = new Set(allProjectsList().filter(pr => pr !== nome && baseSerie(pr) === base));
+    // também olha o cronograma de meses anteriores
+    [...lancamentos, ...metaCardsTodos].forEach(it => { if (it.project && it.project !== nome && baseSerie(limparTituloCrono(it.titulo)) === base) candidatos.add(it.project); });
+    for (const pr of candidatos){
+      const frId = projectFranchise[pr]; if (!frId) continue;
+      const fr = (franchises||[]).find(f => f.id === frId); if (!fr) continue;
+      const col = (categories||[]).find(c => c.id === fr.category_id);
+      return { franquia: fr, colecao: col, origem: pr };
+    }
+    return null;
+  }
+
   function abrirItemCronograma(tabela, id){
     const lista = tabela === 'app_releases' ? lancamentos : metaCardsTodos;
     const it = lista.find(x => x.id === id); if (!it) return;
-    const proj = cronoProjetoDoItem(it);
-    const tarefas = proj ? producaoTasks.filter(t => t.project === proj) : [];
-    const feitas = tarefas.filter(t => t.done).length;
     const rotuloOk = tabela === 'app_releases' ? 'Lançado no app' : 'Renderizado';
-    const projetos = allProjectsList();
+    const pipe = pipelineDoItem(it);
+    const r = pipe ? pipeResumo(pipe) : null;
+    const quem = pipe && r.atual ? pipeQuemNaEtapa(pipe, r.atual) : [];
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open';
     ov.style.zIndex = '400';
-    const linhasTarefas = tarefas
-      .sort((a,b) => (a.done-b.done) || String(a.episode||'').localeCompare(String(b.episode||''),'pt-BR',{numeric:true}) || String(a.part||'').localeCompare(String(b.part||''),'pt-BR',{numeric:true}))
-      .map(t => {
-        const si = stageInfo(t.stage);
-        const perfil = profilesByUser[t.assignee_user_id] || {};
-        const ninja = NINJAS[perfil.ninja_color||'azul'] || NINJAS.azul;
-        const onde = [t.episode && t.episode !== 'Filme' ? 'Ep '+t.episode : '', t.part ? 'Parte '+t.part : ''].filter(Boolean).join(' · ');
-        const prazo = t.due_date ? new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : '';
-        return `<div class="cr-tarefa${t.done?' done':''}">
-          <img src="${ninja}" alt="">
-          <div style="flex:1;min-width:0;">
-            <div class="cr-tarefa-nome">${escapeHtml(t.assignee_name || perfil.display_name || 'Sem responsável')}</div>
-            <div class="cr-tarefa-meta"><span style="color:${si.cor}">${si.ic} ${escapeHtml(t.stage)}</span>${onde?` · ${escapeHtml(onde)}`:''}${prazo?` · até ${prazo}`:''}</div>
-          </div>
-          <span class="cr-tarefa-st">${t.done ? '✓' : '⏳'}</span>
-        </div>`;
-      }).join('');
     ov.innerHTML = `
       <div class="modal cr-modal">
         <p class="cr-modal-eyebrow">${tabela==='app_releases'?'🚀 Lançamento':'⚙️ Renderização'} · ${it.semana==6?'Extra Points':'Semana '+it.semana} · ${mesNome(it.mes)}</p>
@@ -9219,26 +9264,36 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <button type="button" class="cr-status${it.done?' ok':''}" id="crModalStatus" ${isAdmin?'':'disabled'}>${it.done ? '✓ '+rotuloOk : 'Pendente'}</button>
         </div>
 
-        <div class="field" style="margin-top:16px;">
-          <label>Projeto no app</label>
-          ${isAdmin ? `<select id="crModalProj" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
-              <option value="">— Escolha o projeto —</option>
-              ${projetos.map(p => `<option value="${escapeHtml(p)}" ${p===proj?'selected':''}>${escapeHtml(p)}</option>`).join('')}
-            </select>` : `<div style="font-size:14px;">${proj?escapeHtml(proj):'<span style="color:var(--muted)">Nenhum projeto ligado</span>'}</div>`}
+        <div class="field" style="margin-top:18px;">
+          <label>🏭 Linha de produção</label>
+          ${pipe ? `
+            <button type="button" class="pl-card" id="crModalPipe" style="width:100%;">
+              <div class="pl-card-topo">
+                <span class="pl-card-kind">${(PIPE_KINDS[pipe.kind]||PIPE_KINDS.video).ic}</span>
+                <div style="flex:1;min-width:0;text-align:left;">
+                  <div class="pl-card-nome">${escapeHtml(pipeNome(pipe))}</div>
+                  <div class="pl-card-sub">${r.atual ? `Agora: <b>${escapeHtml(r.atual.nome)}</b>${quem.length ? ' · ' + escapeHtml(quem.join(', ')) : ''}` : '<b style="color:var(--ok-ink)">✓ Concluído</b>'}</div>
+                </div>
+                <span class="pl-card-pct">${r.pct}%</span>
+              </div>
+              <div class="pl-dots">${(pipe.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(pipe, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</div>
+            </button>`
+          : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
+             ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
         </div>
 
-        <div class="field">
-          <label>Quem faz o quê ${tarefas.length?`<span style="text-transform:none;font-weight:500;color:var(--muted);">· ${feitas}/${tarefas.length} etapas feitas</span>`:''}</label>
-          ${!proj ? `<div class="cr-vazio">Ligue este item a um projeto para ver as tarefas da equipe.</div>`
-            : tarefas.length ? `<div class="cr-tarefas">${linhasTarefas}</div>`
-            : `<div class="cr-vazio">Ainda não há tarefas delegadas para "${escapeHtml(proj)}".</div>`}
-        </div>
+        ${isAdmin && !pipe && pipelines.length ? `<details class="cr-ligar-existente">
+          <summary>Já existe uma linha de produção para ele? Ligar a ela</summary>
+          <select id="crModalPipeSel" style="width:100%;margin-top:8px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;">
+            <option value="">— Escolha —</option>
+            ${pipelines.slice().sort((x,y) => pipeNome(x).localeCompare(pipeNome(y),'pt-BR')).map(pp => `<option value="${pp.id}">${escapeHtml(pipeNome(pp))}</option>`).join('')}
+          </select>
+        </details>` : ''}
 
         <div class="modal-actions">
           ${isAdmin?`<button class="btn-danger-ghost" id="crModalDel" style="margin-right:auto;" title="Remover do cronograma">🗑️ Remover</button>`:''}
+          ${pipe && isAdmin ? `<button class="btn-ghost" id="crModalDesligar" title="Desfaz a ligação com a linha de produção">Desligar</button>` : ''}
           <button class="btn-ghost" id="crModalFechar">Fechar</button>
-          ${proj ? `<button class="btn-ghost" id="crModalProd">Ver na Produção →</button>` : ''}
-          ${isAdmin ? `<button class="btn-primary" id="crModalDelegar">👥 Delegar atividades</button>` : ''}
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -9254,28 +9309,27 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (tabela === 'meta_cards') loadMetaCards();
       renderCronograma();
     });
-    const pr = ov.querySelector('#crModalProd');
-    if (pr) pr.addEventListener('click', () => { fechar(); abrirProducaoDoProjeto(proj); });
-    // escolher o projeto já liga o item a ele (fica salvo)
     const salvarLigacao = async (val) => {
-      if ((it.project||null) === (val||null)) return true;
       const { error } = await sb.from(tabela).update({ project: val || null }).eq('id', it.id);
       if (error){ showToast(/project/i.test(error.message) ? '❌ Rode o SQL-cronograma-v3.sql para poder ligar projetos.' : '❌ '+error.message); return false; }
       it.project = val || null;
       return true;
     };
-    const selProj = ov.querySelector('#crModalProj');
-    if (selProj) selProj.addEventListener('change', async () => {
-      if (await salvarLigacao(selProj.value)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); }
-    });
-    const dg = ov.querySelector('#crModalDelegar');
-    if (dg) dg.addEventListener('click', async () => {
-      const val = selProj ? selProj.value : proj;
-      if (val) await salvarLigacao(val);
+    const pb = ov.querySelector('#crModalPipe');
+    if (pb) pb.addEventListener('click', () => { fechar(); abrirPipeline(pipe.id); });
+    const cp = ov.querySelector('#crModalCriarPipe');
+    if (cp) cp.addEventListener('click', () => {
+      const sug = sugestaoDoItem(it);
       fechar();
-      renderCronograma();
-      abrirDelegarParaProjeto(val || null);
+      abrirNovoPipeline({ ...sug, aoCriar: async (novo) => { await salvarLigacao(novo.project); renderCronograma(); } });
     });
+    const ps = ov.querySelector('#crModalPipeSel');
+    if (ps) ps.addEventListener('change', async () => {
+      const pp = pipelines.find(x => x.id === ps.value); if (!pp) return;
+      if (await salvarLigacao(pp.project)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); showToast(`🔗 Ligado a ${pipeNome(pp)}`); }
+    });
+    const dl = ov.querySelector('#crModalDesligar');
+    if (dl) dl.addEventListener('click', async () => { if (await salvarLigacao(null)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); } });
     const del = ov.querySelector('#crModalDel');
     if (del) del.addEventListener('click', async () => {
       const ok = await confirmarBonito({ titulo:'Remover do cronograma?', mensagem:`<b style="color:var(--ink);">"${escapeHtml(it.titulo)}"</b>`, textoBotao:'🗑️ Remover', corBotao:'#DC2626', icone:'📅' });
@@ -9711,8 +9765,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
         <div id="npVideo">
           <div class="np-grid">
-            <div class="field"><label>Categoria</label><select id="npCat">${['Filme','Série','Documentário','Desenho','Estudo'].map(c => `<option ${opts.categoria===c?'selected':''}>${c}</option>`).join('')}</select></div>
-            <div class="field"><label>Episódio <span style="font-weight:400;text-transform:none;">(série)</span></label><input type="text" id="npEp" placeholder="Ex: 01"></div>
+            <div class="field"><label>Categoria</label><select id="npCat">${['Filme','Série','Documentário','Desenho','Estudo','Infantil','Outro'].map(c => `<option ${opts.categoria===c?'selected':''}>${c}</option>`).join('')}</select></div>
+            <div class="field"><label>Episódio <span style="font-weight:400;text-transform:none;">(série)</span></label><input type="text" id="npEp" placeholder="Ex: 01" value="${escapeHtml(opts.episode||'')}"></div>
             <div class="field"><label>Partes</label><input type="number" id="npPartes" min="1" max="40" value="3"></div>
           </div>
         </div>
@@ -9758,6 +9812,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         steps = pipeTemplate('especial', linhas.map(l => ({ nome: l.replace(/\*$/,'').trim(), partes: /\*$/.test(l) })));
       }
       if (pipelines.some(x => x.project === nome && (x.episode||null) === episode)){ showToast('Já existe uma linha de produção para esse projeto/episódio.'); return; }
+      // É a sequência de uma franquia que já existe? (pergunta antes de criar)
+      let franquiaEscolhida = null;
+      if (kind !== 'audiobook'){
+        const sf = sugestaoFranquia(nome);
+        if (sf){
+          const sim = await confirmarBonito({
+            titulo: 'É a sequência de uma franquia?',
+            mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b> parece continuar <b style="color:var(--ink);">"${escapeHtml(sf.origem)}"</b>.<br><br>Adicionar à franquia <b style="color:var(--ink);">${escapeHtml(sf.franquia.name)}</b>${sf.colecao ? ` da coleção <b style="color:var(--ink);">${escapeHtml(sf.colecao.name)}</b>` : ''}?`,
+            textoBotao: '✓ Sim, é a sequência',
+            corBotao: '#2F7FC4',
+            icone: '🎬'
+          });
+          if (sim) franquiaEscolhida = sf.franquia;
+        }
+      }
       const btn = ov.querySelector('#npCriar'); btn.disabled = true; btn.textContent = 'Criando…';
       const novo = { id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project:nome, episode, kind, categoria, autor, partes, steps, created_by: myProfile.display_name || myEmail || null };
       const { error } = await sb.from('production_pipelines').insert(novo);
@@ -9771,8 +9840,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           if (tipo && !projectCats[nome]){ await sb.from('project_categories').upsert({ project:nome, category:tipo }, { onConflict:'project' }); projectCats[nome] = tipo; }
         } catch(e){}
       }
+      if (franquiaEscolhida){
+        try {
+          await sb.from('project_franchise').upsert({ project:nome, franchise_id: franquiaEscolhida.id }, { onConflict:'project' });
+          projectFranchise[nome] = franquiaEscolhida.id;
+          showToast(`🎬 Adicionado à franquia ${franquiaEscolhida.name}`);
+        } catch(e){}
+      }
       if (opts.backlogId){ try { await sb.from('backlog_items').update({ started:true }).eq('id', opts.backlogId); const b = backlogItens.find(x => x.id === opts.backlogId); if (b) b.started = true; } catch(e){} }
       pipelines.push(novo);
+      if (typeof opts.aoCriar === 'function'){ try { await opts.aoCriar(novo); } catch(e){} }
       fechar();
       showToast(`🏭 Linha de produção criada: ${pipeNome(novo)}`);
       if (currentView === 'producao') renderProducao();
@@ -14587,7 +14664,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
             <button id="abrirMuralBtn" style="background:var(--surface);border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
             ${isAdmin?`<button id="novaLinhaBtn" class="pl-novo-btn">🏭 Nova linha de produção</button>`:''}
-            ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:#3D2B00;font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
+
           </div>
         </div>
         <div class="prod-hero-stats">
