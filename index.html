@@ -9433,7 +9433,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
                 </div>
                 <span class="pl-card-pct">${r.pct}%</span>
               </div>
-              <div class="pl-dots">${(pipe.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(pipe, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</div>
+              <div class="pl-dots">${pipeEtapasVis(pipe).map(st => `<span class="pl-dot${pipeEtapaOk(pipe, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</div>
             </button>`
           : ehItemLegenda(it) ? (isAdmin ? `<div class="cr-leg">
               <p>🔤 Legenda é uma <b>extensão</b> da linha de um projeto. Qual projeto vai ser legendado?</p>
@@ -9637,6 +9637,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function pipeTask(id){ return id ? producaoTasks.find(t => t.id === id) : null; }
   function pipePartes(p){ return Math.max(1, Number(p.partes) || 1); }
   function pipePartesOk(p){ return Number(p.partes) > 0; }
+  function pipeSrtFaltando(p){
+    const mat = (p.steps||[]).find(s => s.tipo === 'material');
+    const it = mat && (mat.itens||[]).find(i => /srt|legenda/i.test(i.nome));
+    return !!(it && it.status === 'faltando');
+  }
+  function pipeEtapasVis(p){ return (p.steps||[]).filter(s => s.condicional !== 'srt' || pipeSrtFaltando(p)); }
   function pipeSrtRecebido(p){
     const mat = (p.steps||[]).find(s => s.tipo === 'material');
     const it = mat && (mat.itens||[]).find(i => /srt|legenda/i.test(i.nome));
@@ -9662,7 +9668,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   function pipeEtapaOk(p, s){ const g = pipeEtapaProg(p, s); return g.feitos >= g.total; }
   function pipeResumo(p){
-    const steps = p.steps || [];
+    const steps = pipeEtapasVis(p);
     const feitas = steps.filter(s => pipeEtapaOk(p, s)).length;
     const atual = steps.find(s => !pipeEtapaOk(p, s)) || null;
     const faltando = steps.filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => i.nome));
@@ -9767,7 +9773,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (s.condicional === 'srt' && pipeSrtRecebido(p))
       return `<p class="pl-nota">✓ O SRT veio junto com o material — esta etapa não é necessária.</p>`;
     if (s.condicional === 'srt')
-      return `<p class="pl-nota">Só é preciso se o SRT não veio no material. Quem fica com a criação no Claude?</p><div class="pl-rows">${pipeLinhaPessoa(p, s, null)}</div>`;
+      return `<p class="pl-nota">O SRT não veio no material — alguém precisa criar com o Claude.</p><div class="pl-rows">${pipeLinhaPessoa(p, s, null)}</div>`;
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p))
       return `<p class="pl-nota">⚠ Defina primeiro em quantas partes este ${p.episode ? 'episódio' : 'projeto'} foi dividido (no topo desta janela).</p>`;
     if (s.tipo === 'material'){
@@ -9833,7 +9839,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!(p.id in pipeEtapaAberta)) pipeEtapaAberta[p.id] = r.atual ? r.atual.key : null;
     const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
     const temPartes = (p.steps||[]).some(s => s.tipo === 'partes' || s.tipo === 'checkpartes');
-    const etapas = (p.steps||[]).map((s, i) => {
+    const etapas = pipeEtapasVis(p).map((s, i) => {
       const g = pipeEtapaProg(p, s), ok = g.feitos >= g.total, atual = r.atual && r.atual.key === s.key;
       const aberto = pipeEtapaAberta[p.id] === s.key;
       const quem = pipeQuemNaEtapa(p, s);
@@ -9867,8 +9873,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         ${pipeSoLeitura ? `<div class="pl-leitura">👁 Esta linha de produção já existe — você está só visualizando.${isAdmin ? ` <button type="button" id="plEditar">✎ Editar linha</button>` : ''}</div>` : ''}
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote">Episódio ${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length} deste lote · ao fechar, você escolhe se repete as informações nos próximos.</div>` : ''}
         ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
-        ${p.kind === 'legenda' ? `<div class="pl-leg-assoc">🔤 Extensão de legenda do projeto <b>${escapeHtml(p.project)}</b>
-          ${pipeAdm() ? `<select id="plLegProj"><option value="">Associar a outro projeto…</option>${allProjectsList().filter(pr => pr !== p.project).map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}</select>` : ''}</div>` : ''}
+        ${p.kind === 'legenda' ? `<div class="pl-leg-assoc">🔤 ${allProjectsList().includes(p.project) ? 'Extensão de legenda do projeto' : 'Linha de legenda avulsa —'} <b>${escapeHtml(p.project)}</b>${allProjectsList().includes(p.project) ? '' : ' · associe ao projeto:'}
+          ${pipeAdm() && !allProjectsList().includes(p.project) ? `<select id="plLegProj"><option value="">Associar a outro projeto…</option>${allProjectsList().filter(pr => pr !== p.project).map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}</select>` : ''}</div>` : ''}
         ${temPartes && pipeAdm() ? (pipePartesOk(p)
           ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>`
           : `<div class="pl-partes-ctrl pl-partes-def">⚠ Partes a definir: <input type="number" id="plPartesDef" min="1" max="40" placeholder="Qtd."><button type="button" id="plPartesDefOk" class="ok">Definir</button></div>`) : ''}
@@ -9939,7 +9945,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // material
     ov.querySelectorAll('[data-pl-mat]').forEach(b => b.onclick = async () => {
       const it = aberta.itens[Number(b.dataset.plMat)]; it.status = it.status === b.dataset.st ? 'pendente' : b.dataset.st;
-      await pipeSalvar(p); reabrir();
+      await pipeSalvar(p);
+      if (/srt|legenda/i.test(it.nome) && it.status === 'faltando' && (p.steps||[]).some(st => st.condicional === 'srt')){
+        showToast('🤖 Etapa "Criar o SRT com o Claude" adicionada');
+      }
+      reabrir();
     });
     ov.querySelectorAll('[data-pl-obs]').forEach(inp => inp.onchange = async () => { aberta.itens[Number(inp.dataset.plObs)].obs = inp.value.trim(); await pipeSalvar(p); });
     const ma = ov.querySelector('#plMatAdd');
@@ -10047,7 +10057,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="fp-ep">${p.episode ? `${rotuloEp(p)} ${escapeHtml(p.episode)}` : 'Único'}</span>
         <span class="fp-info">
           <span class="fp-etapa">${r.atual ? escapeHtml(r.atual.nome) : '✓ Concluído'}${quem.length ? ` · <em>${escapeHtml(quem.join(', '))}</em>` : ''}</span>
-          <span class="pl-dots">${(p.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(p, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</span>
+          <span class="pl-dots">${pipeEtapasVis(p).map(st => `<span class="pl-dot${pipeEtapaOk(p, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</span>
           ${r.faltando.length ? `<span class="fp-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</span>` : ''}
           ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<span class="fp-falt">⚠ Partes a definir</span>` : ''}
         </span>
@@ -10420,7 +10430,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const r = pipeResumo(p);
     const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
     const quem = pipeQuemNaEtapa(p, r.atual);
-    const dots = (p.steps||[]).map(s => `<span class="pl-dot${pipeEtapaOk(p, s)?' ok':''}${r.atual && r.atual.key === s.key ? ' atual' : ''}" title="${escapeHtml(s.nome)}"></span>`).join('');
+    const dots = pipeEtapasVis(p).map(s => `<span class="pl-dot${pipeEtapaOk(p, s)?' ok':''}${r.atual && r.atual.key === s.key ? ' atual' : ''}" title="${escapeHtml(s.nome)}"></span>`).join('');
     return `<button type="button" class="pl-card${r.atual?'':' done'}" data-pl-abrir="${p.id}">
       <div class="pl-card-topo">
         <span class="pl-card-kind">${kind.ic}</span>
