@@ -2776,6 +2776,16 @@
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pl-rod{ white-space:nowrap; }
+  .rp-matriz-wrap{ max-height:300px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
+  .rp-matriz{ width:100%; border-collapse:collapse; font-size:13px; }
+  .rp-matriz th{ position:sticky; top:0; background:var(--surface); font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); padding:8px; text-align:center; border-bottom:1px solid var(--line); }
+  .rp-matriz th:first-child, .rp-matriz td:first-child{ text-align:left; }
+  .rp-matriz td{ padding:7px 8px; border-bottom:1px solid var(--line); text-align:center; color:var(--ink); }
+  .rp-matriz tr:last-child td{ border-bottom:none; }
+  .rp-matriz td small{ display:block; font-size:10.5px; color:var(--muted); font-weight:500; }
+  .rp-cel{ display:inline-flex !important; flex-direction:column; align-items:center; gap:2px; margin:0 !important; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; }
+  .rp-cel-toda{ flex-direction:row; gap:6px; }
+  .rp-cel input{ width:16px; height:16px; accent-color:var(--blue); }
   .ab-filtros{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; }
   .ab-filtros select{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); color:var(--ink); font:inherit; font-size:13px; max-width:240px; }
   .ab-limpar{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
@@ -10575,14 +10585,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         </div>
         <div class="field" id="rpEtapas" hidden><label>Quais informações repetir?</label>
-          <div class="rp-lista">
-            <label class="rp-item"><input type="checkbox" id="rpPartes" checked> Número de partes ${pipePartesOk(src) ? `(${pipePartes(src)})` : '(a definir)'}</label>
-            ${etapas.map((st, i) => `<label class="rp-item"><input type="checkbox" class="rp-et" value="${st.key}" checked> ${i+1}. ${escapeHtml(st.nome)} <span>${escapeHtml(pipeQuemNaEtapa(src, st).join(', '))}</span></label>`).join('')}
-          </div>
+          <label class="rp-item" style="margin-bottom:8px !important;"><input type="checkbox" id="rpPartes" checked> Número de partes ${pipePartesOk(src) ? `(${pipePartes(src)})` : '(a definir)'}</label>
+          <div class="rp-matriz-wrap"><table class="rp-matriz">
+            <thead><tr><th>Etapa</th>${NP > 1 ? Array.from({length:NP}, (_, i) => `<th>Parte ${i+1}</th>`).join('') : '<th>Copiar</th>'}</tr></thead>
+            <tbody>${etapas.map((st, i) => {
+              const porParte = NP > 1 && (st.tipo === 'partes' || st.tipo === 'checkpartes');
+              const quem = (n) => { if (st.tipo !== 'partes') return ''; const t = pipeTask((st.atrib||{})[n]); return t && t.assignee_name ? `<small>${escapeHtml(t.assignee_name)}</small>` : ''; };
+              return `<tr><td>${i+1}. ${escapeHtml(st.nome)}${!porParte && pipeQuemNaEtapa(src, st).length ? ` <small>${escapeHtml(pipeQuemNaEtapa(src, st).join(', '))}</small>` : ''}</td>${porParte
+                ? Array.from({length:NP}, (_, k) => `<td><label class="rp-cel"><input type="checkbox" data-rk="${st.key}" data-rn="${k+1}" checked>${quem(k+1)}</label></td>`).join('')
+                : `<td colspan="${NP > 1 ? NP : 1}"><label class="rp-cel rp-cel-toda"><input type="checkbox" data-rk="${st.key}" data-rn="0" checked> <small>${NP > 1 ? (rot === 'Aula' ? 'aula inteira' : 'episódio inteiro') : ''}</small></label></td>`}</tr>`;
+            }).join('')}</tbody>
+          </table></div>
+          <small style="font-size:11.5px;color:var(--muted);">Marcado = copia quem faz/o que já foi marcado nessa etapa e parte. Desmarcado = a etapa vem vazia para preencher depois.</small>
         </div>
-        ${NP > 1 ? `<div class="field"><label>De quais partes?</label>
-          <div class="rp-chips">${Array.from({length:NP}, (_, i) => i+1).map(n => `<label class="rp-chip"><input type="checkbox" class="rp-pt" value="${n}" checked> Parte ${n}</label>`).join('')}</div>
-          <small style="font-size:11.5px;color:var(--muted);">Quem dubla/revisa cada parte só é copiado nas partes marcadas.</small></div>` : ''}
         <div class="modal-actions">
           <button class="btn-ghost" id="rpNao">${aoTerminar && !opts.novos ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
           <button class="btn-primary" id="rpSim">${opts.novos ? '🏭 Criar linha' : 'Repetir'}</button>
@@ -10594,7 +10609,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const fechar = () => ov.remove();
     ov.querySelector('#rpNao').onclick = () => { fechar(); if (aoTerminar) aoTerminar([]); };
     ov.querySelector('#rpSim').onclick = async () => {
-      const ids = [...ov.querySelectorAll('.rp-chips input[value]:not(.rp-pt):checked')].map(i => i.value);
+      const ids = [...ov.querySelectorAll('.rp-chips input[value]:checked')].map(i => i.value);
       // novos episódios: "5", "5 a 8", "5, 6, 9"
       const txt = ((ov.querySelector('#rpNovos')||{}).value || '').trim();
       let novosEps = [];
@@ -10607,10 +10622,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (jaTem.length && !novosEps.length){ showToast(`${rot} ${jaTem.join(', ')} já tem linha de produção.`); return; }
       if (jaTem.length) showToast(`${rot} ${jaTem.join(', ')} já tem linha — pulei.`);
       if (!ids.length && !novosEps.length){ showToast('Escolha pelo menos um episódio.'); return; }
-      const keys = modo === 'tudo' ? etapas.map(st => st.key) : [...ov.querySelectorAll('.rp-et:checked')].map(i => i.value);
+      // por etapa: quais partes copiar (null = todas / etapa inteira)
+      const sel = {};
+      if (modo === 'tudo') etapas.forEach(st => sel[st.key] = null);
+      else ov.querySelectorAll('[data-rk]:checked').forEach(i => {
+        const k = i.dataset.rk, n = Number(i.dataset.rn);
+        if (n === 0) sel[k] = null; else (sel[k] = sel[k] || []).push(n);
+      });
+      Object.keys(sel).forEach(k => { if (Array.isArray(sel[k]) && sel[k].length >= NP) sel[k] = null; });
+      const keys = Object.keys(sel);
       const copiarPartes = modo === 'tudo' ? true : ov.querySelector('#rpPartes').checked;
-      const ptsMarc = [...ov.querySelectorAll('.rp-pt:checked')].map(i => Number(i.value));
-      const partesSel = NP > 1 && ptsMarc.length < NP ? ptsMarc : null;
       if (!keys.length && !copiarPartes){ showToast('Marque o que repetir.'); return; }
       const btn = ov.querySelector('#rpSim'); btn.disabled = true; btn.textContent = 'Repetindo…';
       const limparEtapa = st => { const c = JSON.parse(JSON.stringify(st)); delete c.taskId; delete c.feitosManual; delete c.concluido; delete c.historico; delete c.concluido_em; if (c.tipo === 'partes') c.atrib = {}; if (c.tipo === 'checkpartes') c.feitos = []; if (c.itens) c.itens.forEach(i => { i.status = 'pendente'; i.obs = ''; }); if (c.tipo === 'voz_livro') c.voz = ''; if ('done' in c || c.tipo === 'unica' || c.tipo === 'vozes' || c.tipo === 'check') c.done = false; return c; };
@@ -10623,7 +10644,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         pipelines.push(...novos);
         ids.push(...novos.map(n => n.id));
       }
-      for (const id of ids){ const dst = pipelines.find(x => x.id === id); if (dst) await pipeCopiar(src, dst, keys, copiarPartes || novosEps.includes(epNum(dst)), partesSel); }
+      for (const id of ids){
+        const dst = pipelines.find(x => x.id === id); if (!dst) continue;
+        const cp = copiarPartes || novosEps.includes(epNum(dst));
+        const inteiras = keys.filter(k => sel[k] === null);
+        if (inteiras.length || cp) await pipeCopiar(src, dst, inteiras, cp, null);
+        for (const k of keys.filter(k => Array.isArray(sel[k]))) await pipeCopiar(src, dst, [k], false, sel[k]);
+      }
       await loadProducaoTasks();
       if (typeof loadAgenda === 'function') await loadAgenda();
       if (typeof loadTaskNotifs === 'function') await loadTaskNotifs();
