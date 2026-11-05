@@ -2795,6 +2795,9 @@
   .ps-semana{ margin-bottom:14px; }
   .ps-semana-tit{ display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
   .ps-semana-tit span{ background:var(--surface-soft); border:1px solid var(--line); border-radius:20px; padding:1px 8px; font-size:11px; letter-spacing:0; }
+  .ps-tit{ font-size:12px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); }
+  .ps-tit b{ margin-left:4px; color:var(--ink); }
+  .ps-seg .prod-quem-btn.on, .ps-seg .prod-status-btn.on{ background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.18); }
   .ps-resumo{ font-size:12.5px; color:var(--muted); margin:-4px 0 12px; }
   .pl-leitura{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
   .pl-leitura button{ margin-left:auto; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
@@ -9590,7 +9593,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let prodProjetoFiltro = null;
   function abrirProducaoDoProjeto(proj){
     prodProjetoFiltro = proj;
-    prodFiltroAtual = 'todas';
+    prodFiltroAtual = 'todas'; prodQuem = 'todos';
     prodVistaAtual = 'projeto';
     switchView('producao');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -9696,6 +9699,26 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return { feitos:0, total:1 };
   }
   function pipeEtapaOk(p, s){ const g = pipeEtapaProg(p, s); return g.feitos >= g.total; }
+  // quando a linha foi concluída (último done_at das tarefas ou última edição)
+  function pipeDataConclusao(pp){
+    const ts = (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).map(pipeTask).filter(t => t && t.done_at).map(t => t.done_at);
+    return [pp.updated_at, ...ts].filter(Boolean).sort().pop() || pp.created_at;
+  }
+  function mesDaData(d){ if (!d) return ''; const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; }
+  // Meta do mês: itens da Renderização do mês, cada um valendo o andamento da sua linha
+  function metaDoMes(mes){
+    const itens = (metaCardsTodos && metaCardsTodos.length ? metaCardsTodos : metaCards).filter(x => !mes || x.mes === mes);
+    let peso = 0, feito = 0, completos = 0;
+    itens.forEach(it => {
+      const u = crUnidades(it);
+      const pp = pipelineDoItem(it);
+      let prog = u.total ? u.feitos / u.total : 0;
+      if (pp && !(u.feitos >= u.total)) prog = Math.max(prog, pipeResumo(pp).pct / 100);
+      peso += u.total; feito += prog * u.total;
+      if (prog >= 1) completos += u.total;
+    });
+    return { pct: peso ? Math.round(feito / peso * 100) : 0, itens: peso, completos };
+  }
   function pipeNivel(p){ const pct = pipeResumo(p).pct; return pct >= 100 ? 'n100' : pct >= 70 ? 'n70' : 'n0'; }
   function pipeResumo(p){
     const steps = pipeEtapasVis(p);
@@ -15310,15 +15333,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (!cont) return;
 
     // Estatísticas gerais (pro hero)
+    const mesAgora = mesAtualStr();
     const total = producaoTasks.length;
-    const feitas = producaoTasks.filter(t => t.done).length;
+    const feitasMes = producaoTasks.filter(t => t.done && mesDaData(t.done_at) === mesAgora).length;
     const minhas = producaoTasks.filter(t => t.assignee_user_id === myUserId && !t.done).length;
-    const pct = total ? Math.round(feitas/total*100) : 0;
-
-    // Meta mensal
-    const metaMes = getMetaMensal();
-    const projsConcluidosMes = contarProjetosConcluidosMes();
-    const pctMeta = metaMes > 0 ? Math.round(projsConcluidosMes/metaMes*100) : 0;
+    const meta = metaDoMes(mesAgora);
+    const projConcluidosMes = pipelines.filter(pp => !pipeResumo(pp).atual && mesDaData(pipeDataConclusao(pp)) === mesAgora).length;
+    const projAndamento = pipelines.filter(pp => pipeResumo(pp).atual).length;
 
     cont.innerHTML = `
       <div class="prod-hero">
@@ -15335,18 +15356,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>
         <div class="prod-hero-stats">
           <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
-          <div class="prod-hero-stat"><b>${feitas}</b><span>concluídas</span></div>
+          <div class="prod-hero-stat"><b>${feitasMes}</b><span>concluídas no mês</span></div>
           <div class="prod-hero-stat"><b>${minhas}</b><span>suas pendentes</span></div>
-          <div class="prod-hero-stat"><b>${pctMeta}%</b><span>meta do mês (${projsConcluidosMes}/${metaMes})</span></div>
+          <div class="prod-hero-stat"><b>${meta.pct}%</b><span>meta do mês (${meta.itens} itens)</span></div>
+          <div class="prod-hero-stat"><b>${projConcluidosMes}<small style="font-size:14px;opacity:.75;">/${projConcluidosMes + projAndamento}</small></b><span>projetos concluídos no mês</span></div>
         </div>
       </div>
 
       ${backlogHtml()}
       <div id="prodProjetoChip" class="prod-proj-chip" hidden></div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-        <button class="prod-filtro-btn btn-ghost" data-filtro="minhas" style="padding:8px 16px;font-size:13px;">👤 Minhas missões</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="todas" style="padding:8px 16px;font-size:13px;">🌐 Todas</button>
-        <button class="prod-filtro-btn btn-ghost" data-filtro="pendentes" style="padding:8px 16px;font-size:13px;">⏳ Pendentes</button>
+        <div class="ps-seg">
+          <button type="button" class="prod-quem-btn" data-quem="minhas">👤 Minhas</button>
+          <button type="button" class="prod-quem-btn" data-quem="todos">🌐 Todos</button>
+        </div>
+        <div class="ps-seg">
+          <button type="button" class="prod-status-btn" data-status="pendentes">⏳ Pendentes</button>
+          <button type="button" class="prod-status-btn" data-status="concluidas">✓ Concluídas</button>
+        </div>
         <div style="margin-left:auto;display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:10px;">
           <button class="prod-vista-btn" data-vista="projeto" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:var(--surface);font-weight:700;">🎬 Por projeto</button>
           <button class="prod-vista-btn" data-vista="kanban" style="padding:6px 12px;font-size:12.5px;border:none;border-radius:7px;cursor:pointer;background:none;font-weight:700;color:var(--muted);">📋 Kanban</button>
@@ -15378,12 +15405,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     wireVistaEfiltros();
     wireBacklog(cont);
     wireChatProducao(); // liga o chat que está agora dentro da produção
-    renderProducaoLista('todas'); // começa mostrando todas — cada um vê o que os outros fazem
+    renderProducaoLista(); // começa em Todos + Pendentes — cada um vê o que os outros fazem
   }
 
   // Liga só os filtros e botões de vista (o form de delegar foi pro modal de gestão)
   function wireVistaEfiltros(){
-    document.querySelectorAll('.prod-filtro-btn').forEach(b => b.addEventListener('click', () => renderProducaoLista(b.dataset.filtro)));
+    document.querySelectorAll('.prod-quem-btn').forEach(b => b.addEventListener('click', () => { prodQuem = b.dataset.quem; renderProducaoLista(); }));
+    document.querySelectorAll('.prod-status-btn').forEach(b => b.addEventListener('click', () => { prodStatus = b.dataset.status; prodPipeAba = prodStatus === 'concluidas' ? 'concluidos' : 'andamento'; prodAvAba = prodStatus; renderProducaoLista(); }));
     document.querySelectorAll('.prod-vista-btn').forEach(b => b.addEventListener('click', () => {
       prodVistaAtual = b.dataset.vista;
       renderProducaoLista();
@@ -15432,22 +15460,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   let prodFiltroAtual = 'minhas';
+  let prodQuem = 'todos';                 // 'minhas' | 'todos'
+  let prodStatus = 'pendentes';           // 'pendentes' | 'concluidas'
   let prodPipeAba = 'andamento';          // linhas: 'andamento' | 'concluidos'
   let prodMes = mesAtualStr();            // mês das linhas (semanas do cronograma)
   let prodAvAba = 'pendentes';            // tarefas avulsas: 'pendentes' | 'concluidas'
   let prodAvPeriodo = 'semana';           // 'semana' | 'mes'
   let prodAvRef = Date.now();
   function renderProducaoLista(filtro){
-    if (filtro) prodFiltroAtual = filtro; else filtro = prodFiltroAtual;
+    filtro = prodQuem === 'minhas' ? 'minhas' : 'todas';
+    prodPipeAba = prodStatus === 'concluidas' ? 'concluidos' : 'andamento';
+    prodAvAba = prodStatus;
     const box = $('#prodListaTarefas');
     if (!box) return;
 
-    document.querySelectorAll('.prod-filtro-btn').forEach(b => {
-      const on = b.dataset.filtro === filtro;
-      b.style.background = on ? 'var(--blue)' : '';
-      b.style.color = on ? '#fff' : '';
-      b.style.borderColor = on ? 'var(--blue)' : '';
-    });
+    document.querySelectorAll('.prod-quem-btn').forEach(b => b.classList.toggle('on', b.dataset.quem === prodQuem));
+    document.querySelectorAll('.prod-status-btn').forEach(b => b.classList.toggle('on', b.dataset.status === prodStatus));
     document.querySelectorAll('.prod-vista-btn').forEach(b => b.classList.toggle('on', b.dataset.vista === prodVistaAtual));
 
     // No modo kanban, o layout vira coluna única (kanban ocupa a largura toda,
@@ -15464,7 +15492,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const x = chipProj.querySelector('button'); if (x) x.onclick = () => { prodProjetoFiltro = null; renderProducaoLista(); };
     }
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
-    if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
+    // Kanban segue a mesma situação (pendentes x concluídas)
+    if (prodVistaAtual === 'kanban') tarefas = tarefas.filter(t => prodStatus === 'concluidas' ? t.done : !t.done);
 
     // Linhas de produção (só na vista por projeto) — Em andamento por semana / Concluídos do mês
     let pipesVis = [];
@@ -15479,7 +15508,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const sextas = sextasDoMes(mes);
       const semanaDaData = (d) => { if (!d) return null; const dt = new Date(d); const i = sextas.findIndex(sx => { const fim = new Date(sx); fim.setHours(23,59,59); return dt <= fim; }); return i >= 0 ? i+1 : sextas.length; };
       const mesDe = d => d ? `${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}` : '';
-      const conclusao = pp => { const ts = (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).map(pipeTask).filter(t => t && t.done_at).map(t => t.done_at); return [pp.updated_at, ...ts].filter(Boolean).sort().pop() || pp.created_at; };
+      const conclusao = pipeDataConclusao;
       const andamento = pipesVis.filter(pp => pipeResumo(pp).atual);
       const concluidos = pipesVis.filter(pp => !pipeResumo(pp).atual && mesDe(conclusao(pp)) === mes);
       // semana de cada linha em andamento = semana do item da Renderização ligado a ela neste mês
@@ -15512,19 +15541,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
       topoHtml = `
         <div class="ps-head">
-          <div class="ps-seg">
-            <button type="button" class="${prodPipeAba==='andamento'?'on':''}" data-ps-aba="andamento">🏭 Em andamento <b>${andamento.length}</b></button>
-            <button type="button" class="${prodPipeAba==='concluidos'?'on':''}" data-ps-aba="concluidos">✓ Concluídos do mês <b>${concluidos.length}</b></button>
-          </div>
+          <div class="ps-tit">${prodPipeAba === 'concluidos' ? `✓ Projetos concluídos <b>${concluidos.length}</b>` : `🏭 Projetos em andamento <b>${andamento.length}</b>`}</div>
           <div class="ps-mes"><button type="button" data-ps-mes="-1">‹</button><b>${mesNome(mes)}</b><button type="button" data-ps-mes="1">›</button></div>
         </div>
         ${listaPipes}
         <div class="ps-head ps-av">
-          <div class="pl-sep" style="margin:0;">Tarefas avulsas</div>
-          <div class="ps-seg">
-            <button type="button" class="${prodAvAba==='pendentes'?'on':''}" data-av-aba="pendentes">⏳ Pendentes <b>${avPend}</b></button>
-            <button type="button" class="${prodAvAba==='concluidas'?'on':''}" data-av-aba="concluidas">✓ Concluídas</button>
-          </div>
+          <div class="ps-tit">Tarefas avulsas ${prodAvAba === 'concluidas' ? 'concluídas' : `pendentes <b>${avPend}</b>`}</div>
           ${prodAvAba === 'concluidas' ? `<div class="ps-mes">
             <div class="ps-seg ps-mini"><button type="button" class="${prodAvPeriodo==='semana'?'on':''}" data-av-per="semana">Semana</button><button type="button" class="${prodAvPeriodo==='mes'?'on':''}" data-av-per="mes">Mês</button></div>
             <button type="button" data-av-nav="-1">‹</button><b>${rotPeriodo}</b><button type="button" data-av-nav="1">›</button>
