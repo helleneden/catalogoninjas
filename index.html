@@ -2776,6 +2776,12 @@
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pl-rod{ white-space:nowrap; }
+  .rp-passos{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .rp-passo{ border:1px solid var(--line); background:var(--surface-soft); color:var(--muted); border-radius:999px; padding:5px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .rp-passo.on{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .rp-passo.feito{ color:var(--n100-tx); border-color:var(--n100-bd); background:var(--n100-bg); }
+  .rp-pag-topo{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; color:var(--ink); margin-bottom:8px; }
+  .rp-todos{ background:none; border:none; color:var(--blue); font:inherit; font-size:12px; cursor:pointer; padding:0; }
   .rp-matriz-wrap{ max-height:300px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
   .rp-matriz{ width:100%; border-collapse:collapse; font-size:13px; }
   .rp-matriz th{ position:sticky; top:0; background:var(--surface); font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); padding:8px; text-align:center; border-bottom:1px solid var(--line); }
@@ -10586,17 +10592,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
         <div class="field" id="rpEtapas" hidden><label>Quais informações repetir?</label>
           <label class="rp-item" style="margin-bottom:8px !important;"><input type="checkbox" id="rpPartes" checked> Número de partes ${pipePartesOk(src) ? `(${pipePartes(src)})` : '(a definir)'}</label>
-          <div class="rp-matriz-wrap"><table class="rp-matriz">
-            <thead><tr><th>Etapa</th>${NP > 1 ? Array.from({length:NP}, (_, i) => `<th>Parte ${i+1}</th>`).join('') : '<th>Copiar</th>'}</tr></thead>
-            <tbody>${etapas.map((st, i) => {
-              const porParte = NP > 1 && (st.tipo === 'partes' || st.tipo === 'checkpartes');
-              const quem = (n) => { if (st.tipo !== 'partes') return ''; const t = pipeTask((st.atrib||{})[n]); return t && t.assignee_name ? `<small>${escapeHtml(t.assignee_name)}</small>` : ''; };
-              return `<tr><td>${i+1}. ${escapeHtml(st.nome)}${!porParte && pipeQuemNaEtapa(src, st).length ? ` <small>${escapeHtml(pipeQuemNaEtapa(src, st).join(', '))}</small>` : ''}</td>${porParte
-                ? Array.from({length:NP}, (_, k) => `<td><label class="rp-cel"><input type="checkbox" data-rk="${st.key}" data-rn="${k+1}" checked>${quem(k+1)}</label></td>`).join('')
-                : `<td colspan="${NP > 1 ? NP : 1}"><label class="rp-cel rp-cel-toda"><input type="checkbox" data-rk="${st.key}" data-rn="0" checked> <small>${NP > 1 ? (rot === 'Aula' ? 'aula inteira' : 'episódio inteiro') : ''}</small></label></td>`}</tr>`;
-            }).join('')}</tbody>
-          </table></div>
-          <small style="font-size:11.5px;color:var(--muted);">Marcado = copia quem faz/o que já foi marcado nessa etapa e parte. Desmarcado = a etapa vem vazia para preencher depois.</small>
+          ${(() => {
+            const ehParte = st => NP > 1 && (st.tipo === 'partes' || st.tipo === 'checkpartes');
+            const inteiras = etapas.filter(st => !ehParte(st));
+            const porParte = etapas.filter(ehParte);
+            const quemParte = (st, n) => { if (st.tipo !== 'partes') return ''; const t = pipeTask((st.atrib||{})[n]); return t && t.assignee_name ? t.assignee_name : ''; };
+            const item = (st, n, quem) => `<label class="rp-item"><input type="checkbox" data-rk="${st.key}" data-rn="${n}" checked> ${escapeHtml(st.nome)}${quem ? ` <span>${escapeHtml(quem)}</span>` : ''}</label>`;
+            const paginas = [];
+            if (inteiras.length) paginas.push({ tit: rot === 'Aula' ? 'Aula inteira' : 'Episódio inteiro', sub: `Etapas que valem para ${rot === 'Aula' ? 'a aula toda' : 'o episódio todo'}:`, html: inteiras.map(st => item(st, 0, pipeQuemNaEtapa(src, st).join(', '))).join('') });
+            for (let n = 1; n <= (porParte.length ? NP : 0); n++) paginas.push({ tit: 'Parte ' + n, sub: `O que repetir da <b>Parte ${n}</b>?`, html: porParte.map(st => item(st, n, quemParte(st, n))).join('') });
+            return `<div class="rp-passos">${paginas.map((pg, k) => `<button type="button" class="rp-passo${k === 0 ? ' on' : ''}" data-rp-ir="${k}">${k+1}. ${pg.tit}</button>`).join('')}</div>
+              ${paginas.map((pg, k) => `<div class="rp-pagina" data-rp-pag="${k}" ${k === 0 ? '' : 'hidden'}>
+                <div class="rp-pag-topo"><span>${pg.sub}</span><span><button type="button" class="rp-todos" data-rp-todos="1">todos</button> · <button type="button" class="rp-todos" data-rp-todos="0">nenhum</button></span></div>
+                <div class="rp-lista">${pg.html}</div>
+              </div>`).join('')}`;
+          })()}
+          <small style="font-size:11.5px;color:var(--muted);">Marcado = copia quem faz / o que já foi marcado. Desmarcado = vem vazio para preencher depois.</small>
         </div>
         <div class="modal-actions">
           <button class="btn-ghost" id="rpNao">${aoTerminar && !opts.novos ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
@@ -10605,10 +10616,25 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     document.body.appendChild(ov);
     let modo = 'tudo';
-    ov.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { modo = b.dataset.rp; ov.querySelectorAll('[data-rp]').forEach(x => x.classList.toggle('on', x === b)); ov.querySelector('#rpEtapas').hidden = modo !== 'parte'; });
+    // passo a passo: Aula inteira → Parte 1 → Parte 2 …
+    const pags = [...ov.querySelectorAll('[data-rp-pag]')];
+    let pag = 0;
+    const btnSim = ov.querySelector('#rpSim');
+    const textoFinal = btnSim.textContent;
+    const irPag = k => {
+      pag = Math.max(0, Math.min(pags.length - 1, k));
+      pags.forEach((el, i) => el.hidden = i !== pag);
+      ov.querySelectorAll('[data-rp-ir]').forEach((b, i) => { b.classList.toggle('on', i === pag); b.classList.toggle('feito', i < pag); });
+      atualizarBotao();
+    };
+    const atualizarBotao = () => { btnSim.textContent = (modo === 'parte' && pag < pags.length - 1) ? `Próximo: ${ov.querySelectorAll('[data-rp-ir]')[pag + 1].textContent.replace(/^\d+\.\s*/, '')} →` : textoFinal; };
+    ov.querySelectorAll('[data-rp-ir]').forEach(b => b.onclick = () => irPag(Number(b.dataset.rpIr)));
+    ov.querySelectorAll('[data-rp-todos]').forEach(b => b.onclick = () => { b.closest('.rp-pagina').querySelectorAll('input[type=checkbox]').forEach(i => i.checked = b.dataset.rpTodos === '1'); });
+    ov.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { modo = b.dataset.rp; ov.querySelectorAll('[data-rp]').forEach(x => x.classList.toggle('on', x === b)); ov.querySelector('#rpEtapas').hidden = modo !== 'parte'; irPag(0); });
     const fechar = () => ov.remove();
     ov.querySelector('#rpNao').onclick = () => { fechar(); if (aoTerminar) aoTerminar([]); };
     ov.querySelector('#rpSim').onclick = async () => {
+      if (modo === 'parte' && pag < pags.length - 1){ irPag(pag + 1); return; }
       const ids = [...ov.querySelectorAll('.rp-chips input[value]:checked')].map(i => i.value);
       // novos episódios: "5", "5 a 8", "5, 6, 9"
       const txt = ((ov.querySelector('#rpNovos')||{}).value || '').trim();
