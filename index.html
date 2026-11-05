@@ -2737,7 +2737,7 @@
   .pl-add-etapa button{ padding:8px 14px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:13px; }
   .pl-proj-links{ display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px; }
   .pl-proj-link{ border:1px solid var(--blue); background:rgba(74,155,224,.10); color:var(--blue-ink); border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
-  .np-kinds{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .np-kinds{ display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
   @media (max-width:560px){ .np-kinds{ grid-template-columns:1fr; } }
   .np-kind{ text-align:left; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; }
   .np-kind.on{ border-color:var(--blue); background:rgba(74,155,224,.12); }
@@ -2752,6 +2752,21 @@
   .np-modo small{ font-size:11px; color:var(--muted); }
   #npDeBox[hidden], #npAteBox[hidden]{ display:none; }
   .pl-data{ width:138px; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; flex:0 0 auto; }
+  .pl-leg-assoc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
+  .pl-leg-assoc select{ margin-left:auto; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; max-width:240px; }
+  .cr-leg{ border:1px solid var(--line); background:var(--surface-soft); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .cr-leg p{ margin:0; font-size:13px; }
+  .cr-leg select{ padding:9px 11px; border:1.5px solid var(--line); border-radius:10px; font-size:13px; }
+  .fp-lista{ display:flex; flex-direction:column; gap:6px; max-height:480px; overflow:auto; }
+  .fp-linha{ display:flex; align-items:center; gap:12px; text-align:left; width:100%; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; }
+  .fp-linha:hover{ border-color:var(--blue); }
+  .fp-linha.ok{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.08); }
+  .fp-ep{ flex:0 0 70px; font-family:var(--font-brand); font-weight:600; font-size:16px; }
+  .fp-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
+  .fp-etapa{ font-size:13px; font-weight:600; }
+  .fp-etapa em{ font-style:normal; color:var(--muted); font-weight:500; }
+  .fp-falt{ font-size:11.5px; color:var(--warn-ink); }
+  .fp-pct{ font-family:var(--font-brand); font-size:18px; font-weight:600; }
   .pl-leitura{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
   .pl-leitura button{ margin-left:auto; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-lote{ font-size:12px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:-4px 0 12px; }
@@ -4120,7 +4135,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     'Redublar':              { ic:'🔁', cor:'#9B7BEA', bg:'#9B7BEA26' },
     'Organizar no Claude':   { ic:'🤖', cor:'#E8875A', bg:'#E8875A26' },
     'Subir no Eleven':       { ic:'⬆️', cor:'#4A9BE0', bg:'#4A9BE026' },
-    'Exportar':              { ic:'📤', cor:'#2DB3B3', bg:'#2DB3B326' }
+    'Exportar':              { ic:'📤', cor:'#2DB3B3', bg:'#2DB3B326' },
+    'Criar SRT (Claude)':    { ic:'🤖', cor:'#E8875A', bg:'#E8875A26' },
+    'Legendar':              { ic:'🔤', cor:'#9B7BEA', bg:'#9B7BEA26' }
   };
   const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#8A96AB', bg:'#8A96AB26' };
 
@@ -9122,6 +9139,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     let mudou = false;
     for (const it of itens){
       crAutoTentados.add(it.id);
+      if (ehItemLegenda(it)) continue;
       const t = it.titulo || '';
       // só quando a diferença é episódio / temporada
       if (!episodioDoTitulo(t) && !/\b(temporada|season)\b|\bT\d{1,2}\b/i.test(t)) continue;
@@ -9298,7 +9316,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // ---- nomes: "Trilha Selvagem Ep. 9" → base "trilha selvagem" (pra achar a série/franquia) ----
   function limparTituloCrono(t){
     return (t||'').replace(/^\s*(audiobook|desenho|filme|mini-?document[aá]rio|document[aá]rio|s[eé]rie|curso|palestras?)\s*:\s*/i, '')
-      .replace(/^vozes\s*-?\s*/i, '').replace(/[“”"]/g, '').trim();
+      .replace(/^vozes\s*-?\s*/i, '').replace(/^\s*legend(as|ar)?\s*[:\-]?\s*/i, '').replace(/[“”"]/g, '').trim();
   }
   function baseSerie(nome){
     return (nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()
@@ -9332,7 +9350,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     };
   }
   // A linha de produção ligada ao item (pelo projeto + episódio)
+  function ehItemLegenda(it){ return it && (it.categoria === 'Legenda' || /\blegend/i.test(it.titulo||'')); }
+  // projeto mais parecido com o título (para sugerir em legendas)
+  function projetoParecido(titulo){
+    const norm = x => (x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ');
+    const STOP = new Set(['filme','vozes','documentario','desenho','serie','legendas','legenda','de','do','da','a','o','e','the','para','pela','pelo']);
+    const toks = x => norm(x).split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+    const ti = new Set(toks(limparTituloCrono(titulo)));
+    let best = null, bs = 0;
+    allProjectsList().forEach(pr => { const tp = toks(pr); if (!tp.length) return; const hit = tp.filter(w => ti.has(w)).length; const sc = hit / Math.max(tp.length, ti.size || 1); if (hit && sc > bs){ bs = sc; best = pr; } });
+    return bs >= 0.5 ? best : null;
+  }
   function pipelineDoItem(it){
+    if (ehItemLegenda(it)){
+      const proj = it.project || projetoParecido(it.titulo);
+      return proj ? (pipelines.find(p => p.kind === 'legenda' && p.project === proj) || null) : null;
+    }
     let proj = it.project;
     if (!proj){
       // sem ligação: procura pelo nome-base (ex.: "Trilha Selvagem Ep. 8" → projeto "Trilha Selvagem")
@@ -9341,7 +9374,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (!cand) return null;
       proj = cand.project;
     }
-    const doProj = pipelines.filter(p => p.project === proj);
+    const doProj = pipelines.filter(p => p.project === proj && p.kind !== 'legenda');
     if (!doProj.length) return null;
     const ep = episodioDoTitulo(it.titulo);
     const normEp = e => String(e||'').replace(/\b0+(\d)/g,'$1').replace(/\s+/g,' ').trim().toLowerCase();
@@ -9373,7 +9406,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const quem = pipe && r.atual ? pipeQuemNaEtapa(pipe, r.atual) : [];
     // já ligado a um projeto que TEM linha de produção (ex.: outra temporada/episódio da série)
     const projLig = it.project || (() => { const b = baseSerie(limparTituloCrono(it.titulo)); const c = b ? pipelines.find(pp => baseSerie(pp.project) === b) : null; return c ? c.project : null; })();
-    const projPipes = !pipe && projLig ? pipelines.filter(pp => pp.project === projLig).sort((a,b) => epNum(a) - epNum(b)) : [];
+    const projPipes = !pipe && projLig && !ehItemLegenda(it) ? pipelines.filter(pp => pp.project === projLig && pp.kind !== 'legenda').sort((a,b) => epNum(a) - epNum(b)) : [];
     const projVozes = (pipe && pipe.project) || projLig || null;
     const temFichas = projVozes && allProjectsList().includes(projVozes);
     const ov = document.createElement('div');
@@ -9402,16 +9435,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               </div>
               <div class="pl-dots">${(pipe.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(pipe, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</div>
             </button>`
+          : ehItemLegenda(it) ? (isAdmin ? `<div class="cr-leg">
+              <p>🔤 Legenda é uma <b>extensão</b> da linha de um projeto. Qual projeto vai ser legendado?</p>
+              <select id="crLegProj"><option value="">— Escolha o projeto —</option>${allProjectsList().map(pr => `<option value="${escapeHtml(pr)}" ${pr === (it.project || projetoParecido(it.titulo)) ? 'selected' : ''}>${escapeHtml(pr)}</option>`).join('')}</select>
+              <button type="button" class="btn-primary" id="crLegEstender" style="width:100%;justify-content:center;">🔤 Estender a linha com a legenda</button>
+              <button type="button" class="cr-ligado-editar" id="crLegAvulsa">ou criar uma linha de legenda avulsa e associar depois</button>
+            </div>` : `<div class="cr-vazio">Ainda sem linha de legenda.</div>`)
           : projPipes.length ? `<div class="cr-ligado">
               <div>🔗 Ligado à produção de <b>${escapeHtml(projLig)}</b></div>
-              <div class="cr-ligado-eps">${projPipes.map(pp => `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? 'Ep ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>
-              ${tabela === 'meta_cards' ? `<button type="button" class="cr-ligado-editar" id="crModalEditarLinha">✎ Editar linha</button>` : ''}
+              <div class="cr-ligado-eps">${projPipes.map(pp => `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? rotuloEp(pp) + ' ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>
+              ${(() => { const epI = episodioDoTitulo(it.titulo); return epI && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar a linha ${projPipes[0] && ehEstudo(projPipes[0]) ? 'da Aula' : 'do Ep'} ${escapeHtml(epI)}</button>` : ''; })()}
+              <button type="button" class="cr-ligado-editar" id="crModalFicha">📚 Ver ficha de produção de ${escapeHtml(projLig)}</button>
             </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
         </div>
 
-        ${isAdmin && !pipe && !projPipes.length ? `<details class="cr-ligar-existente" ${it.project ? 'open' : ''}>
+        ${isAdmin && !pipe && !projPipes.length && !ehItemLegenda(it) ? `<details class="cr-ligar-existente" ${it.project ? 'open' : ''}>
           <summary>${it.project ? `Ligado ao projeto <b>${escapeHtml(it.project)}</b> — trocar` : 'Esse projeto já existe no app? Ligar a ele'}</summary>
           <select id="crModalPipeSel" style="width:100%;margin-top:8px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;">
             <option value="">— Escolha o projeto —</option>
@@ -9451,8 +9491,28 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (pb) pb.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(pipe.id, true); });
     ov.querySelectorAll('[data-abrir-pipe]').forEach(b => b.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(b.dataset.abrirPipe, true); }));
     const vz = ov.querySelector('#crModalVozes'); if (vz) vz.addEventListener('click', () => { fechar(); openProjetoModal(projVozes); });
-    const el = ov.querySelector('#crModalEditarLinha');
-    if (el) el.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(projPipes[0].id, false); });
+    const le = ov.querySelector('#crLegEstender');
+    if (le) le.addEventListener('click', async () => {
+      const proj = ov.querySelector('#crLegProj').value;
+      if (!proj){ showToast('Escolha o projeto que vai ser legendado.'); return; }
+      fechar();
+      abrirNovoPipeline({ nome: proj, kind:'legenda', categoria:'Legenda', episode: episodioDoTitulo(it.titulo),
+        aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
+    });
+    const la = ov.querySelector('#crLegAvulsa');
+    if (la) la.addEventListener('click', () => {
+      fechar();
+      abrirNovoPipeline({ nome: limparTituloCrono(it.titulo), kind:'legenda', categoria:'Legenda',
+        aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
+    });
+    const fc = ov.querySelector('#crModalFicha'); if (fc) fc.addEventListener('click', () => { fechar(); abrirFichaProducao(projLig); });
+    const ce = ov.querySelector('#crModalCriarEp');
+    if (ce) ce.addEventListener('click', () => {
+      const sug = sugestaoDoItem(it); const modelo = projPipes[0];
+      fechar();
+      abrirNovoPipeline({ nome: projLig, episode: sug.episode, categoria: modelo ? modelo.categoria : sug.categoria, kind: modelo ? modelo.kind : sug.kind,
+        aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
+    });
     const cp = ov.querySelector('#crModalCriarPipe');
     if (cp) cp.addEventListener('click', () => {
       const sug = sugestaoDoItem(it);
@@ -9534,8 +9594,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     video:     { nome:'Vídeo',     ic:'🎬' },
     audiobook: { nome:'Audiobook', ic:'🎧' },
     especial:  { nome:'Especial',  ic:'✨' },
+    legenda:   { nome:'Legenda',   ic:'🔤' },
   };
   function pipeTemplate(kind, nomesEspecial){
+    if (kind === 'legenda') return [
+      { key:'material', nome:'Receber material', tipo:'material', itens:[{ nome:'Vídeo final', status:'pendente', obs:'' }, { nome:'SRT (legenda)', status:'pendente', obs:'' }] },
+      { key:'srt',      nome:'Criar o SRT com o Claude', tipo:'unica', stage:'Criar SRT (Claude)', condicional:'srt' },
+      { key:'legendar', nome:'Adicionar a legenda no vídeo', tipo:'unica', stage:'Legendar' },
+      { key:'render',   nome:'Renderizar', tipo:'unica', stage:'Renderizar' },
+      { key:'dropbox',  nome:'Subir no Dropbox', tipo:'unica', stage:'Dropbox' },
+    ];
     if (kind === 'audiobook') return [
       { key:'material', nome:'Receber o livro', tipo:'material', itens:[{ nome:'Livro em Word (.docx)', status:'pendente', obs:'' }] },
       { key:'claude',   nome:'Organizar no Claude', tipo:'unica', stage:'Organizar no Claude' },
@@ -9559,10 +9627,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ];
   }
 
-  function pipeNome(p){ return p.episode ? `${p.project} · Ep ${p.episode}${p.serie_total ? '/' + p.serie_total : ''}` : p.project; }
+  // Estudo bíblico usa "Aula"; o resto, "Ep"
+  function ehEstudo(p){ const c = (p && p.categoria) || ''; const t = p && p.project ? (projectCats[p.project]||'') : ''; return /estudo/i.test(c) || /estudo/i.test(t); }
+  function rotuloEp(p, longo){ return ehEstudo(p) ? 'Aula' : (longo ? 'Episódio' : 'Ep'); }
+  function pipeNome(p){
+    const base = p.episode ? `${p.project} · ${rotuloEp(p)} ${p.episode}${p.serie_total ? '/' + p.serie_total : ''}` : p.project;
+    return p.kind === 'legenda' ? `${base} · Legenda` : base;
+  }
   function pipeTask(id){ return id ? producaoTasks.find(t => t.id === id) : null; }
   function pipePartes(p){ return Math.max(1, Number(p.partes) || 1); }
   function pipePartesOk(p){ return Number(p.partes) > 0; }
+  function pipeSrtRecebido(p){
+    const mat = (p.steps||[]).find(s => s.tipo === 'material');
+    const it = mat && (mat.itens||[]).find(i => /srt|legenda/i.test(i.nome));
+    return !!(it && it.status === 'ok');
+  }
   // Vozes já escolhidas em outro episódio do mesmo projeto (séries: pergunta só uma vez)
   function pipeVozesHerdadas(p){
     return pipelines.find(o => o.id !== p.id && o.project === p.project && (o.steps||[]).some(s => s.tipo === 'vozes' && s.done)) || null;
@@ -9572,6 +9651,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function pipeEtapaProg(p, s){
     const N = pipePartes(p);
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p)) return { feitos:0, total:1 };
+    if (s.condicional === 'srt' && pipeSrtRecebido(p)) return { feitos:1, total:1 };
     if (s.tipo === 'material'){ const t = (s.itens||[]).length || 1; return { feitos:(s.itens||[]).filter(i => i.status !== 'pendente').length, total:t }; }
     if (s.tipo === 'checkpartes') return { feitos: Math.min(N, (s.feitos||[]).filter(n => n <= N).length), total:N };
     if (s.tipo === 'vozes') return { feitos: (s.done || pipeVozesHerdadas(p)) ? 1 : 0, total:1 };
@@ -9684,6 +9764,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   function pipeCorpoEtapa(p, s){
     const N = pipePartes(p);
+    if (s.condicional === 'srt' && pipeSrtRecebido(p))
+      return `<p class="pl-nota">✓ O SRT veio junto com o material — esta etapa não é necessária.</p>`;
+    if (s.condicional === 'srt')
+      return `<p class="pl-nota">Só é preciso se o SRT não veio no material. Quem fica com a criação no Claude?</p><div class="pl-rows">${pipeLinhaPessoa(p, s, null)}</div>`;
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p))
       return `<p class="pl-nota">⚠ Defina primeiro em quantas partes este ${p.episode ? 'episódio' : 'projeto'} foi dividido (no topo desta janela).</p>`;
     if (s.tipo === 'material'){
@@ -9783,6 +9867,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         ${pipeSoLeitura ? `<div class="pl-leitura">👁 Esta linha de produção já existe — você está só visualizando.${isAdmin ? ` <button type="button" id="plEditar">✎ Editar linha</button>` : ''}</div>` : ''}
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote">Episódio ${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length} deste lote · ao fechar, você escolhe se repete as informações nos próximos.</div>` : ''}
         ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+        ${p.kind === 'legenda' ? `<div class="pl-leg-assoc">🔤 Extensão de legenda do projeto <b>${escapeHtml(p.project)}</b>
+          ${pipeAdm() ? `<select id="plLegProj"><option value="">Associar a outro projeto…</option>${allProjectsList().filter(pr => pr !== p.project).map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}</select>` : ''}</div>` : ''}
         ${temPartes && pipeAdm() ? (pipePartesOk(p)
           ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>`
           : `<div class="pl-partes-ctrl pl-partes-def">⚠ Partes a definir: <input type="number" id="plPartesDef" min="1" max="40" placeholder="Qtd."><button type="button" id="plPartesDefOk" class="ok">Definir</button></div>`) : ''}
@@ -9806,6 +9892,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="modal-actions">
           ${pipeAdm() ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
           ${pipeOrigemItem ? `<button class="btn-ghost" id="plItemCrono" style="margin-right:auto;">📅 Item do cronograma</button>` : ''}
+          ${p.episode || pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plFicha">📚 Ficha de produção</button>` : ''}
           ${pipeAdm() && pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plRepetir">📋 Repetir em outros episódios</button>` : ''}
           ${p.kind !== 'audiobook' ? `<button class="btn-ghost" id="plFichas">🎭 Fichas do projeto</button>` : ''}
           <button class="btn-primary" id="plFechar">Fechar</button>
@@ -9819,6 +9906,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     fecharAoClicarFora(ov, fechar);
     const reabrir = () => abrirPipeline(p.id);
     const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
+    const lp = ov.querySelector('#plLegProj');
+    if (lp) lp.onchange = async () => {
+      if (!lp.value) return;
+      const { error } = await sb.from('production_pipelines').update({ project: lp.value }).eq('id', p.id);
+      if (error){ showToast('❌ ' + error.message); return; }
+      // tarefas da legenda acompanham o projeto
+      const ids = (p.steps||[]).map(st => st.taskId).filter(Boolean);
+      for (const tid of ids){ try { await sb.from('production_tasks').update({ project: lp.value }).eq('id', tid); } catch(e){} }
+      p.project = lp.value; await loadProducaoTasks();
+      showToast(`🔗 Legenda associada a ${lp.value}`); abrirPipeline(p.id);
+    };
+    const fpb = ov.querySelector('#plFicha'); if (fpb) fpb.onclick = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirFichaProducao(p.project); };
     const rp = ov.querySelector('#plRepetir');
     if (rp) rp.onclick = () => abrirRepetir(p, pipelines.filter(o => o.id !== p.id && o.project === p.project).map(o => o.id), null);
     const fx = ov.querySelector('#plAbrirFichas'); if (fx) fx.onclick = () => openProjetoModal(p.project);
@@ -9930,6 +10029,53 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       pipelines = pipelines.filter(x => x.id !== p.id);
       fechar();
     };
+  }
+
+  // ---------- ficha de produção do projeto: todos os episódios/aulas ----------
+  function abrirFichaProducao(project){
+    const lista = pipelines.filter(p => p.project === project).sort((a,b) => epNum(a) - epNum(b));
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open'; ov.style.zIndex = '310';
+    const total = lista.reduce((m, p) => Math.max(m, Number(p.serie_total)||0), 0);
+    const rot = lista[0] ? rotuloEp(lista[0], true) : 'Episódio';
+    const frId = projectFranchise[project]; const fr = frId ? (franchises||[]).find(f => f.id === frId) : null;
+    const col = fr ? (categories||[]).find(c => c.id === fr.category_id) : null;
+    const concl = lista.filter(p => !pipeResumo(p).atual).length;
+    const linhas = lista.map(p => {
+      const r = pipeResumo(p); const quem = pipeQuemNaEtapa(p, r.atual);
+      return `<button type="button" class="fp-linha${r.atual?'':' ok'}" data-fp-abrir="${p.id}">
+        <span class="fp-ep">${p.episode ? `${rotuloEp(p)} ${escapeHtml(p.episode)}` : 'Único'}</span>
+        <span class="fp-info">
+          <span class="fp-etapa">${r.atual ? escapeHtml(r.atual.nome) : '✓ Concluído'}${quem.length ? ` · <em>${escapeHtml(quem.join(', '))}</em>` : ''}</span>
+          <span class="pl-dots">${(p.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(p, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</span>
+          ${r.faltando.length ? `<span class="fp-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</span>` : ''}
+          ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<span class="fp-falt">⚠ Partes a definir</span>` : ''}
+        </span>
+        <span class="fp-pct">${r.pct}%</span>
+      </button>`;
+    }).join('');
+    ov.innerHTML = `
+      <div class="modal" style="max-width:760px;">
+        <p class="pl-eyebrow">📚 Ficha de produção</p>
+        <h2 style="margin:2px 0 4px;">${escapeHtml(project)}</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">
+          ${lista.length} ${rot.toLowerCase()}${lista.length===1?'':'s'} com linha${total ? ` de ${total}` : ''} · ${concl} concluíd${rot==='Aula'?'a':'o'}${concl===1?'':'s'}
+          ${fr ? ` · 🗂 ${col ? escapeHtml(col.name) + ' › ' : ''}${escapeHtml(fr.name)}` : ''}
+        </p>
+        <div class="fp-lista">${linhas || '<div class="cr-vazio">Nenhuma linha de produção ainda.</div>'}</div>
+        <div class="modal-actions">
+          ${isAdmin ? `<button class="btn-ghost" id="fpNova" style="margin-right:auto;">+ Nova ${rot === 'Aula' ? 'aula' : 'linha / episódio'}</button>` : ''}
+          ${allProjectsList().includes(project) ? `<button class="btn-ghost" id="fpVozes">🎭 Vozes do projeto</button>` : ''}
+          <button class="btn-primary" id="fpFechar">Fechar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.querySelector('#fpFechar').onclick = fechar;
+    fecharAoClicarFora(ov, fechar);
+    ov.querySelectorAll('[data-fp-abrir]').forEach(b => b.onclick = () => { fechar(); abrirPipeline(b.dataset.fpAbrir, true); });
+    const vz = ov.querySelector('#fpVozes'); if (vz) vz.onclick = () => { fechar(); openProjetoModal(project); };
+    const nv = ov.querySelector('#fpNova'); if (nv) nv.onclick = () => { fechar(); abrirNovoPipeline({ nome: project, categoria: lista[0] ? lista[0].categoria : undefined, kind: lista[0] ? lista[0].kind : undefined }); };
   }
 
   // ---------- assistente: nova linha de produção ----------
@@ -10054,7 +10200,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
         <div class="field"><label>Tipo de produção</label>
           <div class="np-kinds">
-            ${Object.entries(PIPE_KINDS).map(([k, v]) => `<button type="button" class="np-kind" data-kind="${k}"><span class="np-ic">${v.ic}</span><b>${v.nome}</b><small>${k==='video'?'Material → Eleven → Vozes → Dublagem → Revisão → Redublagem → Pós → CQ → Correção → Dropbox':k==='audiobook'?'Word → Claude → Eleven → Voz → Exportar → Dropbox':'Você monta o passo a passo'}</small></button>`).join('')}
+            ${Object.entries(PIPE_KINDS).map(([k, v]) => `<button type="button" class="np-kind" data-kind="${k}"><span class="np-ic">${v.ic}</span><b>${v.nome}</b><small>${k==='video'?'Material → Eleven → Vozes → Dublagem → Revisão → Redublagem → Pós → CQ → Correção → Dropbox':k==='audiobook'?'Word → Claude → Eleven → Voz → Exportar → Dropbox':k==='legenda'?'Material → SRT (se faltar) → Legendar → Renderizar → Dropbox':'Você monta o passo a passo'}</small></button>`).join('')}
           </div>
         </div>
 
@@ -10064,7 +10210,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="field" id="npUnicoPartes"><label>Partes</label><input type="number" id="npPartes" min="0" max="40" value="3"><small class="np-dica">0 = definir depois</small></div>
           </div>
           <div id="npSerie" hidden>
-            <div class="field"><label>Quantos episódios tem a série?</label><input type="number" id="npTotalEps" min="1" max="500" value="${Math.max(epFim, 12)}" style="max-width:160px;"></div>
+            <div class="field"><label id="npTotLabel">Quantos episódios tem a série?</label><input type="number" id="npTotalEps" min="1" max="500" value="${Math.max(epFim, 12)}" style="max-width:160px;"></div>
             <div class="field"><label>Quando definir as partes de cada episódio?</label>
               <div class="np-modos">
                 <button type="button" class="np-modo on" data-modo="crono"><b>📅 Conforme o cronograma</b><small>Inicio agora só os episódios do mês (ex.: 1 a 4)</small></button>
@@ -10083,6 +10229,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
 
         <div id="npAudio" hidden><div class="field"><label>Autor</label><input type="text" id="npAutor" placeholder="Ex: Joel Beeke" list="npAutores" value="${escapeHtml(opts.autor||'')}"><datalist id="npAutores">${[...new Set(audiobooks.map(a => a.author).filter(Boolean))].map(a => `<option value="${escapeHtml(a)}">`).join('')}</datalist></div></div>
+        <div id="npLegenda" hidden>
+          <p class="np-sug" style="margin-top:0;">🔤 A legenda é uma <b>extensão</b> de um projeto: escreva acima o nome do projeto que vai ser legendado (a lista sugere os que já existem). Dá para associar a outro depois.</p>
+          <div class="field"><label>Episódio / aula <span style="font-weight:400;text-transform:none;">(se tiver)</span></label><input type="text" id="npLegEp" value="${escapeHtml(opts.episode||'')}" placeholder="Ex: 3" style="max-width:160px;"></div>
+        </div>
         <div id="npEspecial" hidden><div class="field"><label>Passo a passo <span style="font-weight:400;text-transform:none;">(um por linha; termine com * para dividir por partes)</span></label>
           <textarea id="npPassos" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;" placeholder="Receber material&#10;Gravação*&#10;Edição&#10;Entrega"></textarea></div>
           <div class="field"><label>Partes</label><input type="number" id="npPartesEsp" min="0" max="40" value="1"></div>
@@ -10147,7 +10297,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const grid = $o('#npEpsGrid');
       const antigos = {}; grid.querySelectorAll('input').forEach(i => antigos[i.dataset.ep] = i.value);
       const todos = parseInt($o('#npPartesTodos').value,10) || 0;
-      grid.innerHTML = Array.from({length: ate-de+1}, (_, k) => de+k).map(n => `<label class="np-ep"><span>Ep ${n}</span><input type="number" min="0" max="40" data-ep="${n}" placeholder="—" value="${antigos[n] !== undefined ? antigos[n] : (todos || '')}"></label>`).join('');
+      const rotG = $o('#npCat').value === 'Estudo' ? 'Aula ' : 'Ep ';
+      grid.innerHTML = Array.from({length: ate-de+1}, (_, k) => de+k).map(n => `<label class="np-ep"><span data-n="${n}">${rotG}${n}</span><input type="number" min="0" max="40" data-ep="${n}" placeholder="—" value="${antigos[n] !== undefined ? antigos[n] : (todos || '')}"></label>`).join('');
     };
     ['#npEpDe','#npEpAte','#npTotalEps'].forEach(id => $o(id).addEventListener('input', montarGridEps));
     $o('#npPartesTodos').addEventListener('input', () => { const v = parseInt($o('#npPartesTodos').value,10) || ''; $o('#npEpsGrid').querySelectorAll('input').forEach(i => i.value = v); });
@@ -10158,9 +10309,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       $o('#npVideo').hidden = kind !== 'video';
       $o('#npAudio').hidden = kind !== 'audiobook';
       $o('#npEspecial').hidden = kind !== 'especial';
-      $o('#npColecao').hidden = kind === 'audiobook';
-      const serie = kind === 'video' && $o('#npCat').value === 'Série';
+      $o('#npColecao').hidden = kind === 'audiobook' || kind === 'legenda';
+      $o('#npLegenda').hidden = kind !== 'legenda';
+      const cat = $o('#npCat').value;
+      const serie = kind === 'video' && (cat === 'Série' || cat === 'Estudo');
       $o('#npSerie').hidden = !serie;
+      const aula = cat === 'Estudo';
+      $o('#npTotLabel').textContent = aula ? 'Quantas aulas tem o estudo?' : 'Quantos episódios tem a série?';
+      $o('#npDeBox').querySelector('label').textContent = aula ? 'Iniciar da aula' : 'Iniciar do episódio';
+      $o('#npAteBox').querySelector('label').textContent = aula ? 'até a aula' : 'até o episódio';
+      ov.querySelectorAll('.np-ep span').forEach(sp => sp.textContent = (aula ? 'Aula ' : 'Ep ') + sp.dataset.n);
       $o('#npUnicoPartes').hidden = serie;
     };
     sync();
@@ -10173,28 +10331,31 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     $o('#npCriar').onclick = async () => {
       const nome = $o('#npNome').value.trim();
       if (!nome){ showToast('Dê um nome ao projeto.'); return; }
-      const categoria = kind === 'audiobook' ? 'Audiobook' : kind === 'video' ? $o('#npCat').value : null;
+      const categoria = kind === 'audiobook' ? 'Audiobook' : kind === 'legenda' ? 'Legenda' : kind === 'video' ? $o('#npCat').value : null;
       const autor = kind === 'audiobook' ? ($o('#npAutor').value.trim() || null) : null;
       // monta a lista de linhas a criar (uma por episódio nas séries)
       const criar = [];
-      if (kind === 'video' && categoria === 'Série'){
+      if (kind === 'video' && (categoria === 'Série' || categoria === 'Estudo')){
         $o('#npEpsGrid').querySelectorAll('input').forEach(i => criar.push({ episode: i.dataset.ep, partes: Math.max(0, parseInt(i.value,10) || 0), steps: pipeTemplate('video') }));
       } else if (kind === 'video'){
         criar.push({ episode: null, partes: Math.max(0, parseInt($o('#npPartes').value,10) || 0), steps: pipeTemplate('video') });
       } else if (kind === 'audiobook'){
         criar.push({ episode: null, partes: 1, steps: pipeTemplate('audiobook') });
+      } else if (kind === 'legenda'){
+        criar.push({ episode: $o('#npLegEp').value.trim() || null, partes: 1, steps: pipeTemplate('legenda') });
       } else {
         const linhas = $o('#npPassos').value.split('\n').map(l => l.trim()).filter(Boolean);
         if (!linhas.length){ showToast('Escreva pelo menos um passo.'); return; }
         criar.push({ episode: null, partes: Math.max(0, parseInt($o('#npPartesEsp').value,10) || 0), steps: pipeTemplate('especial', linhas.map(l => ({ nome: l.replace(/\*$/,'').trim(), partes: /\*$/.test(l) }))) });
       }
-      const repetidos = criar.filter(c => pipelines.some(x => x.project === nome && (x.episode||null) === (c.episode||null)));
+      const mesmo = (x, c) => x.project === nome && (x.episode||null) === (c.episode||null) && ((x.kind === 'legenda') === (kind === 'legenda'));
+      const repetidos = criar.filter(c => pipelines.some(x => mesmo(x, c)));
       if (repetidos.length === criar.length){ showToast('Já existe linha de produção para isso.'); return; }
       const btn = $o('#npCriar'); btn.disabled = true; btn.textContent = 'Criando…';
       try {
         // coleção / franquia (nova ou existente)
         let frId = null;
-        if (kind !== 'audiobook'){
+        if (kind !== 'audiobook' && kind !== 'legenda'){
           let catId = colSel.value;
           if (catId === '__nova__'){
             const nomeCol = $o('#npColNova').value.trim();
@@ -10219,15 +10380,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         // cria as linhas
         const novos = [];
         for (const c of criar){
-          if (pipelines.some(x => x.project === nome && (x.episode||null) === (c.episode||null))) continue;
+          if (pipelines.some(x => mesmo(x, c))) continue;
           const novo = { id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project:nome, episode:c.episode, kind, categoria, autor, partes:c.partes, steps:c.steps, created_by: myProfile.display_name || myEmail || null };
-          if (kind === 'video' && categoria === 'Série') novo.serie_total = Math.max(1, parseInt($o('#npTotalEps').value,10) || 1);
+          if (kind === 'video' && (categoria === 'Série' || categoria === 'Estudo')) novo.serie_total = Math.max(1, parseInt($o('#npTotalEps').value,10) || 1);
           novos.push(novo);
         }
         let { error } = await sb.from('production_pipelines').insert(novos);
         if (error && /serie_total/i.test(error.message)){ novos.forEach(n => delete n.serie_total); ({ error } = await sb.from('production_pipelines').insert(novos)); }
         if (error) throw error;
-        if (kind !== 'audiobook'){
+        if (kind !== 'audiobook' && kind !== 'legenda'){
           await sb.from('project_meta').upsert({ project:nome, in_production:true, archived:false }, { onConflict:'project' });
           projectMeta[nome] = { ...(projectMeta[nome]||{}), in_production:true, archived:false };
           const tipo = categoria === 'Estudo' ? 'Estudo Bíblico' : categoria;
@@ -10237,7 +10398,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         pipelines.push(...novos);
         if (typeof opts.aoCriar === 'function'){ try { await opts.aoCriar(novos[0]); } catch(e){} }
         fechar();
-        showToast(novos.length > 1 ? `🏭 ${novos.length} episódios criados em ${nome} — comece pelo primeiro` : `🏭 Linha de produção criada: ${pipeNome(novos[0])}`);
+        showToast(novos.length > 1 ? `🏭 ${novos.length} ${categoria === 'Estudo' ? 'aulas criadas' : 'episódios criados'} em ${nome} — comece pelo primeiro` : `🏭 Linha de produção criada: ${pipeNome(novos[0])}`);
         if (currentView === 'producao') renderProducao();
         if (currentView === 'colecoes' && typeof renderColecoes === 'function') renderColecoes();
         if (novos.length === 1) abrirPipeline(novos[0].id);
@@ -13211,7 +13372,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${isAdmin ? `<button type="button" class="proj-renomear" id="projRenomear" title="Alterar o nome do projeto">✎ Renomear</button>` : ''}
         </div>
         ${typeof avisoMaterialHtml === 'function' ? avisoMaterialHtml(project) : ''}
-        ${pipelines.filter(pp => pp.project === project).length ? `<div class="pl-proj-links">${pipelines.filter(pp => pp.project === project).map(pp => `<button type="button" class="pl-proj-link" data-pl-abrir="${pp.id}">🏭 Linha de produção${pp.episode ? ' · Ep ' + escapeHtml(pp.episode) : ''} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
+        ${pipelines.filter(pp => pp.project === project).length ? `<div class="pl-proj-links"><button type="button" class="pl-proj-link" id="projFichaProd">📚 Ficha de produção</button>${pipelines.filter(pp => pp.project === project).map(pp => `<button type="button" class="pl-proj-link" data-pl-abrir="${pp.id}">🏭 Linha de produção${pp.episode ? ' · Ep ' + escapeHtml(pp.episode) : ''} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
         ${isAdmin?`
         <div class="field">
           <label>Capa do projeto</label>
@@ -13376,6 +13537,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     wireParticipantesBox(project);
     ov.querySelectorAll('.pl-proj-link[data-pl-abrir]').forEach(b => b.addEventListener('click', () => abrirPipeline(b.dataset.plAbrir)));
+    const bfp = ov.querySelector('#projFichaProd'); if (bfp) bfp.addEventListener('click', () => abrirFichaProducao(project));
     const btnRen = ov.querySelector('#projRenomear');
     if (btnRen) btnRen.addEventListener('click', () => abrirRenomearProjeto(project));
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
