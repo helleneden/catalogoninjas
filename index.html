@@ -2775,6 +2775,7 @@
   .np-kind small{ font-size:10.5px; color:var(--muted); line-height:1.35; }
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .pl-rod{ white-space:nowrap; }
   .np-modos{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   @media (max-width:560px){ .np-modos{ grid-template-columns:1fr; } }
   .np-modo{ text-align:left; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; font-size:13.5px; }
@@ -9659,6 +9660,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     };
   }
 
+  function itemDoPipe(p){
+    if (!p || !metaCardsTodos) return null;
+    const n = epNum(p);
+    const it = metaCardsTodos.find(x => { const pp = pipelineDoItem(x); return pp && pp.id === p.id; })
+      || metaCardsTodos.find(x => {
+        const proj = x.project || (baseSerie(limparTituloCrono(x.titulo)) === baseSerie(p.project) ? p.project : null);
+        if (proj !== p.project) return false;
+        const e = epsDoTitulo(x.titulo); const u = episodioDoTitulo(x.titulo);
+        return p.episode ? (e ? e.nums.includes(n) : String(u) === String(p.episode)) : !u;
+      });
+    return it ? { tabela: 'meta_cards', id: it.id } : null;
+  }
+
   function sugestaoDoItem(it){
     const limpo = limparTituloCrono(it.titulo);
     const base = baseSerie(limpo);
@@ -9950,7 +9964,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   };
   function pipeTemplate(kind, nomesEspecial){
     if (kind === 'legenda') return [
-      { key:'material', nome:'Receber material', tipo:'material', itens:[{ nome:'Vídeo final', status:'pendente', obs:'' }, { nome:'SRT (legenda)', status:'pendente', obs:'' }] },
+      { key:'material', nome:'Receber material', tipo:'material', itens:[{ nome:'Vídeo final', status:'pendente', obs:'' }, { nome:'SRT', status:'pendente', obs:'' }] },
       { key:'srt',      nome:'Criar o SRT com o Claude', tipo:'unica', stage:'Criar SRT (Claude)', condicional:'srt' },
       { key:'legendar', nome:'Adicionar a legenda no vídeo', tipo:'unica', stage:'Legendar' },
       { key:'render',   nome:'Renderizar', tipo:'unica', stage:'Renderizar' },
@@ -9966,7 +9980,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ];
     if (kind === 'especial') return (nomesEspecial||[]).map((n, i) => ({ key:'e'+i, nome:n.nome, tipo: n.partes ? 'partes' : 'unica', stage:n.nome, atrib:{} }));
     return [
-      { key:'material',  nome:'Receber material', tipo:'material', itens:['Vídeo sem defeitos','M&E (trilha sem voz)','SRT (legenda)'].map(n => ({ nome:n, status:'pendente', obs:'' })) },
+      { key:'material',  nome:'Receber material', tipo:'material', itens:['Vídeo sem defeitos','M&E','SRT'].map(n => ({ nome:n, status:'pendente', obs:'' })) },
       { key:'eleven',    nome:'Cortar e subir no Eleven', tipo:'checkpartes', feitos:[] },
       { key:'vozes',     nome:'Escolha das vozes', tipo:'vozes', done:false },
       { key:'dublagem',  nome:'Dublagem', tipo:'partes', stage:'Dublar', atrib:{} },
@@ -10042,11 +10056,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return { pct: peso ? Math.round(feito / peso * 100) : 0, itens: peso, completos };
   }
   function pipeNivel(p){ const pct = pipeResumo(p).pct; return pct >= 100 ? 'n100' : pct >= 70 ? 'n70' : 'n0'; }
+  function matCurto(n){ return (n||'').replace(/\s*\([^)]*\)\s*/g, ' ').trim(); }
   function pipeResumo(p){
     const steps = pipeEtapasVis(p);
     const feitas = steps.filter(s => pipeEtapaOk(p, s)).length;
     const atual = steps.find(s => !pipeEtapaOk(p, s)) || null;
-    const faltando = steps.filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => i.nome));
+    const faltando = steps.filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => matCurto(i.nome)));
     return { feitas, total: steps.length, atual, faltando, pct: steps.length ? Math.round(feitas/steps.length*100) : 0 };
   }
   // quem está numa etapa (nomes)
@@ -10056,7 +10071,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return [...new Set(ids.map(pipeTask).filter(Boolean).map(t => t.assignee_name).filter(Boolean))];
   }
   function avisoMaterialHtml(project){
-    const falt = pipelines.filter(p => p.project === project).flatMap(p => (p.steps||[]).filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => (p.episode ? `${i.nome} (Ep ${p.episode})` : i.nome) + (i.obs ? ` — ${i.obs}` : ''))));
+    const falt = pipelines.filter(p => p.project === project).flatMap(p => (p.steps||[]).filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => 'sem ' + matCurto(i.nome) + (p.episode ? ` (${rotuloEp(p)} ${p.episode})` : '') + (i.obs ? ` — ${i.obs}` : ''))));
     if (!falt.length) return '';
     return `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> ${falt.map(escapeHtml).join(' · ')}</div>`;
   }
@@ -10173,7 +10188,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return `<div class="pl-mat">${s.concluido ? `<p class="pl-nota">📦 Produção já feita (histórico). Itens sem marcar não foram recebidos.</p>` : ''}${(s.itens||[]).map((it, i) => `
         <div class="pl-mat-item st-${it.status}">
           <div class="pl-mat-linha">
-            <span class="pl-row-nome">${escapeHtml(it.nome)}</span>
+            <span class="pl-row-nome">${escapeHtml(matCurto(it.nome))}</span>
             <div class="pl-seg">
               <button type="button" class="${it.status==='ok'?'on ok':''}" data-pl-mat="${i}" data-st="ok" ${pipeAdm()?'':'disabled'}>✓ Recebido</button>
               <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${pipeAdm()?'':'disabled'}>⚠ Faltando</button>
@@ -10253,6 +10268,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>` : ''}
       </div>`;
     }).join('');
+    const itemCrono = pipeOrigemItem || itemDoPipe(p);
     ov.innerHTML = `
       <div class="modal pl-modal">
         <div class="pl-topo">
@@ -10268,7 +10284,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote"><span>Criando a linha do <b>${rotuloEp(p, true)} ${escapeHtml(p.episode || String(pipeLote.ids.indexOf(p.id)+1))}</b> (${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length}):</span>
           ${pipeLote.ids.map(id => { const q = pipelines.find(x => x.id === id); const rot = q && q.episode ? q.episode : '?'; return `<span class="pl-lote-chip ${id === p.id ? 'atual' : (pipeLote.feitos.has(id) ? 'feito' : '')}">${pipeLote.feitos.has(id) && id !== p.id ? '✓ ' : ''}${rotuloEp(p)} ${escapeHtml(rot)}</span>`; }).join('')}
           <span style="flex-basis:100%;opacity:.8;">Ao fechar, você escolhe se repete as informações nos próximos.</span></div>` : ''}
-        ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+        ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> ${r.faltando.map(n => 'sem ' + escapeHtml(n)).join(', ')}</div>` : ''}
         ${p.kind === 'legenda' ? `<div class="pl-leg-assoc">🔤 ${allProjectsList().includes(p.project) ? 'Extensão de legenda do projeto' : 'Linha de legenda avulsa —'} <b>${escapeHtml(p.project)}</b>${allProjectsList().includes(p.project) ? '' : ' · associe ao projeto:'}
           ${pipeAdm() && !allProjectsList().includes(p.project) ? `<select id="plLegProj"><option value="">Associar a outro projeto…</option>${allProjectsList().filter(pr => pr !== p.project).map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}</select>` : ''}</div>` : ''}
         ${temPartes && pipeAdm() ? (pipePartesOk(p)
@@ -10292,22 +10308,21 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         </div>` : ''}
         <div class="modal-actions">
-          ${pipeAdm() ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
-          ${pipeOrigemItem ? `<button class="btn-ghost" id="plItemCrono" style="margin-right:auto;">📅 Item do cronograma</button>` : ''}
-          ${p.episode || pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plFicha">📚 Ficha de produção</button>` : ''}
-          ${pipeAdm() && pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plRepetir">📋 Repetir em outros episódios</button>` : ''}
-          ${p.kind !== 'audiobook' ? `<button class="btn-ghost" id="plFichas">🎭 Fichas do projeto</button>` : ''}
-          <button class="btn-primary" id="plFechar">Fechar</button>
+          ${pipeAdm() ? `<button class="btn-danger-ghost pl-rod" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
+          ${itemCrono ? `<button class="btn-ghost pl-rod" id="plItemCrono">📅 Item do cronograma</button>` : ''}
+          ${pipeAdm() && p.kind !== 'audiobook' ? `<button class="btn-ghost pl-rod" id="plRepetir" title="Copiar esta linha para outros episódios (novos ou que já existem)">📋 Repetir</button>` : ''}
+          <button class="btn-primary pl-rod" id="plFechar">Fechar</button>
         </div>
       </div>`;
     ov.classList.add('open');
     const leituraAgora = pipeSoLeitura;
     const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (p.kind === 'audiobook') sincronizarAudiobooks(); if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
     const ed = ov.querySelector('#plEditar'); if (ed) ed.onclick = () => { pipeSoLeitura = false; abrirPipeline(p.id); };
-    const oi = ov.querySelector('#plItemCrono'); if (oi) oi.onclick = () => { const o = pipeOrigemItem; ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirItemCronograma(o.tabela, o.id); };
+    const oi = ov.querySelector('#plItemCrono'); if (oi) oi.onclick = () => { const o = itemCrono; ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirItemCronograma(o.tabela, o.id); };
     ov.querySelector('#plFechar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
-    navRegistrar('pipe:' + p.id, ov, () => abrirPipeline(p.id, leituraAgora), fechar);
+    const origemAgora = pipeOrigemItem;
+    navRegistrar('pipe:' + p.id, ov, () => { pipeOrigemItem = origemAgora; abrirPipeline(p.id, leituraAgora); }, fechar);
     const reabrir = () => abrirPipeline(p.id);
     const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
     const lp = ov.querySelector('#plLegProj');
@@ -10323,7 +10338,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     };
     const fpb = ov.querySelector('#plFicha'); if (fpb) fpb.onclick = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirFichaProducao(p.project); };
     const rp = ov.querySelector('#plRepetir');
-    if (rp) rp.onclick = () => abrirRepetir(p, pipelines.filter(o => o.id !== p.id && o.project === p.project).map(o => o.id), null);
+    if (rp) rp.onclick = () => abrirRepetir(p, pipelines.filter(o => o.id !== p.id && o.project === p.project && o.kind === p.kind).map(o => o.id), () => { if (pipeAberto === p.id) reabrir(); }, { novos: true });
     const fx = ov.querySelector('#plAbrirFichas'); if (fx) fx.onclick = () => openProjetoModal(p.project);
 
     ov.querySelectorAll('[data-pl-etapa]').forEach(b => b.onclick = () => {
@@ -10459,7 +10474,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="fp-info">
           <span class="fp-etapa">${r.atual ? escapeHtml(r.atual.nome) : '✓ Concluído'}${quem.length ? ` · <em>${escapeHtml(quem.join(', '))}</em>` : ''}</span>
           <span class="pl-dots">${pipeEtapasVis(p).map(st => `<span class="pl-dot${pipeEtapaOk(p, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</span>
-          ${r.faltando.length ? `<span class="fp-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</span>` : ''}
+          ${r.faltando.length ? `<span class="fp-falt">⚠ ${r.faltando.map(n => 'Sem ' + escapeHtml(n)).join(', ')}</span>` : ''}
           ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<span class="fp-falt">⚠ Partes a definir</span>` : ''}
         </span>
         <span class="fp-pct">${r.pct}%</span>
@@ -10495,9 +10510,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let pipeLote = null;   // { ids:[...], feitos:Set } — episódios criados juntos, configurados em sequência
   const epNum = p => parseInt(String(p.episode||'').match(/\d+/)?.[0] || '0', 10);
 
-  async function pipeCopiar(src, dst, keys, copiarPartes){
+  async function pipeCopiar(src, dst, keys, copiarPartes, partesSel){
     if (copiarPartes && pipePartesOk(src)) dst.partes = src.partes;
     const N = pipePartesOk(dst) ? pipePartes(dst) : 0;
+    const parteOk = n => !partesSel || partesSel.includes(n);
     for (const key of keys){
       const ss = (src.steps||[]).find(x => x.key === key); if (!ss) continue;
       let ds = (dst.steps||[]).find(x => x.key === key);
@@ -10507,11 +10523,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         dst.steps.splice(idx, 0, ds);
       }
       if (ss.tipo === 'material') ds.itens = JSON.parse(JSON.stringify(ss.itens || []));
-      else if (ss.tipo === 'checkpartes') ds.feitos = (ss.feitos || []).filter(n => !N || n <= N);
+      else if (ss.tipo === 'checkpartes') ds.feitos = [...new Set([...(partesSel ? (ds.feitos||[]).filter(n => !parteOk(n)) : []), ...(ss.feitos || []).filter(n => (!N || n <= N) && parteOk(n))])];
       else if (ss.tipo === 'vozes' || ss.tipo === 'check') ds.done = !!ss.done;
       else if (ss.tipo === 'voz_livro'){ ds.voz = ss.voz; ds.done = !!ss.done; }
       else if (ss.tipo === 'partes'){
         for (let n = 1; n <= N; n++){
+          if (!parteOk(n)) continue;
           const t = pipeTask((ss.atrib||{})[n]);
           if (t) await pipeAtribuir(dst, ds, n, t.assignee_user_id, t.due_date, true);
         }
@@ -10525,23 +10542,30 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // Janela: "Quer repetir as informações do Ep X nos outros episódios?"
-  function abrirRepetir(src, alvosIds, aoTerminar){
+  function abrirRepetir(src, alvosIds, aoTerminar, opts){
+    opts = opts || {};
     const alvos = alvosIds.map(id => pipelines.find(x => x.id === id)).filter(Boolean).sort((a,b) => epNum(a) - epNum(b));
-    if (!alvos.length){ if (aoTerminar) aoTerminar([]); return; }
+    if (!alvos.length && !opts.novos){ if (aoTerminar) aoTerminar([]); return; }
+    const rot = rotuloEp(src);
+    const NP = pipePartesOk(src) ? pipePartes(src) : 0;
+    const proxEp = Math.max(0, ...pipelines.filter(x => x.project === src.project && x.kind === src.kind).map(epNum)) + 1;
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open'; ov.style.zIndex = '340';
     const etapas = (src.steps||[]);
     ov.innerHTML = `
       <div class="modal" style="max-width:560px;">
-        <h2>📋 Repetir as informações do ${escapeHtml(src.episode ? 'Ep ' + src.episode : src.project)}?</h2>
+        <h2>📋 Repetir a linha ${escapeHtml(src.episode ? 'do ' + rot + ' ' + src.episode : 'de ' + src.project)}</h2>
         <p style="font-size:12.5px;color:var(--muted);margin:-8px 0 14px;">Os responsáveis, prazos e checklists marcados aqui vão para os episódios escolhidos (cada pessoa recebe a notificação e a tarefa na agenda).</p>
-        <div class="field"><label>Em quais episódios?</label>
-          <div class="rp-chips">${alvos.map(a => `<label class="rp-chip"><input type="checkbox" value="${a.id}" checked> ${escapeHtml(a.episode ? 'Ep ' + a.episode : pipeNome(a))}</label>`).join('')}</div>
-        </div>
-        <div class="field"><label>Repetir tudo ou só uma parte?</label>
+        ${opts.novos ? `<div class="field"><label>Criar nova linha para ${rot === 'Aula' ? 'as aulas' : 'os episódios'}</label>
+          <input type="text" id="rpNovos" placeholder="Ex.: ${proxEp} ou ${proxEp} a ${proxEp + 3}" style="width:100%;">
+          <small style="font-size:11.5px;color:var(--muted);">Deixe vazio se não quiser criar nenhuma nova.</small></div>` : ''}
+        ${alvos.length ? `<div class="field"><label>${opts.novos ? 'E/ou repetir em linhas que já existem' : 'Em quais episódios?'}</label>
+          <div class="rp-chips">${alvos.map(a => `<label class="rp-chip"><input type="checkbox" value="${a.id}" ${opts.novos ? '' : 'checked'}> ${escapeHtml(a.episode ? rotuloEp(a) + ' ' + a.episode : pipeNome(a))}</label>`).join('')}</div>
+        </div>` : ''}
+        <div class="field"><label>Repetir tudo ou só algumas etapas?</label>
           <div class="np-modos">
             <button type="button" class="np-modo on" data-rp="tudo"><b>Tudo</b><small>Todas as etapas e o número de partes</small></button>
-            <button type="button" class="np-modo" data-rp="parte"><b>Só uma parte</b><small>Eu escolho quais etapas</small></button>
+            <button type="button" class="np-modo" data-rp="parte"><b>Só algumas etapas</b><small>Eu escolho quais etapas</small></button>
           </div>
         </div>
         <div class="field" id="rpEtapas" hidden><label>Quais informações repetir?</label>
@@ -10550,8 +10574,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             ${etapas.map((st, i) => `<label class="rp-item"><input type="checkbox" class="rp-et" value="${st.key}" checked> ${i+1}. ${escapeHtml(st.nome)} <span>${escapeHtml(pipeQuemNaEtapa(src, st).join(', '))}</span></label>`).join('')}
           </div>
         </div>
+        ${NP > 1 ? `<div class="field"><label>De quais partes?</label>
+          <div class="rp-chips">${Array.from({length:NP}, (_, i) => i+1).map(n => `<label class="rp-chip"><input type="checkbox" class="rp-pt" value="${n}" checked> Parte ${n}</label>`).join('')}</div>
+          <small style="font-size:11.5px;color:var(--muted);">Quem dubla/revisa cada parte só é copiado nas partes marcadas.</small></div>` : ''}
         <div class="modal-actions">
-          <button class="btn-ghost" id="rpNao">${aoTerminar ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
+          <button class="btn-ghost" id="rpNao">${aoTerminar && !opts.novos ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
           <button class="btn-primary" id="rpSim">Repetir</button>
         </div>
       </div>`;
@@ -10561,18 +10588,40 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const fechar = () => ov.remove();
     ov.querySelector('#rpNao').onclick = () => { fechar(); if (aoTerminar) aoTerminar([]); };
     ov.querySelector('#rpSim').onclick = async () => {
-      const ids = [...ov.querySelectorAll('.rp-chips input:checked')].map(i => i.value);
-      if (!ids.length){ showToast('Marque pelo menos um episódio.'); return; }
+      const ids = [...ov.querySelectorAll('.rp-chips input[value]:not(.rp-pt):checked')].map(i => i.value);
+      // novos episódios: "5", "5 a 8", "5, 6, 9"
+      const txt = ((ov.querySelector('#rpNovos')||{}).value || '').trim();
+      let novosEps = [];
+      const faixa = txt.match(/^(\d+)\s*(?:a|-|até)\s*(\d+)$/i);
+      if (faixa){ for (let n = +faixa[1]; n <= +faixa[2] && n - +faixa[1] < 60; n++) novosEps.push(n); }
+      else novosEps = txt.split(/[,;\s]+/).filter(v => /^\d+$/.test(v)).map(Number);
+      const existentes = new Set(pipelines.filter(x => x.project === src.project && x.kind === src.kind).map(epNum));
+      const jaTem = novosEps.filter(n => existentes.has(n));
+      novosEps = novosEps.filter(n => !existentes.has(n));
+      if (jaTem.length) showToast(`${rot} ${jaTem.join(', ')} já tem linha — marque na lista para repetir nela.`);
+      if (!ids.length && !novosEps.length){ showToast('Escolha pelo menos um episódio.'); return; }
       const keys = modo === 'tudo' ? etapas.map(st => st.key) : [...ov.querySelectorAll('.rp-et:checked')].map(i => i.value);
       const copiarPartes = modo === 'tudo' ? true : ov.querySelector('#rpPartes').checked;
+      const ptsMarc = [...ov.querySelectorAll('.rp-pt:checked')].map(i => Number(i.value));
+      const partesSel = NP > 1 && ptsMarc.length < NP ? ptsMarc : null;
       if (!keys.length && !copiarPartes){ showToast('Marque o que repetir.'); return; }
       const btn = ov.querySelector('#rpSim'); btn.disabled = true; btn.textContent = 'Repetindo…';
-      for (const id of ids){ const dst = pipelines.find(x => x.id === id); if (dst) await pipeCopiar(src, dst, keys, copiarPartes); }
+      const limparEtapa = st => { const c = JSON.parse(JSON.stringify(st)); delete c.taskId; delete c.feitosManual; delete c.concluido; delete c.historico; delete c.concluido_em; if (c.tipo === 'partes') c.atrib = {}; if (c.tipo === 'checkpartes') c.feitos = []; if (c.itens) c.itens.forEach(i => { i.status = 'pendente'; i.obs = ''; }); if (c.tipo === 'voz_livro') c.voz = ''; if ('done' in c || c.tipo === 'unica' || c.tipo === 'vozes' || c.tipo === 'check') c.done = false; return c; };
+      if (novosEps.length){
+        const novos = novosEps.map(n => ({ id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project: src.project, episode: String(n), kind: src.kind, categoria: src.categoria || null, autor: src.autor || null, partes: null, steps: (src.steps||[]).map(limparEtapa), created_by: myProfile.display_name || myEmail || null }));
+        if (src.serie_total) novos.forEach(n => n.serie_total = src.serie_total);
+        let { error } = await sb.from('production_pipelines').insert(novos);
+        if (error && /serie_total/i.test(error.message)){ novos.forEach(n => delete n.serie_total); ({ error } = await sb.from('production_pipelines').insert(novos)); }
+        if (error){ showToast('❌ ' + error.message); btn.disabled = false; btn.textContent = 'Repetir'; return; }
+        pipelines.push(...novos);
+        ids.push(...novos.map(n => n.id));
+      }
+      for (const id of ids){ const dst = pipelines.find(x => x.id === id); if (dst) await pipeCopiar(src, dst, keys, copiarPartes || novosEps.includes(epNum(dst)), partesSel); }
       await loadProducaoTasks();
       if (typeof loadAgenda === 'function') await loadAgenda();
       if (typeof loadTaskNotifs === 'function') await loadTaskNotifs();
       fechar();
-      showToast(`📋 Repetido em ${ids.length} episódio${ids.length===1?'':'s'}`);
+      showToast(`📋 Repetido em ${ids.length} ${rot === 'Aula' ? 'aula' : 'episódio'}${ids.length===1?'':'s'}${novosEps.length ? ` (${novosEps.length} nova${novosEps.length===1?'':'s'})` : ''}`);
       if (aoTerminar) aoTerminar(ids); else if (currentView === 'producao') renderProducao();
     };
   }
@@ -10843,7 +10892,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="pl-card-pct">${r.pct}%</span>
       </div>
       <div class="pl-dots">${dots}</div>
-      ${r.faltando.length ? `<div class="pl-card-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+      ${r.faltando.length ? `<div class="pl-card-falt">⚠ ${r.faltando.map(n => 'Sem ' + escapeHtml(n)).join(', ')}</div>` : ''}
       ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<div class="pl-card-falt">⚠ Partes a definir</div>` : ''}
     </button>`;
   }
