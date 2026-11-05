@@ -2625,6 +2625,8 @@
   .cr-ligado-eps{ display:flex; flex-wrap:wrap; gap:6px; }
   .cr-ligado-ep{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .cr-ligado-ep:hover{ border-color:var(--blue); }
+  .nav-voltar{ display:inline-flex; align-items:center; gap:4px; background:none; border:1px solid var(--line); color:var(--muted); font:inherit; font-size:12.5px; font-weight:600; padding:5px 11px; border-radius:999px; cursor:pointer; margin:0 0 10px; }
+  .nav-voltar:hover{ color:var(--ink); border-color:var(--blue); }
   .hist-lista{ display:flex; flex-direction:column; gap:6px; overflow:auto; max-height:22vh; }
   .hist-row{ display:flex; align-items:center; gap:8px; padding:7px 9px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; margin:0 !important; font-weight:500 !important; }
   .hist-row .hist-tit{ flex:1; min-width:0; }
@@ -8992,6 +8994,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     document.body.appendChild(ov);
     const fechar = () => ov.remove();
+    navRegistrar('usos:' + voz + '|' + (tipo||''), ov, () => abrirUsosDaVoz(voz, tipo), fechar);
     ov.addEventListener('click', ev => { if (ev.target === ov) fechar(); });
     ov.querySelector('#usoFechar').onclick = fechar;
     const t = ov.querySelector('#usoTodos'); if (t) t.onclick = () => { fechar(); abrirUsosDaVoz(voz, null); };
@@ -9511,6 +9514,45 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return m ? m[1] : null;
   }
   // Sugere nome/episódio/categoria da linha de produção a partir do item do cronograma
+  // ---------- Navegação entre painéis: botão "← Voltar" ----------
+  // Cada painel se registra ao abrir. Se ele foi aberto a partir de outro (que fechou há pouco
+  // ou continua aberto atrás), aparece "← Voltar", que fecha o atual e reabre o anterior.
+  const navHist = [];
+  let navFechouEm = 0;
+  const navAberto = h => h && h.ov && h.ov.isConnected && h.ov.classList.contains('open');
+  const navAtualizar = () => navHist.forEach(h => { const ab = navAberto(h); if (h._ab && !ab) navFechouEm = Date.now(); h._ab = ab; });
+  const navObs = new MutationObserver(navAtualizar);
+  navObs.observe(document.body, { childList:true });
+  function navRegistrar(chave, ov, reabrir, fechar){
+    if (!ov) return;
+    navAtualizar(); // o painel anterior pode ter acabado de fechar nesta mesma ação
+    const outroAberto = navHist.some(h => h.ov !== ov && navAberto(h));
+    if (navHist.length && !outroAberto && Date.now() - navFechouEm > 600) navHist.length = 0; // começou do zero
+    // se este painel já está na pilha, volta até ele (evita voltas em círculo)
+    const idx = navHist.findIndex(h => h.chave === chave);
+    if (idx >= 0) navHist.splice(idx);
+    const h = { chave, ov, reabrir, fechar, _ab: true };
+    navHist.push(h);
+    if (navHist.length > 15) navHist.shift();
+    navObs.observe(ov, { attributes:true, attributeFilter:['class'] });
+    const modal = ov.querySelector('.modal');
+    if (!modal) return;
+    const velho = modal.querySelector(':scope > .nav-voltar'); if (velho) velho.remove();
+    if (navHist.length < 2) return;
+    const anterior = navHist[navHist.length - 2];
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'nav-voltar'; b.innerHTML = '← Voltar';
+    b.title = 'Voltar para o painel anterior';
+    b.onclick = (e) => {
+      e.stopPropagation();
+      navHist.pop();
+      try { fechar(); } catch(err){}
+      navFechouEm = Date.now();
+      if (!navAberto(anterior)){ navHist.pop(); anterior.reabrir(); }
+    };
+    modal.insertBefore(b, modal.firstChild);
+  }
+
   // ---------- Histórico: linhas já concluídas para o que foi produzido antes ----------
   // Tudo marcado como feito, menos M&E e SRT (ficam sem marcar = não recebidos).
   function pipeStepsConcluidos(kind, dataFim){
@@ -9759,6 +9801,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     document.body.appendChild(ov);
     const fechar = () => ov.remove();
+    navRegistrar('crono:' + id, ov, () => abrirItemCronograma(tabela, id), fechar);
     ov.querySelector('#crModalFechar').addEventListener('click', fechar);
     fecharAoClicarFora(ov, fechar);
     const st = ov.querySelector('#crModalStatus');
@@ -10112,7 +10155,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const podeMarcar = pipeAdm() || (t && t.assignee_user_id === myUserId);
     return `<div class="pl-row${feito?' ok':''}">
       <button type="button" class="pl-check${feito?' on':''}" data-pl-done="${s.key}" data-parte="${parte||''}" ${podeMarcar?'':'disabled'} title="${feito?'Feito':'Marcar como feito'}">${feito?'✓':''}</button>
-      <span class="pl-row-nome">${parte ? 'Parte ' + parte : 'Responsável'}</span>
+      <span class="pl-row-nome">${parte ? 'Parte ' + parte : 'Concluído'}</span>
       ${pipeAdm() ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>
           <input type="date" class="pl-data" data-pl-prazo="${s.key}" data-parte="${parte||''}" value="${t && t.due_date ? t.due_date : ''}" title="Prazo (vai para a agenda de quem fizer)">`
         : `<span class="pl-quem">${t ? escapeHtml(t.assignee_name || '') : '—'}${t && t.due_date ? ` · até ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}` : ''}</span>`}
@@ -10221,7 +10264,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="pl-pct"><b>${r.pct}%</b><span>${r.feitas}/${r.total} etapas</span></div>
         </div>
         <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
-        ${pipeSoLeitura ? `<div class="pl-leitura">👁 Esta linha de produção já existe — você está só visualizando.${isAdmin ? ` <button type="button" id="plEditar">✎ Editar linha</button>` : ''}</div>` : ''}
+        ${pipeSoLeitura && isAdmin ? `<div class="pl-leitura" style="justify-content:flex-end;background:none;border:none;padding:0;"><button type="button" id="plEditar">✎ Editar linha de produção</button></div>` : ''}
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote"><span>Criando a linha do <b>${rotuloEp(p, true)} ${escapeHtml(p.episode || String(pipeLote.ids.indexOf(p.id)+1))}</b> (${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length}):</span>
           ${pipeLote.ids.map(id => { const q = pipelines.find(x => x.id === id); const rot = q && q.episode ? q.episode : '?'; return `<span class="pl-lote-chip ${id === p.id ? 'atual' : (pipeLote.feitos.has(id) ? 'feito' : '')}">${pipeLote.feitos.has(id) && id !== p.id ? '✓ ' : ''}${rotuloEp(p)} ${escapeHtml(rot)}</span>`; }).join('')}
           <span style="flex-basis:100%;opacity:.8;">Ao fechar, você escolhe se repete as informações nos próximos.</span></div>` : ''}
@@ -10258,11 +10301,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
       </div>`;
     ov.classList.add('open');
+    const leituraAgora = pipeSoLeitura;
     const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (p.kind === 'audiobook') sincronizarAudiobooks(); if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
     const ed = ov.querySelector('#plEditar'); if (ed) ed.onclick = () => { pipeSoLeitura = false; abrirPipeline(p.id); };
     const oi = ov.querySelector('#plItemCrono'); if (oi) oi.onclick = () => { const o = pipeOrigemItem; ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirItemCronograma(o.tabela, o.id); };
     ov.querySelector('#plFechar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
+    navRegistrar('pipe:' + p.id, ov, () => abrirPipeline(p.id, leituraAgora), fechar);
     const reabrir = () => abrirPipeline(p.id);
     const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
     const lp = ov.querySelector('#plLegProj');
@@ -10437,6 +10482,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>`;
     document.body.appendChild(ov);
     const fechar = () => ov.remove();
+    navRegistrar('ficha:' + project, ov, () => abrirFichaProducao(project), fechar);
     ov.querySelector('#fpFechar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
     ov.querySelectorAll('[data-fp-abrir]').forEach(b => b.onclick = () => { fechar(); abrirPipeline(b.dataset.fpAbrir, true); });
@@ -11101,7 +11147,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }catch(e){ audiobooks = []; }
   }
 
+  // legenda avulsa ("Legendas: Filme X") usa a capa do projeto de onde a legenda vem
+  const _capaOrigem = {};
+  function projetoDaCapa(project){
+    if (!project || !/^\s*legend/i.test(project)) return project;
+    if (_capaOrigem[project] !== undefined) return _capaOrigem[project] || project;
+    let orig = null;
+    try { if (!allProjectsList().includes(project)) orig = projetoParecido(project); } catch(e){}
+    if (orig) _capaOrigem[project] = orig; // só guarda quando achou (os projetos podem não ter carregado ainda)
+    return orig || project;
+  }
   function projCoverUrl(project){
+    project = projetoDaCapa(project);
     const key = PROJ_COVER_PREFIX + projKey(project);
     if (coverCache[key] !== undefined) return coverCache[key];
     try{ const { data } = sb.storage.from(COVER_BUCKET).getPublicUrl(key+'.jpg'); coverCache[key] = data&&data.publicUrl?data.publicUrl:null; }
@@ -13804,7 +13861,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${isAdmin ? `<button type="button" class="proj-renomear" id="projRenomear" title="Alterar o nome do projeto">✎ Renomear</button>` : ''}
         </div>
         ${typeof avisoMaterialHtml === 'function' ? avisoMaterialHtml(project) : ''}
-        ${pipelines.filter(pp => pp.project === project).length ? `<div class="pl-proj-links"><button type="button" class="pl-proj-link" id="projFichaProd">📚 Ficha de produção</button>${pipelines.filter(pp => pp.project === project).map(pp => `<button type="button" class="pl-proj-link" data-pl-abrir="${pp.id}">🏭 Linha de produção${pp.episode ? ' · Ep ' + escapeHtml(pp.episode) : ''} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
+        ${(() => { const lp = pipelines.filter(pp => pp.project === project); if (!lp.length) return ''; const ok = lp.filter(pp => !pipeResumo(pp).atual).length;
+          return `<div class="pl-proj-links"><button type="button" class="pl-proj-link" id="projFichaProd">🏭 Ver linha de produção completa <span style="opacity:.75;font-weight:500;">· ${lp.length > 1 ? `${ok}/${lp.length} concluídas` : (ok ? 'concluída' : pipeResumo(lp[0]).pct + '%')}</span></button></div>`; })()}
         ${isAdmin?`
         <div class="field">
           <label>Capa do projeto</label>
@@ -13966,6 +14024,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>
       </div>`;
     ov.classList.add('open');
+    navRegistrar('proj:' + project, ov, () => openProjetoModal(project), () => ov.classList.remove('open'));
     hydratePhotos();
     wireParticipantesBox(project);
     ov.querySelectorAll('.pl-proj-link[data-pl-abrir]').forEach(b => b.addEventListener('click', () => abrirPipeline(b.dataset.plAbrir)));
