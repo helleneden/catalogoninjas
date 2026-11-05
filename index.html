@@ -9108,9 +9108,33 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     </div>`;
   }
 
+  // Renderização: "Trilha Selvagem Ep. 10" → projeto "Trilha Selvagem" (mesma coleção/franquia),
+  // ligado automaticamente; depois o usuário só cria a linha.
+  const crAutoTentados = new Set();
+  async function autoLigarRenderizacao(mes){
+    if (!isAdmin) return;
+    const itens = metaCardsTodos.filter(x => x.mes === mes && !x.project && !crAutoTentados.has(x.id));
+    let mudou = false;
+    for (const it of itens){
+      crAutoTentados.add(it.id);
+      const t = it.titulo || '';
+      // só quando a diferença é episódio / temporada
+      if (!episodioDoTitulo(t) && !/\b(temporada|season)\b|\bT\d{1,2}\b/i.test(t)) continue;
+      const base = baseSerie(limparTituloCrono(t)); if (!base) continue;
+      const proj = allProjectsList().find(pr => baseSerie(pr) === base)
+        || (metaCardsTodos.find(o => o.project && baseSerie(limparTituloCrono(o.titulo)) === base) || {}).project
+        || (pipelines.find(pp => baseSerie(pp.project) === base) || {}).project;
+      if (!proj) continue;
+      const { error } = await sb.from('meta_cards').update({ project: proj }).eq('id', it.id);
+      if (!error){ it.project = proj; mudou = true; }
+    }
+    if (mudou && currentView === 'cronograma') renderCronograma();
+  }
+
   function renderCronograma(){
     const cont = $('#cronogramaContent');
     if (!cont) return;
+    if (cronoTabelasOk) setTimeout(() => autoLigarRenderizacao(cronoMes), 0);
     if (!cronoTabelasOk){
       cont.innerHTML = `<div class="empty-state"><h2>Falta rodar o SQL</h2><p>Rode o arquivo <b>SQL-cronograma.sql</b> no Supabase para ativar o Cronograma.</p></div>`;
       return;
@@ -9240,7 +9264,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const tab = row.dataset.crAbrir, id = row.dataset.id;
       const it = (tab === 'app_releases' ? lancamentos : metaCardsTodos).find(x => x.id === id);
       const pp = it ? pipelineDoItem(it) : null;
-      if (pp){ pipeOrigemItem = { tabela: tab, id }; abrirPipeline(pp.id, true); }
+      if (pp && tab === 'meta_cards'){ pipeOrigemItem = { tabela: tab, id }; abrirPipeline(pp.id, true); }
       else abrirItemCronograma(tab, id);
     }));
     // adicionar
@@ -9345,6 +9369,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // já ligado a um projeto que TEM linha de produção (ex.: outra temporada/episódio da série)
     const projLig = it.project || (() => { const b = baseSerie(limparTituloCrono(it.titulo)); const c = b ? pipelines.find(pp => baseSerie(pp.project) === b) : null; return c ? c.project : null; })();
     const projPipes = !pipe && projLig ? pipelines.filter(pp => pp.project === projLig).sort((a,b) => epNum(a) - epNum(b)) : [];
+    const projVozes = (pipe && pipe.project) || projLig || null;
+    const temFichas = projVozes && allProjectsList().includes(projVozes);
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open';
     ov.style.zIndex = '400';
@@ -9358,7 +9384,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
 
         <div class="field" style="margin-top:18px;">
-          <label>🏭 Linha de produção</label>
+          <label>🏭 Linha de produção ${pipe ? '<span style="text-transform:none;font-weight:500;color:var(--muted);">· clique para ver</span>' : ''}</label>
           ${pipe ? `
             <button type="button" class="pl-card" id="crModalPipe" style="width:100%;">
               <div class="pl-card-topo">
@@ -9374,7 +9400,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           : projPipes.length ? `<div class="cr-ligado">
               <div>🔗 Ligado à produção de <b>${escapeHtml(projLig)}</b></div>
               <div class="cr-ligado-eps">${projPipes.map(pp => `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? 'Ep ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>
-              <button type="button" class="cr-ligado-editar" id="crModalEditarLinha">✎ Editar linha</button>
+              ${tabela === 'meta_cards' ? `<button type="button" class="cr-ligado-editar" id="crModalEditarLinha">✎ Editar linha</button>` : ''}
             </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
@@ -9392,6 +9418,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
         <div class="modal-actions">
           ${isAdmin?`<button class="btn-danger-ghost" id="crModalDel" style="margin-right:auto;" title="Remover do cronograma">🗑️ Remover</button>`:''}
+          ${temFichas ? `<button class="btn-ghost" id="crModalVozes">🎭 Ver vozes</button>` : ''}
           ${pipe && isAdmin ? `<button class="btn-ghost" id="crModalDesligar" title="Desfaz a ligação com a linha de produção">Desligar</button>` : ''}
           <button class="btn-ghost" id="crModalFechar">Fechar</button>
         </div>
@@ -9416,8 +9443,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       return true;
     };
     const pb = ov.querySelector('#crModalPipe');
-    if (pb) pb.addEventListener('click', () => { fechar(); abrirPipeline(pipe.id); });
+    if (pb) pb.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(pipe.id, true); });
     ov.querySelectorAll('[data-abrir-pipe]').forEach(b => b.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(b.dataset.abrirPipe, true); }));
+    const vz = ov.querySelector('#crModalVozes'); if (vz) vz.addEventListener('click', () => { fechar(); openProjetoModal(projVozes); });
     const el = ov.querySelector('#crModalEditarLinha');
     if (el) el.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(projPipes[0].id, false); });
     const cp = ov.querySelector('#crModalCriarPipe');
