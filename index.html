@@ -2617,6 +2617,12 @@
   .cr-add select{ padding:8px 6px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; max-width:130px; }
   .cr-add button{ padding:8px 12px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:12.5px; }
   .cr-modal{ max-width:560px; }
+  .cr-ligado{ border:1px solid var(--line); background:var(--surface-soft); border-radius:12px; padding:10px 12px; font-size:13px; display:flex; flex-direction:column; gap:8px; }
+  .cr-ligado-eps{ display:flex; flex-wrap:wrap; gap:6px; }
+  .cr-ligado-ep{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .cr-ligado-ep:hover{ border-color:var(--blue); }
+  .cr-ligado-editar{ align-self:flex-start; border:none; background:none; color:var(--blue-deep); font-size:12.5px; font-weight:700; cursor:pointer; padding:0; font-family:inherit; }
+  .cr-ligado-editar:hover{ text-decoration:underline; }
   .cr-ligar-existente{ margin:4px 0 6px; font-size:12.5px; color:var(--muted); }
   .cr-ligar-existente summary{ cursor:pointer; }
   .cr-modal-eyebrow{ font-size:11.5px; color:var(--muted); margin:0; font-weight:600; }
@@ -9336,6 +9342,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const pipe = pipelineDoItem(it);
     const r = pipe ? pipeResumo(pipe) : null;
     const quem = pipe && r.atual ? pipeQuemNaEtapa(pipe, r.atual) : [];
+    // já ligado a um projeto que TEM linha de produção (ex.: outra temporada/episódio da série)
+    const projLig = it.project || (() => { const b = baseSerie(limparTituloCrono(it.titulo)); const c = b ? pipelines.find(pp => baseSerie(pp.project) === b) : null; return c ? c.project : null; })();
+    const projPipes = !pipe && projLig ? pipelines.filter(pp => pp.project === projLig).sort((a,b) => epNum(a) - epNum(b)) : [];
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open';
     ov.style.zIndex = '400';
@@ -9362,11 +9371,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               </div>
               <div class="pl-dots">${(pipe.steps||[]).map(st => `<span class="pl-dot${pipeEtapaOk(pipe, st)?' ok':''}${r.atual && r.atual.key === st.key ? ' atual' : ''}"></span>`).join('')}</div>
             </button>`
+          : projPipes.length ? `<div class="cr-ligado">
+              <div>🔗 Ligado à produção de <b>${escapeHtml(projLig)}</b></div>
+              <div class="cr-ligado-eps">${projPipes.map(pp => `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? 'Ep ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>
+              <button type="button" class="cr-ligado-editar" id="crModalEditarLinha">✎ Editar linha</button>
+            </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
         </div>
 
-        ${isAdmin && !pipe ? `<details class="cr-ligar-existente" ${it.project ? 'open' : ''}>
+        ${isAdmin && !pipe && !projPipes.length ? `<details class="cr-ligar-existente" ${it.project ? 'open' : ''}>
           <summary>${it.project ? `Ligado ao projeto <b>${escapeHtml(it.project)}</b> — trocar` : 'Esse projeto já existe no app? Ligar a ele'}</summary>
           <select id="crModalPipeSel" style="width:100%;margin-top:8px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;">
             <option value="">— Escolha o projeto —</option>
@@ -9403,6 +9417,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     };
     const pb = ov.querySelector('#crModalPipe');
     if (pb) pb.addEventListener('click', () => { fechar(); abrirPipeline(pipe.id); });
+    ov.querySelectorAll('[data-abrir-pipe]').forEach(b => b.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(b.dataset.abrirPipe, true); }));
+    const el = ov.querySelector('#crModalEditarLinha');
+    if (el) el.addEventListener('click', () => { fechar(); pipeOrigemItem = { tabela, id }; abrirPipeline(projPipes[0].id, false); });
     const cp = ov.querySelector('#crModalCriarPipe');
     if (cp) cp.addEventListener('click', () => {
       const sug = sugestaoDoItem(it);
