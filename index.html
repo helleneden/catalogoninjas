@@ -2734,6 +2734,38 @@
   .np-kind .np-ic{ font-size:20px; }
   .np-kind small{ font-size:10.5px; color:var(--muted); line-height:1.35; }
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .np-modos{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  @media (max-width:560px){ .np-modos{ grid-template-columns:1fr; } }
+  .np-modo{ text-align:left; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; font-size:13.5px; }
+  .np-modo.on{ border-color:var(--blue); background:rgba(74,155,224,.12); }
+  .np-modo small{ font-size:11px; color:var(--muted); }
+  #npDeBox[hidden], #npAteBox[hidden]{ display:none; }
+  .pl-data{ width:138px; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; flex:0 0 auto; }
+  .pl-lote{ font-size:12px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:-4px 0 12px; }
+  .rp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+  .rp-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface-soft); border-radius:9px; padding:6px 10px; font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; cursor:pointer; margin:0 !important; }
+  .rp-lista{ display:flex; flex-direction:column; gap:4px; max-height:260px; overflow:auto; }
+  .rp-item{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; background:var(--surface-soft); font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; cursor:pointer; margin:0 !important; font-weight:500 !important; }
+  .rp-item span{ margin-left:auto; color:var(--muted); font-size:11.5px; }
+  .rp-chip input, .rp-item input{ width:auto !important; margin:0 !important; accent-color:var(--blue); }
+  @media (max-width:560px){ .np-grid2{ grid-template-columns:1fr; } }
+  .np-dica{ display:block; font-size:11px; color:var(--muted); margin-top:4px; }
+  .np-eps{ display:grid; grid-template-columns:repeat(auto-fill, minmax(92px,1fr)); gap:6px; max-height:190px; overflow:auto; padding:2px; }
+  .np-ep{ display:flex; align-items:center; gap:6px; background:var(--surface-soft); border:1px solid var(--line); border-radius:9px; padding:5px 8px; font-size:12px; color:var(--muted); font-weight:600; }
+  .np-ep{ flex-direction:row !important; justify-content:space-between; margin:0 !important; text-transform:none !important; letter-spacing:0 !important; }
+  .np-ep input{ width:48px !important; flex:0 0 auto; padding:4px 6px !important; border:1px solid var(--line); border-radius:7px; font-size:12.5px !important; margin:0 !important; text-align:center; }
+  .np-colecao{ border:1px solid var(--line); border-radius:12px; padding:12px 14px 2px; margin:4px 0 6px; }
+  .np-colecao[hidden]{ display:none; }
+  .np-col-tit{ font-size:13px; font-weight:700; margin-bottom:8px; }
+  .np-col-tit span{ font-weight:400; color:var(--muted); font-size:12px; }
+  .np-colecao input[hidden]{ display:none; }
+  .np-colecao input{ margin-top:6px; }
+  .np-sug{ font-size:12.5px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:0 0 10px; }
+  .np-sug button{ margin-left:6px; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:7px; padding:3px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+  .pl-partes-def input{ width:70px; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; }
+  .pl-partes-def .ok{ width:auto !important; padding:0 12px; background:var(--blue) !important; color:#fff !important; border-color:var(--blue) !important; font-size:12.5px !important; font-weight:700; }
+  .pl-partes-def{ color:var(--warn-ink); }
   @media (max-width:560px){ .np-grid{ grid-template-columns:1fr; } }
   /* ---- Ficha enxuta (Todas as fichas) ---- */
   .voice-card.vc-clean{ box-shadow:none; gap:10px; padding:14px 14px 10px; }
@@ -9417,9 +9449,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ];
   }
 
-  function pipeNome(p){ return p.episode ? `${p.project} · Ep ${p.episode}` : p.project; }
+  function pipeNome(p){ return p.episode ? `${p.project} · Ep ${p.episode}${p.serie_total ? '/' + p.serie_total : ''}` : p.project; }
   function pipeTask(id){ return id ? producaoTasks.find(t => t.id === id) : null; }
   function pipePartes(p){ return Math.max(1, Number(p.partes) || 1); }
+  function pipePartesOk(p){ return Number(p.partes) > 0; }
   // Vozes já escolhidas em outro episódio do mesmo projeto (séries: pergunta só uma vez)
   function pipeVozesHerdadas(p){
     return pipelines.find(o => o.id !== p.id && o.project === p.project && (o.steps||[]).some(s => s.tipo === 'vozes' && s.done)) || null;
@@ -9428,6 +9461,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Progresso de uma etapa: {feitos, total}
   function pipeEtapaProg(p, s){
     const N = pipePartes(p);
+    if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p)) return { feitos:0, total:1 };
     if (s.tipo === 'material'){ const t = (s.itens||[]).length || 1; return { feitos:(s.itens||[]).filter(i => i.status !== 'pendente').length, total:t }; }
     if (s.tipo === 'checkpartes') return { feitos: Math.min(N, (s.feitos||[]).filter(n => n <= N).length), total:N };
     if (s.tipo === 'vozes') return { feitos: (s.done || pipeVozesHerdadas(p)) ? 1 : 0, total:1 };
@@ -9463,26 +9497,39 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return true;
   }
 
-  // cria / troca / remove o responsável de uma etapa (vira production_task)
-  async function pipeAtribuir(p, s, parte, userId){
+  function hojeISO(){ const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  // cria / troca / remove o responsável de uma etapa (vira production_task + agenda + notificação)
+  async function pipeAtribuir(p, s, parte, userId, prazo, silencioso){
     const campo = s.tipo === 'partes' ? (s.atrib = s.atrib || {}) : null;
     const taskIdAtual = s.tipo === 'partes' ? campo[parte] : s.taskId;
     const atual = pipeTask(taskIdAtual);
     if (!userId){
-      if (atual){ try { await sb.from('production_tasks').delete().eq('id', atual.id); } catch(e){} }
+      if (atual){
+        if (atual.agenda_note_id) await apagarItemAgendaDaTarefa(atual.agenda_note_id);
+        try { await sb.from('production_tasks').delete().eq('id', atual.id); } catch(e){}
+      }
       if (s.tipo === 'partes') delete campo[parte]; else delete s.taskId;
-      await pipeSalvar(p); await loadProducaoTasks(); return;
+      await pipeSalvar(p); if (!silencioso) await loadProducaoTasks(); return;
     }
     const perfil = profilesByUser[userId] || {};
     const desc = [pipeNome(p), parte ? `Parte ${parte}` : '', s.nome].filter(Boolean).join(' · ');
+    const data = prazo || (atual && atual.due_date) || hojeISO();
+    let taskId;
     if (atual){
-      await sb.from('production_tasks').update({ assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja' }).eq('id', atual.id);
+      taskId = atual.id;
+      if (atual.assignee_user_id === userId && (atual.due_date || '') === data) return; // nada mudou
+      // agenda acompanha a pessoa e a data
+      if (atual.agenda_note_id) await apagarItemAgendaDaTarefa(atual.agenda_note_id);
+      const agendaId = await criarItemAgenda(userId, data, `🎬 ${desc}`, taskId);
+      await sb.from('production_tasks').update({ assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja', due_date: data, agenda_note_id: agendaId }).eq('id', taskId);
+      if (atual.assignee_user_id === userId){ if (!silencioso) await loadProducaoTasks(); return; } // só mudou a data
     } else {
-      const taskId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      taskId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      const agendaId = await criarItemAgenda(userId, data, `🎬 ${desc}`, taskId);
       const { error } = await sb.from('production_tasks').insert({
         id: taskId, project: p.project, episode: p.episode || 'Filme', part: parte ? String(parte) : null,
         assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja',
-        stage: s.stage || s.nome, priority: 1, created_by: myEmail || null
+        stage: s.stage || s.nome, priority: 1, due_date: data, agenda_note_id: agendaId, created_by: myEmail || null
       });
       if (error){ showToast('❌ ' + error.message); return; }
       if (s.tipo === 'partes') campo[parte] = taskId; else s.taskId = taskId;
@@ -9491,12 +9538,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     try {
       await sb.from('task_notifications').insert({
         id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
-        user_id: userId, task_id: s.tipo === 'partes' ? campo[parte] : s.taskId, project: p.project, stage: s.stage || s.nome,
-        message: `${myProfile.display_name || myEmail || 'Um admin'} passou uma etapa pra você: ${desc}`, read: false
+        user_id: userId, task_id: taskId, project: p.project, stage: s.stage || s.nome,
+        message: `${myProfile.display_name || myEmail || 'Um admin'} passou uma etapa pra você: ${desc} (até ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR')})`, read: false
       });
     } catch(e){}
-    await loadProducaoTasks();
-    showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${perfil.display_name || 'ninja'}`);
+    if (!silencioso){
+      await loadProducaoTasks();
+      if (userId === myUserId && typeof loadAgenda === 'function') await loadAgenda();
+      showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${perfil.display_name || 'ninja'} · agenda ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`);
+    }
   }
   async function pipeMarcarTarefa(task, feita){
     await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', task.id);
@@ -9517,12 +9567,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return `<div class="pl-row${feito?' ok':''}">
       <button type="button" class="pl-check${feito?' on':''}" data-pl-done="${s.key}" data-parte="${parte||''}" ${podeMarcar?'':'disabled'} title="${feito?'Feito':'Marcar como feito'}">${feito?'✓':''}</button>
       <span class="pl-row-nome">${parte ? 'Parte ' + parte : 'Responsável'}</span>
-      ${isAdmin ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>`
-        : `<span class="pl-quem">${t ? escapeHtml(t.assignee_name || '') : '—'}</span>`}
+      ${isAdmin ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>
+          <input type="date" class="pl-data" data-pl-prazo="${s.key}" data-parte="${parte||''}" value="${t && t.due_date ? t.due_date : ''}" title="Prazo (vai para a agenda de quem fizer)">`
+        : `<span class="pl-quem">${t ? escapeHtml(t.assignee_name || '') : '—'}${t && t.due_date ? ` · até ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}` : ''}</span>`}
     </div>`;
   }
   function pipeCorpoEtapa(p, s){
     const N = pipePartes(p);
+    if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p))
+      return `<p class="pl-nota">⚠ Defina primeiro em quantas partes este ${p.episode ? 'episódio' : 'projeto'} foi dividido (no topo desta janela).</p>`;
     if (s.tipo === 'material'){
       return `<div class="pl-mat">${(s.itens||[]).map((it, i) => `
         <div class="pl-mat-item st-${it.status}">
@@ -9616,8 +9669,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="pl-pct"><b>${r.pct}%</b><span>${r.feitas}/${r.total} etapas</span></div>
         </div>
         <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
+        ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote">Episódio ${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length} deste lote · ao fechar, você escolhe se repete as informações nos próximos.</div>` : ''}
         ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
-        ${temPartes && isAdmin ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>` : ''}
+        ${temPartes && isAdmin ? (pipePartesOk(p)
+          ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>`
+          : `<div class="pl-partes-ctrl pl-partes-def">⚠ Partes a definir: <input type="number" id="plPartesDef" min="1" max="40" placeholder="Qtd."><button type="button" id="plPartesDefOk" class="ok">Definir</button></div>`) : ''}
         <div class="pl-etapas">${etapas}</div>
         ${isAdmin ? `<div class="pl-nova-etapa">
           <button type="button" class="pl-add-etapa-btn" id="plAddEtapaBtn">+ Adicionar etapa</button>
@@ -9637,24 +9693,33 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>` : ''}
         <div class="modal-actions">
           ${isAdmin ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
+          ${isAdmin && pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plRepetir">📋 Repetir em outros episódios</button>` : ''}
           ${p.kind !== 'audiobook' ? `<button class="btn-ghost" id="plFichas">🎭 Fichas do projeto</button>` : ''}
           <button class="btn-primary" id="plFechar">Fechar</button>
         </div>
       </div>`;
     ov.classList.add('open');
-    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; if (currentView === 'producao') renderProducao(); };
+    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); };
     ov.querySelector('#plFechar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
     const reabrir = () => abrirPipeline(p.id);
     const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
+    const rp = ov.querySelector('#plRepetir');
+    if (rp) rp.onclick = () => abrirRepetir(p, pipelines.filter(o => o.id !== p.id && o.project === p.project).map(o => o.id), null);
     const fx = ov.querySelector('#plAbrirFichas'); if (fx) fx.onclick = () => openProjetoModal(p.project);
 
     ov.querySelectorAll('[data-pl-etapa]').forEach(b => b.onclick = () => {
       pipeEtapaAberta[p.id] = pipeEtapaAberta[p.id] === b.dataset.plEtapa ? null : b.dataset.plEtapa; reabrir();
     });
     ov.querySelectorAll('[data-pl-partes]').forEach(b => b.onclick = async () => {
-      p.partes = Math.min(40, Math.max(1, pipePartes(p) + Number(b.dataset.plPartes))); await pipeSalvar(p); reabrir();
+      p.partes = Math.min(40, Math.max(1, (Number(p.partes)||0) + Number(b.dataset.plPartes))); await pipeSalvar(p); reabrir();
     });
+    const pdo = ov.querySelector('#plPartesDefOk');
+    if (pdo){
+      const definir = async () => { const v = parseInt(ov.querySelector('#plPartesDef').value, 10); if (!v || v < 1){ showToast('Informe a quantidade de partes.'); return; } p.partes = Math.min(40, v); await pipeSalvar(p); reabrir(); };
+      pdo.onclick = definir;
+      ov.querySelector('#plPartesDef').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); definir(); } };
+    }
     const step = key => (p.steps||[]).find(s => s.key === key);
     const aberta = step(pipeEtapaAberta[p.id]);
     // material
@@ -9677,7 +9742,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // responsável
     ov.querySelectorAll('[data-pl-atrib]').forEach(sel => sel.onchange = async () => {
       sel.disabled = true;
-      await pipeAtribuir(p, step(sel.dataset.plAtrib), sel.dataset.parte ? Number(sel.dataset.parte) : null, sel.value);
+      const dataInp = sel.parentElement.querySelector('.pl-data');
+      await pipeAtribuir(p, step(sel.dataset.plAtrib), sel.dataset.parte ? Number(sel.dataset.parte) : null, sel.value, dataInp && dataInp.value ? dataInp.value : null);
+      reabrir();
+    });
+    // prazo: muda a data da tarefa e da agenda
+    ov.querySelectorAll('[data-pl-prazo]').forEach(inp => inp.onchange = async () => {
+      const st2 = step(inp.dataset.plPrazo); const parte = inp.dataset.parte ? Number(inp.dataset.parte) : null;
+      const t = pipeTask(parte ? (st2.atrib||{})[parte] : st2.taskId);
+      if (!t){ showToast('Escolha a pessoa — a data vai junto.'); return; }
+      await pipeAtribuir(p, st2, parte, t.assignee_user_id, inp.value || null);
       reabrir();
     });
     // feito
@@ -9744,14 +9818,119 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // ---------- assistente: nova linha de produção ----------
+  // ---------- repetir a linha de um episódio em outros ----------
+  let pipeLote = null;   // { ids:[...], feitos:Set } — episódios criados juntos, configurados em sequência
+  const epNum = p => parseInt(String(p.episode||'').match(/\d+/)?.[0] || '0', 10);
+
+  async function pipeCopiar(src, dst, keys, copiarPartes){
+    if (copiarPartes && pipePartesOk(src)) dst.partes = src.partes;
+    const N = pipePartesOk(dst) ? pipePartes(dst) : 0;
+    for (const key of keys){
+      const ss = (src.steps||[]).find(x => x.key === key); if (!ss) continue;
+      let ds = (dst.steps||[]).find(x => x.key === key);
+      if (!ds){
+        ds = JSON.parse(JSON.stringify(ss)); delete ds.taskId; ds.atrib = ss.tipo === 'partes' ? {} : ds.atrib; delete ds.feitosManual;
+        const idx = Math.min((src.steps||[]).indexOf(ss), dst.steps.length);
+        dst.steps.splice(idx, 0, ds);
+      }
+      if (ss.tipo === 'material') ds.itens = JSON.parse(JSON.stringify(ss.itens || []));
+      else if (ss.tipo === 'checkpartes') ds.feitos = (ss.feitos || []).filter(n => !N || n <= N);
+      else if (ss.tipo === 'vozes' || ss.tipo === 'check') ds.done = !!ss.done;
+      else if (ss.tipo === 'voz_livro'){ ds.voz = ss.voz; ds.done = !!ss.done; }
+      else if (ss.tipo === 'partes'){
+        for (let n = 1; n <= N; n++){
+          const t = pipeTask((ss.atrib||{})[n]);
+          if (t) await pipeAtribuir(dst, ds, n, t.assignee_user_id, t.due_date, true);
+        }
+      } else if (ss.tipo === 'unica'){
+        const t = pipeTask(ss.taskId);
+        if (t) await pipeAtribuir(dst, ds, null, t.assignee_user_id, t.due_date, true);
+        else ds.done = !!ss.done;
+      }
+    }
+    await pipeSalvar(dst);
+  }
+
+  // Janela: "Quer repetir as informações do Ep X nos outros episódios?"
+  function abrirRepetir(src, alvosIds, aoTerminar){
+    const alvos = alvosIds.map(id => pipelines.find(x => x.id === id)).filter(Boolean).sort((a,b) => epNum(a) - epNum(b));
+    if (!alvos.length){ if (aoTerminar) aoTerminar([]); return; }
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open'; ov.style.zIndex = '340';
+    const etapas = (src.steps||[]);
+    ov.innerHTML = `
+      <div class="modal" style="max-width:560px;">
+        <h2>📋 Repetir as informações do ${escapeHtml(src.episode ? 'Ep ' + src.episode : src.project)}?</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-8px 0 14px;">Os responsáveis, prazos e checklists marcados aqui vão para os episódios escolhidos (cada pessoa recebe a notificação e a tarefa na agenda).</p>
+        <div class="field"><label>Em quais episódios?</label>
+          <div class="rp-chips">${alvos.map(a => `<label class="rp-chip"><input type="checkbox" value="${a.id}" checked> ${escapeHtml(a.episode ? 'Ep ' + a.episode : pipeNome(a))}</label>`).join('')}</div>
+        </div>
+        <div class="field"><label>Repetir tudo ou só uma parte?</label>
+          <div class="np-modos">
+            <button type="button" class="np-modo on" data-rp="tudo"><b>Tudo</b><small>Todas as etapas e o número de partes</small></button>
+            <button type="button" class="np-modo" data-rp="parte"><b>Só uma parte</b><small>Eu escolho quais etapas</small></button>
+          </div>
+        </div>
+        <div class="field" id="rpEtapas" hidden><label>Quais informações repetir?</label>
+          <div class="rp-lista">
+            <label class="rp-item"><input type="checkbox" id="rpPartes" checked> Número de partes ${pipePartesOk(src) ? `(${pipePartes(src)})` : '(a definir)'}</label>
+            ${etapas.map((st, i) => `<label class="rp-item"><input type="checkbox" class="rp-et" value="${st.key}" checked> ${i+1}. ${escapeHtml(st.nome)} <span>${escapeHtml(pipeQuemNaEtapa(src, st).join(', '))}</span></label>`).join('')}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="rpNao">${aoTerminar ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
+          <button class="btn-primary" id="rpSim">Repetir</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    let modo = 'tudo';
+    ov.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { modo = b.dataset.rp; ov.querySelectorAll('[data-rp]').forEach(x => x.classList.toggle('on', x === b)); ov.querySelector('#rpEtapas').hidden = modo !== 'parte'; });
+    const fechar = () => ov.remove();
+    ov.querySelector('#rpNao').onclick = () => { fechar(); if (aoTerminar) aoTerminar([]); };
+    ov.querySelector('#rpSim').onclick = async () => {
+      const ids = [...ov.querySelectorAll('.rp-chips input:checked')].map(i => i.value);
+      if (!ids.length){ showToast('Marque pelo menos um episódio.'); return; }
+      const keys = modo === 'tudo' ? etapas.map(st => st.key) : [...ov.querySelectorAll('.rp-et:checked')].map(i => i.value);
+      const copiarPartes = modo === 'tudo' ? true : ov.querySelector('#rpPartes').checked;
+      if (!keys.length && !copiarPartes){ showToast('Marque o que repetir.'); return; }
+      const btn = ov.querySelector('#rpSim'); btn.disabled = true; btn.textContent = 'Repetindo…';
+      for (const id of ids){ const dst = pipelines.find(x => x.id === id); if (dst) await pipeCopiar(src, dst, keys, copiarPartes); }
+      await loadProducaoTasks();
+      if (typeof loadAgenda === 'function') await loadAgenda();
+      if (typeof loadTaskNotifs === 'function') await loadTaskNotifs();
+      fechar();
+      showToast(`📋 Repetido em ${ids.length} episódio${ids.length===1?'':'s'}`);
+      if (aoTerminar) aoTerminar(ids); else if (currentView === 'producao') renderProducao();
+    };
+  }
+
+  // Ao fechar um episódio do lote: pergunta se repete e abre o próximo
+  function pipeLoteProximo(p){
+    if (!pipeLote || !pipeLote.ids.includes(p.id)) return false;
+    pipeLote.feitos.add(p.id);
+    const restantes = pipeLote.ids.filter(id => !pipeLote.feitos.has(id));
+    if (!restantes.length){ pipeLote = null; showToast('✓ Todos os episódios do lote foram configurados.'); return false; }
+    abrirRepetir(p, restantes, (copiados) => {
+      copiados.forEach(id => pipeLote && pipeLote.feitos.add(id));
+      const prox = pipeLote ? pipeLote.ids.find(id => !pipeLote.feitos.has(id)) : null;
+      if (prox) abrirPipeline(prox);
+      else { pipeLote = null; showToast('✓ Episódios configurados.'); if (currentView === 'producao') renderProducao(); }
+    });
+    return true;
+  }
+
   function abrirNovoPipeline(opts){
     opts = opts || {};
     if (!pipelinesOk){ showToast('Rode o SQL-linha-producao.sql no Supabase primeiro.'); return; }
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open'; ov.style.zIndex = '320';
     const kindPadrao = opts.kind || (opts.categoria === 'Audiobook' ? 'audiobook' : 'video');
+    // franquia já ligada ao projeto, ou sugestão de sequência
+    const frAtual = opts.nome && projectFranchise[opts.nome] ? (franchises||[]).find(f => f.id === projectFranchise[opts.nome]) : null;
+    const epIni = opts.episode && /^\d+/.test(opts.episode) ? parseInt(opts.episode, 10) : 1;
+    const epFim = opts.episode && /(\d+)\s*$/.test(opts.episode) ? parseInt(opts.episode.match(/(\d+)\s*$/)[1], 10) : epIni;
     ov.innerHTML = `
-      <div class="modal" style="max-width:580px;">
+      <div class="modal" style="max-width:620px;">
         <h2>🏭 Nova linha de produção</h2>
         <p style="font-size:12.5px;color:var(--muted);margin:-8px 0 14px;">Escolha o tipo e o app monta a cadeia de produção do projeto.</p>
         <div class="field"><label>Projeto</label>
@@ -9763,97 +9942,200 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             ${Object.entries(PIPE_KINDS).map(([k, v]) => `<button type="button" class="np-kind" data-kind="${k}"><span class="np-ic">${v.ic}</span><b>${v.nome}</b><small>${k==='video'?'Material → Eleven → Vozes → Dublagem → Revisão → Redublagem → Pós → CQ → Correção → Dropbox':k==='audiobook'?'Word → Claude → Eleven → Voz → Exportar → Dropbox':'Você monta o passo a passo'}</small></button>`).join('')}
           </div>
         </div>
+
         <div id="npVideo">
           <div class="np-grid">
             <div class="field"><label>Categoria</label><select id="npCat">${['Filme','Série','Documentário','Desenho','Estudo','Infantil','Outro'].map(c => `<option ${opts.categoria===c?'selected':''}>${c}</option>`).join('')}</select></div>
-            <div class="field"><label>Episódio <span style="font-weight:400;text-transform:none;">(série)</span></label><input type="text" id="npEp" placeholder="Ex: 01" value="${escapeHtml(opts.episode||'')}"></div>
-            <div class="field"><label>Partes</label><input type="number" id="npPartes" min="1" max="40" value="3"></div>
+            <div class="field" id="npUnicoPartes"><label>Partes</label><input type="number" id="npPartes" min="0" max="40" value="3"><small class="np-dica">0 = definir depois</small></div>
+          </div>
+          <div id="npSerie" hidden>
+            <div class="field"><label>Quantos episódios tem a série?</label><input type="number" id="npTotalEps" min="1" max="500" value="${Math.max(epFim, 12)}" style="max-width:160px;"></div>
+            <div class="field"><label>Quando definir as partes de cada episódio?</label>
+              <div class="np-modos">
+                <button type="button" class="np-modo on" data-modo="crono"><b>📅 Conforme o cronograma</b><small>Inicio agora só os episódios do mês (ex.: 1 a 4)</small></button>
+                <button type="button" class="np-modo" data-modo="todos"><b>🗂 Todos agora</b><small>Crio a linha de todos os episódios de uma vez</small></button>
+              </div>
+            </div>
+            <div class="np-grid">
+              <div class="field" id="npDeBox"><label>Iniciar do episódio</label><input type="number" id="npEpDe" min="1" max="500" value="${epIni}"></div>
+              <div class="field" id="npAteBox"><label>até o episódio</label><input type="number" id="npEpAte" min="1" max="500" value="${epFim > epIni ? epFim : Math.min(epIni + 3, Math.max(epFim, 12))}"></div>
+              <div class="field"><label>Partes (todos)</label><input type="number" id="npPartesTodos" min="0" max="40" value="0"><small class="np-dica">0 = definir depois</small></div>
+            </div>
+            <div class="field"><label>Partes de cada episódio <span style="font-weight:400;text-transform:none;">(deixe vazio para definir depois)</span></label>
+              <div id="npEpsGrid" class="np-eps"></div>
+            </div>
           </div>
         </div>
+
         <div id="npAudio" hidden><div class="field"><label>Autor</label><input type="text" id="npAutor" placeholder="Ex: Joel Beeke" list="npAutores" value="${escapeHtml(opts.autor||'')}"><datalist id="npAutores">${[...new Set(audiobooks.map(a => a.author).filter(Boolean))].map(a => `<option value="${escapeHtml(a)}">`).join('')}</datalist></div></div>
         <div id="npEspecial" hidden><div class="field"><label>Passo a passo <span style="font-weight:400;text-transform:none;">(um por linha; termine com * para dividir por partes)</span></label>
           <textarea id="npPassos" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;" placeholder="Receber material&#10;Gravação*&#10;Edição&#10;Entrega"></textarea></div>
-          <div class="field"><label>Partes</label><input type="number" id="npPartesEsp" min="1" max="40" value="1"></div>
+          <div class="field"><label>Partes</label><input type="number" id="npPartesEsp" min="0" max="40" value="1"></div>
         </div>
+
+        <div id="npColecao" class="np-colecao">
+          <div class="np-col-tit">🗂 Coleção e franquia <span>(opcional)</span></div>
+          <div id="npSugFr"></div>
+          <div class="np-grid2">
+            <div class="field"><label>Coleção</label>
+              <select id="npColSel"><option value="">— Nenhuma —</option>${(categories||[]).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}<option value="__nova__">➕ Nova coleção…</option></select>
+              <input type="text" id="npColNova" placeholder="Nome da nova coleção" hidden>
+            </div>
+            <div class="field"><label>Franquia</label>
+              <select id="npFrSel"><option value="">— Nenhuma —</option></select>
+              <input type="text" id="npFrNova" placeholder="Nome da nova franquia" hidden>
+            </div>
+          </div>
+        </div>
+
         <div class="modal-actions">
           <button class="btn-ghost" id="npCancelar">Cancelar</button>
           <button class="btn-primary" id="npCriar">Criar linha de produção</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
+    const $o = sel => ov.querySelector(sel);
     let kind = kindPadrao;
+
+    // --- coleção / franquia ---
+    const colSel = $o('#npColSel'), frSel = $o('#npFrSel');
+    const preencherFr = (catId, frId) => {
+      const lista = (franchises||[]).filter(f => f.category_id === catId);
+      frSel.innerHTML = `<option value="">— Nenhuma —</option>` + lista.map(f => `<option value="${f.id}" ${f.id===frId?'selected':''}>${escapeHtml(f.name)}</option>`).join('') + (catId || colSel.value === '__nova__' ? `<option value="__nova__">➕ Nova franquia…</option>` : '');
+      $o('#npFrNova').hidden = frSel.value !== '__nova__';
+    };
+    colSel.onchange = () => { $o('#npColNova').hidden = colSel.value !== '__nova__'; preencherFr(colSel.value === '__nova__' ? null : colSel.value, null); if (colSel.value === '__nova__'){ frSel.value = '__nova__'; $o('#npFrNova').hidden = false; $o('#npColNova').focus(); } };
+    frSel.onchange = () => { $o('#npFrNova').hidden = frSel.value !== '__nova__'; if (frSel.value === '__nova__') $o('#npFrNova').focus(); };
+    const aplicarFranquia = (fr) => { if (!fr) return; colSel.value = fr.category_id || ''; preencherFr(fr.category_id, fr.id); };
+    const atualizarSugestao = () => {
+      const nome = $o('#npNome').value.trim();
+      const box = $o('#npSugFr');
+      const atual = nome && projectFranchise[nome] ? (franchises||[]).find(f => f.id === projectFranchise[nome]) : null;
+      if (atual){ aplicarFranquia(atual); box.innerHTML = `<p class="np-sug">✓ Este projeto já está na franquia <b>${escapeHtml(atual.name)}</b>.</p>`; return; }
+      const sf = sugestaoFranquia(nome);
+      if (sf){
+        box.innerHTML = `<p class="np-sug">💡 Parece a sequência de <b>${escapeHtml(sf.origem)}</b> — franquia <b>${escapeHtml(sf.franquia.name)}</b>${sf.colecao ? ` da coleção <b>${escapeHtml(sf.colecao.name)}</b>` : ''}. <button type="button" id="npUsarSug">Usar</button></p>`;
+        $o('#npUsarSug').onclick = () => { aplicarFranquia(sf.franquia); box.innerHTML = `<p class="np-sug">✓ Vai entrar na franquia <b>${escapeHtml(sf.franquia.name)}</b>.</p>`; };
+      } else box.innerHTML = '';
+    };
+    if (frAtual) aplicarFranquia(frAtual);
+    atualizarSugestao();
+    $o('#npNome').addEventListener('change', atualizarSugestao);
+
+    // --- episódios da série ---
+    let modoSerie = 'crono';
+    ov.querySelectorAll('[data-modo]').forEach(b => b.onclick = () => { modoSerie = b.dataset.modo; ov.querySelectorAll('[data-modo]').forEach(x => x.classList.toggle('on', x === b)); $o('#npDeBox').hidden = $o('#npAteBox').hidden = modoSerie === 'todos'; montarGridEps(); });
+    const montarGridEps = () => {
+      const total = Math.max(1, parseInt($o('#npTotalEps').value,10) || 1);
+      let de = modoSerie === 'todos' ? 1 : Math.max(1, Math.min(total, parseInt($o('#npEpDe').value,10) || 1));
+      let ate = modoSerie === 'todos' ? total : Math.max(de, Math.min(total, de + 99, parseInt($o('#npEpAte').value,10) || de));
+      const grid = $o('#npEpsGrid');
+      const antigos = {}; grid.querySelectorAll('input').forEach(i => antigos[i.dataset.ep] = i.value);
+      const todos = parseInt($o('#npPartesTodos').value,10) || 0;
+      grid.innerHTML = Array.from({length: ate-de+1}, (_, k) => de+k).map(n => `<label class="np-ep"><span>Ep ${n}</span><input type="number" min="0" max="40" data-ep="${n}" placeholder="—" value="${antigos[n] !== undefined ? antigos[n] : (todos || '')}"></label>`).join('');
+    };
+    ['#npEpDe','#npEpAte','#npTotalEps'].forEach(id => $o(id).addEventListener('input', montarGridEps));
+    $o('#npPartesTodos').addEventListener('input', () => { const v = parseInt($o('#npPartesTodos').value,10) || ''; $o('#npEpsGrid').querySelectorAll('input').forEach(i => i.value = v); });
+    montarGridEps();
+
     const sync = () => {
       ov.querySelectorAll('.np-kind').forEach(b => b.classList.toggle('on', b.dataset.kind === kind));
-      ov.querySelector('#npVideo').hidden = kind !== 'video';
-      ov.querySelector('#npAudio').hidden = kind !== 'audiobook';
-      ov.querySelector('#npEspecial').hidden = kind !== 'especial';
+      $o('#npVideo').hidden = kind !== 'video';
+      $o('#npAudio').hidden = kind !== 'audiobook';
+      $o('#npEspecial').hidden = kind !== 'especial';
+      $o('#npColecao').hidden = kind === 'audiobook';
+      const serie = kind === 'video' && $o('#npCat').value === 'Série';
+      $o('#npSerie').hidden = !serie;
+      $o('#npUnicoPartes').hidden = serie;
     };
     sync();
     ov.querySelectorAll('.np-kind').forEach(b => b.onclick = () => { kind = b.dataset.kind; sync(); });
+    $o('#npCat').addEventListener('change', sync);
     const fechar = () => ov.remove();
-    ov.querySelector('#npCancelar').onclick = fechar;
+    $o('#npCancelar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
-    ov.querySelector('#npCriar').onclick = async () => {
-      const nome = ov.querySelector('#npNome').value.trim();
+
+    $o('#npCriar').onclick = async () => {
+      const nome = $o('#npNome').value.trim();
       if (!nome){ showToast('Dê um nome ao projeto.'); return; }
-      let steps, partes = 1, categoria = null, episode = null, autor = null;
-      if (kind === 'video'){
-        categoria = ov.querySelector('#npCat').value;
-        episode = ov.querySelector('#npEp').value.trim() || null;
-        partes = Math.max(1, Number(ov.querySelector('#npPartes').value) || 1);
-        steps = pipeTemplate('video');
+      const categoria = kind === 'audiobook' ? 'Audiobook' : kind === 'video' ? $o('#npCat').value : null;
+      const autor = kind === 'audiobook' ? ($o('#npAutor').value.trim() || null) : null;
+      // monta a lista de linhas a criar (uma por episódio nas séries)
+      const criar = [];
+      if (kind === 'video' && categoria === 'Série'){
+        $o('#npEpsGrid').querySelectorAll('input').forEach(i => criar.push({ episode: i.dataset.ep, partes: Math.max(0, parseInt(i.value,10) || 0), steps: pipeTemplate('video') }));
+      } else if (kind === 'video'){
+        criar.push({ episode: null, partes: Math.max(0, parseInt($o('#npPartes').value,10) || 0), steps: pipeTemplate('video') });
       } else if (kind === 'audiobook'){
-        categoria = 'Audiobook'; autor = ov.querySelector('#npAutor').value.trim() || null;
-        steps = pipeTemplate('audiobook');
+        criar.push({ episode: null, partes: 1, steps: pipeTemplate('audiobook') });
       } else {
-        const linhas = ov.querySelector('#npPassos').value.split('\n').map(l => l.trim()).filter(Boolean);
+        const linhas = $o('#npPassos').value.split('\n').map(l => l.trim()).filter(Boolean);
         if (!linhas.length){ showToast('Escreva pelo menos um passo.'); return; }
-        partes = Math.max(1, Number(ov.querySelector('#npPartesEsp').value) || 1);
-        steps = pipeTemplate('especial', linhas.map(l => ({ nome: l.replace(/\*$/,'').trim(), partes: /\*$/.test(l) })));
+        criar.push({ episode: null, partes: Math.max(0, parseInt($o('#npPartesEsp').value,10) || 0), steps: pipeTemplate('especial', linhas.map(l => ({ nome: l.replace(/\*$/,'').trim(), partes: /\*$/.test(l) }))) });
       }
-      if (pipelines.some(x => x.project === nome && (x.episode||null) === episode)){ showToast('Já existe uma linha de produção para esse projeto/episódio.'); return; }
-      // É a sequência de uma franquia que já existe? (pergunta antes de criar)
-      let franquiaEscolhida = null;
-      if (kind !== 'audiobook'){
-        const sf = sugestaoFranquia(nome);
-        if (sf){
-          const sim = await confirmarBonito({
-            titulo: 'É a sequência de uma franquia?',
-            mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b> parece continuar <b style="color:var(--ink);">"${escapeHtml(sf.origem)}"</b>.<br><br>Adicionar à franquia <b style="color:var(--ink);">${escapeHtml(sf.franquia.name)}</b>${sf.colecao ? ` da coleção <b style="color:var(--ink);">${escapeHtml(sf.colecao.name)}</b>` : ''}?`,
-            textoBotao: '✓ Sim, é a sequência',
-            corBotao: '#2F7FC4',
-            icone: '🎬'
-          });
-          if (sim) franquiaEscolhida = sf.franquia;
+      const repetidos = criar.filter(c => pipelines.some(x => x.project === nome && (x.episode||null) === (c.episode||null)));
+      if (repetidos.length === criar.length){ showToast('Já existe linha de produção para isso.'); return; }
+      const btn = $o('#npCriar'); btn.disabled = true; btn.textContent = 'Criando…';
+      try {
+        // coleção / franquia (nova ou existente)
+        let frId = null;
+        if (kind !== 'audiobook'){
+          let catId = colSel.value;
+          if (catId === '__nova__'){
+            const nomeCol = $o('#npColNova').value.trim();
+            if (nomeCol){
+              const { data, error } = await sb.from('categories').insert({ name: nomeCol, sort_order: (categories||[]).length }).select().single();
+              if (error) throw error; categories = [...(categories||[]), data]; catId = data.id;
+            } else catId = '';
+          }
+          frId = frSel.value;
+          if (frId === '__nova__'){
+            const nomeFr = $o('#npFrNova').value.trim();
+            if (nomeFr && catId){
+              const { data, error } = await sb.from('franchises').insert({ name: nomeFr, category_id: catId, sort_order: (franchises||[]).filter(f => f.category_id === catId).length }).select().single();
+              if (error) throw error; franchises = [...(franchises||[]), data]; frId = data.id;
+            } else frId = null;
+          }
+          if (frId){
+            await sb.from('project_franchise').upsert({ project: nome, franchise_id: frId }, { onConflict:'project' });
+            projectFranchise[nome] = frId;
+          }
         }
-      }
-      const btn = ov.querySelector('#npCriar'); btn.disabled = true; btn.textContent = 'Criando…';
-      const novo = { id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project:nome, episode, kind, categoria, autor, partes, steps, created_by: myProfile.display_name || myEmail || null };
-      const { error } = await sb.from('production_pipelines').insert(novo);
-      if (error){ showToast('❌ ' + error.message); btn.disabled = false; btn.textContent = 'Criar linha de produção'; return; }
-      // audiobook: o projeto vive na aba Audiobooks; vídeo/especial: vira projeto "Em produção"
-      if (kind !== 'audiobook'){
-        try {
+        // cria as linhas
+        const novos = [];
+        for (const c of criar){
+          if (pipelines.some(x => x.project === nome && (x.episode||null) === (c.episode||null))) continue;
+          const novo = { id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project:nome, episode:c.episode, kind, categoria, autor, partes:c.partes, steps:c.steps, created_by: myProfile.display_name || myEmail || null };
+          if (kind === 'video' && categoria === 'Série') novo.serie_total = Math.max(1, parseInt($o('#npTotalEps').value,10) || 1);
+          novos.push(novo);
+        }
+        let { error } = await sb.from('production_pipelines').insert(novos);
+        if (error && /serie_total/i.test(error.message)){ novos.forEach(n => delete n.serie_total); ({ error } = await sb.from('production_pipelines').insert(novos)); }
+        if (error) throw error;
+        if (kind !== 'audiobook'){
           await sb.from('project_meta').upsert({ project:nome, in_production:true, archived:false }, { onConflict:'project' });
           projectMeta[nome] = { ...(projectMeta[nome]||{}), in_production:true, archived:false };
           const tipo = categoria === 'Estudo' ? 'Estudo Bíblico' : categoria;
-          if (tipo && !projectCats[nome]){ await sb.from('project_categories').upsert({ project:nome, category:tipo }, { onConflict:'project' }); projectCats[nome] = tipo; }
-        } catch(e){}
+          if (tipo && tipo !== 'Outro' && !projectCats[nome]){ await sb.from('project_categories').upsert({ project:nome, category:tipo }, { onConflict:'project' }); projectCats[nome] = tipo; }
+        }
+        if (opts.backlogId){ try { await sb.from('backlog_items').update({ started:true }).eq('id', opts.backlogId); const b = backlogItens.find(x => x.id === opts.backlogId); if (b) b.started = true; } catch(e){} }
+        pipelines.push(...novos);
+        if (typeof opts.aoCriar === 'function'){ try { await opts.aoCriar(novos[0]); } catch(e){} }
+        fechar();
+        showToast(novos.length > 1 ? `🏭 ${novos.length} episódios criados em ${nome} — comece pelo primeiro` : `🏭 Linha de produção criada: ${pipeNome(novos[0])}`);
+        if (currentView === 'producao') renderProducao();
+        if (currentView === 'colecoes' && typeof renderColecoes === 'function') renderColecoes();
+        if (novos.length === 1) abrirPipeline(novos[0].id);
+        else if (novos.length > 1){
+          // configura em sequência: Ep 1 → (repetir?) → próximo
+          const ordem = novos.slice().sort((a,b) => epNum(a) - epNum(b));
+          pipeLote = { ids: ordem.map(n => n.id), feitos: new Set() };
+          abrirPipeline(ordem[0].id);
+        }
+      } catch(err){
+        showToast('❌ ' + (err.message || 'erro'));
+        btn.disabled = false; btn.textContent = 'Criar linha de produção';
       }
-      if (franquiaEscolhida){
-        try {
-          await sb.from('project_franchise').upsert({ project:nome, franchise_id: franquiaEscolhida.id }, { onConflict:'project' });
-          projectFranchise[nome] = franquiaEscolhida.id;
-          showToast(`🎬 Adicionado à franquia ${franquiaEscolhida.name}`);
-        } catch(e){}
-      }
-      if (opts.backlogId){ try { await sb.from('backlog_items').update({ started:true }).eq('id', opts.backlogId); const b = backlogItens.find(x => x.id === opts.backlogId); if (b) b.started = true; } catch(e){} }
-      pipelines.push(novo);
-      if (typeof opts.aoCriar === 'function'){ try { await opts.aoCriar(novo); } catch(e){} }
-      fechar();
-      showToast(`🏭 Linha de produção criada: ${pipeNome(novo)}`);
-      if (currentView === 'producao') renderProducao();
-      abrirPipeline(novo.id);
     };
   }
 
@@ -9874,6 +10156,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       </div>
       <div class="pl-dots">${dots}</div>
       ${r.faltando.length ? `<div class="pl-card-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+      ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<div class="pl-card-falt">⚠ Partes a definir</div>` : ''}
     </button>`;
   }
 
