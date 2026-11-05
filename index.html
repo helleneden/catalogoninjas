@@ -8973,6 +8973,35 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return allProjectsList().find(pr => norm(pr) === alvo) || null;
   }
 
+  // "Ep. 1 a 4", "1-4", "Episódios 23, 24, 25", "Aulas 1 a 30"… → lista de episódios
+  function epsDoTitulo(titulo){
+    const t = (titulo||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+    let rot = 'Episódio';
+    if (/\baulas?\b/.test(t)) rot = 'Aula';
+    else if (/\bpalestras?\b/.test(t)) rot = 'Palestra';
+    else if (/\bpartes?\b/.test(t)) rot = 'Parte';
+    let nums = null;
+    const r = t.match(/(\d{1,3})\s*(?:a|ao|-|–|ate)\s*(\d{1,3})(?!\s*\/)/);
+    if (r){ const a = +r[1], b = +r[2]; if (b > a && b - a <= 60) nums = Array.from({length:b-a+1}, (_,i)=>a+i); }
+    if (!nums){
+      const l = t.match(/(?:eps?\.?|episodios?|aulas?|palestras?|partes?)\s*:?\s*((?:\d{1,3}\s*(?:,|e)\s*)+\d{1,3})/);
+      if (l){ const v = l[1].split(/\s*(?:,|e)\s*/).map(Number).filter(n => !isNaN(n)); if (v.length >= 2) nums = [...new Set(v)]; }
+    }
+    return nums ? { nums, rot } : null;
+  }
+  // Conta cada episódio como 1 unidade (um item "1 a 4" vale 4)
+  function crUnidades(it){
+    const eps = epsDoTitulo(it.titulo);
+    if (!eps) return { total:1, feitos: it.done ? 1 : 0, eps:null, feitosSet:null };
+    const feitosSet = new Set((Array.isArray(it.eps_done) ? it.eps_done : []).map(Number));
+    if (it.done) eps.nums.forEach(n => feitosSet.add(n));
+    return { total: eps.nums.length, feitos: eps.nums.filter(n => feitosSet.has(n)).length, eps, feitosSet };
+  }
+  function crSomar(lista){
+    return lista.reduce((acc, it) => { const u = crUnidades(it); acc.total += u.total; acc.feitos += u.feitos; return acc; }, { total:0, feitos:0 });
+  }
+  const crExpandidos = new Set();
+
   function crLinhaHtml(it, tabela){
     const cc = metaCatCor(it.categoria);
     const proj = cronoProjetoDoItem(it);
@@ -14558,7 +14587,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
             <button id="abrirMuralBtn" style="background:var(--surface);border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
             ${isAdmin?`<button id="novaLinhaBtn" class="pl-novo-btn">🏭 Nova linha de produção</button>`:''}
-            ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:var(--warn-ink);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
+            ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:#3D2B00;font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
           </div>
         </div>
         <div class="prod-hero-stats">
