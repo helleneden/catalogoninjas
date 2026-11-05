@@ -2657,7 +2657,21 @@
   .pl-cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; margin-bottom:16px; }
   .pl-card{ text-align:left; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:16px; padding:14px 16px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:10px; transition:border-color .15s, transform .15s; }
   .pl-card:hover{ border-color:var(--blue); transform:translateY(-1px); }
-  .pl-card.done{ border-color:rgba(52,195,143,.45); }
+  /* níveis de andamento (escuro) */
+  :root{ --n100-bd:rgba(52,195,143,.6); --n100-bg:rgba(52,195,143,.12); --n100-tx:#4ADE9B;
+         --n70-bd:rgba(52,195,143,.28); --n70-bg:rgba(52,195,143,.045); --n70-tx:#A7E8C9;
+         --n0-tx:#E9EEF6; }
+  :root[data-theme="light"]{ --n100-bd:#34C38F; --n100-bg:#E6F7EE; --n100-tx:#0F7F52;
+         --n70-bd:#A9E2C5; --n70-bg:#F4FBF7; --n70-tx:#2E8B62;
+         --n0-tx:#334155; }
+  .pl-card.n100, .fp-linha.n100{ border-color:var(--n100-bd); background:var(--n100-bg); }
+  .pl-card.n70, .fp-linha.n70{ border-color:var(--n70-bd); background:var(--n70-bg); }
+  .pl-card.n100 .pl-card-pct, .fp-linha.n100 .fp-pct{ color:var(--n100-tx); }
+  .pl-card.n70 .pl-card-pct, .fp-linha.n70 .fp-pct{ color:var(--n70-tx); }
+  .pl-card.n0 .pl-card-pct, .fp-linha.n0 .fp-pct{ color:var(--n0-tx); }
+  .cr-proj.n100{ color:var(--n100-tx) !important; font-weight:600; }
+  .cr-proj.n70{ color:var(--n70-tx) !important; }
+  .cr-proj.n0{ color:var(--n0-tx) !important; }
   .pl-card-topo{ display:flex; align-items:center; gap:10px; }
   .pl-card-kind{ width:36px; height:36px; border-radius:10px; background:var(--surface-soft); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
   .pl-card-nome{ font-weight:700; font-size:14.5px; line-height:1.25; }
@@ -2760,13 +2774,27 @@
   .fp-lista{ display:flex; flex-direction:column; gap:6px; max-height:480px; overflow:auto; }
   .fp-linha{ display:flex; align-items:center; gap:12px; text-align:left; width:100%; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; }
   .fp-linha:hover{ border-color:var(--blue); }
-  .fp-linha.ok{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.08); }
+
   .fp-ep{ flex:0 0 70px; font-family:var(--font-brand); font-weight:600; font-size:16px; }
   .fp-info{ flex:1; min-width:0; display:flex; flex-direction:column; gap:5px; }
   .fp-etapa{ font-size:13px; font-weight:600; }
   .fp-etapa em{ font-style:normal; color:var(--muted); font-weight:500; }
   .fp-falt{ font-size:11.5px; color:var(--warn-ink); }
   .fp-pct{ font-family:var(--font-brand); font-size:18px; font-weight:600; }
+  .ps-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 12px; }
+  .ps-av{ margin-top:22px; padding-top:14px; border-top:1px solid var(--line); }
+  .ps-seg{ display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:12px; background:var(--surface-soft); }
+  .ps-seg button{ border:none; background:transparent; color:var(--muted); padding:7px 12px; border-radius:9px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .ps-seg button b{ margin-left:4px; color:inherit; opacity:.8; }
+  .ps-seg button.on{ background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.18); }
+  .ps-mini button{ padding:5px 10px; font-size:12px; }
+  .ps-mes{ margin-left:auto; display:flex; align-items:center; gap:6px; font-size:13px; }
+  .ps-mes > button{ width:30px; height:30px; border-radius:9px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer; }
+  .ps-mes b{ min-width:120px; text-align:center; }
+  .ps-semana{ margin-bottom:14px; }
+  .ps-semana-tit{ display:flex; align-items:center; gap:8px; font-size:11.5px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); margin:0 0 8px; }
+  .ps-semana-tit span{ background:var(--surface-soft); border:1px solid var(--line); border-radius:20px; padding:1px 8px; font-size:11px; letter-spacing:0; }
+  .ps-resumo{ font-size:12.5px; color:var(--muted); margin:-4px 0 12px; }
   .pl-leitura{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
   .pl-leitura button{ margin-left:auto; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-lote{ font-size:12px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:-4px 0 12px; }
@@ -9121,7 +9149,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <span class="cr-dot"></span>
         <div class="cr-linha-txt">
           <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
-          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${!clicavel ? '' : pipeIt ? ` · <span class="cr-proj">🏭 ${(() => { const rr = pipeResumo(pipeIt); return rr.atual ? escapeHtml(rr.atual.nome) : '✓ produção concluída'; })()} · ${pipeResumo(pipeIt).pct}%</span>` : proj ? ` · <span class="cr-proj">${escapeHtml(proj)}</span>` : ''}</div>
+          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${!clicavel ? '' : pipeIt ? ` · <span class="cr-proj ${pipeNivel(pipeIt)}">🏭 ${(() => { const rr = pipeResumo(pipeIt); return rr.atual ? escapeHtml(rr.atual.nome) : '✓ produção concluída'; })()} · ${pipeResumo(pipeIt).pct}%</span>` : proj ? ` · <span class="cr-proj">${escapeHtml(proj)}</span>` : ''}</div>
         </div>
         ${u.eps ? `<button type="button" class="cr-expandir${aberto?' on':''}" data-cr-expandir="${it.id}" title="${aberto?'Recolher':'Marcar episódio por episódio'}">${aberto?'▾':'▸'}</button>` : ''}
         <button type="button" class="cr-status${completo?' ok':(u.feitos?' parcial':'')}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?(u.eps?'Marcar/desmarcar todos':'Clique para alternar'):''}">${statusTxt}</button>
@@ -9667,6 +9695,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return { feitos:0, total:1 };
   }
   function pipeEtapaOk(p, s){ const g = pipeEtapaProg(p, s); return g.feitos >= g.total; }
+  function pipeNivel(p){ const pct = pipeResumo(p).pct; return pct >= 100 ? 'n100' : pct >= 70 ? 'n70' : 'n0'; }
   function pipeResumo(p){
     const steps = pipeEtapasVis(p);
     const feitas = steps.filter(s => pipeEtapaOk(p, s)).length;
@@ -10053,7 +10082,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const concl = lista.filter(p => !pipeResumo(p).atual).length;
     const linhas = lista.map(p => {
       const r = pipeResumo(p); const quem = pipeQuemNaEtapa(p, r.atual);
-      return `<button type="button" class="fp-linha${r.atual?'':' ok'}" data-fp-abrir="${p.id}">
+      return `<button type="button" class="fp-linha ${pipeNivel(p)}" data-fp-abrir="${p.id}">
         <span class="fp-ep">${p.episode ? `${rotuloEp(p)} ${escapeHtml(p.episode)}` : 'Único'}</span>
         <span class="fp-info">
           <span class="fp-etapa">${r.atual ? escapeHtml(r.atual.nome) : '✓ Concluído'}${quem.length ? ` · <em>${escapeHtml(quem.join(', '))}</em>` : ''}</span>
@@ -10431,7 +10460,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
     const quem = pipeQuemNaEtapa(p, r.atual);
     const dots = pipeEtapasVis(p).map(s => `<span class="pl-dot${pipeEtapaOk(p, s)?' ok':''}${r.atual && r.atual.key === s.key ? ' atual' : ''}" title="${escapeHtml(s.nome)}"></span>`).join('');
-    return `<button type="button" class="pl-card${r.atual?'':' done'}" data-pl-abrir="${p.id}">
+    return `<button type="button" class="pl-card ${pipeNivel(p)}" data-pl-abrir="${p.id}">
       <div class="pl-card-topo">
         <span class="pl-card-kind">${kind.ic}</span>
         <div style="flex:1;min-width:0;text-align:left;">
@@ -15402,6 +15431,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
 
   let prodFiltroAtual = 'minhas';
+  let prodPipeAba = 'andamento';          // linhas: 'andamento' | 'concluidos'
+  let prodMes = mesAtualStr();            // mês das linhas (semanas do cronograma)
+  let prodAvAba = 'pendentes';            // tarefas avulsas: 'pendentes' | 'concluidas'
+  let prodAvPeriodo = 'semana';           // 'semana' | 'mes'
+  let prodAvRef = Date.now();
   function renderProducaoLista(filtro){
     if (filtro) prodFiltroAtual = filtro; else filtro = prodFiltroAtual;
     const box = $('#prodListaTarefas');
@@ -15431,28 +15465,95 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
     if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
 
-    // Linhas de produção (só na vista por projeto)
+    // Linhas de produção (só na vista por projeto) — Em andamento por semana / Concluídos do mês
     let pipesVis = [];
+    let topoHtml = '';
+    const idsPipe = new Set(pipelines.flatMap(pp => (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).filter(Boolean)));
     if (prodVistaAtual !== 'kanban'){
       pipesVis = pipelines.filter(pp => !prodProjetoFiltro || pp.project === prodProjetoFiltro);
-      if (filtro === 'minhas') pipesVis = pipesVis.filter(pp => (pp.steps||[]).some(st => pipeQuemNaEtapa(pp, st).length && [ ...Object.values(st.atrib||{}), st.taskId ].map(pipeTask).some(t => t && t.assignee_user_id === myUserId)));
-      if (filtro === 'pendentes') pipesVis = pipesVis.filter(pp => pipeResumo(pp).atual);
-      pipesVis.sort((x, y) => (pipeResumo(x).atual ? 0 : 1) - (pipeResumo(y).atual ? 0 : 1));
-      // tarefas que já pertencem a uma linha de produção não repetem embaixo
-      const idsPipe = new Set(pipelines.flatMap(pp => (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).filter(Boolean)));
-      tarefas = tarefas.filter(t => !idsPipe.has(t.id));
-    }
-    const pipesHtml = pipesVis.length ? `<div class="pl-cards">${pipesVis.map(pipeCardHtml).join('')}</div>${tarefas.length ? '<div class="pl-sep">Tarefas avulsas</div>' : ''}` : '';
-    const ligarPipes = () => box.querySelectorAll('[data-pl-abrir]').forEach(c => c.addEventListener('click', () => abrirPipeline(c.dataset.plAbrir)));
+      if (filtro === 'minhas') pipesVis = pipesVis.filter(pp => (pp.steps||[]).some(st => [ ...Object.values(st.atrib||{}), st.taskId ].map(pipeTask).some(t => t && t.assignee_user_id === myUserId)));
+      tarefas = tarefas.filter(t => !idsPipe.has(t.id));   // tarefas de linha não repetem embaixo
 
-    if (tarefas.length === 0 && pipesVis.length){ box.innerHTML = pipesHtml; ligarPipes(); return; }
+      const mes = prodMes;
+      const sextas = sextasDoMes(mes);
+      const semanaDaData = (d) => { if (!d) return null; const dt = new Date(d); const i = sextas.findIndex(sx => { const fim = new Date(sx); fim.setHours(23,59,59); return dt <= fim; }); return i >= 0 ? i+1 : sextas.length; };
+      const mesDe = d => d ? `${new Date(d).getFullYear()}-${String(new Date(d).getMonth()+1).padStart(2,'0')}` : '';
+      const conclusao = pp => { const ts = (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).map(pipeTask).filter(t => t && t.done_at).map(t => t.done_at); return [pp.updated_at, ...ts].filter(Boolean).sort().pop() || pp.created_at; };
+      const andamento = pipesVis.filter(pp => pipeResumo(pp).atual);
+      const concluidos = pipesVis.filter(pp => !pipeResumo(pp).atual && mesDe(conclusao(pp)) === mes);
+      // semana de cada linha em andamento = semana do item da Renderização ligado a ela neste mês
+      const semanaDoPipe = {};
+      metaCardsTodos.filter(it => it.mes === mes).forEach(it => { const pp = pipelineDoItem(it); if (pp && !(pp.id in semanaDoPipe)) semanaDoPipe[pp.id] = Number(it.semana); });
+      const blocoSemanas = (lista, semanaDe) => {
+        const grupos = {}; lista.forEach(pp => { const n = semanaDe(pp) || 0; (grupos[n] = grupos[n] || []).push(pp); });
+        return Object.keys(grupos).map(Number).sort((x,y) => (x||99) - (y||99)).map(n => `
+          <div class="ps-semana">
+            <div class="ps-semana-tit">${n === 0 ? 'Fora do cronograma deste mês' : n === 6 ? 'Extra Points' : `Semana ${n}${sextas[n-1] ? ` · sexta ${sextas[n-1].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}` : ''}`}<span>${grupos[n].length}</span></div>
+            <div class="pl-cards">${grupos[n].map(pipeCardHtml).join('')}</div>
+          </div>`).join('');
+      };
+      const listaPipes = prodPipeAba === 'concluidos'
+        ? (concluidos.length ? blocoSemanas(concluidos, pp => semanaDaData(conclusao(pp))) : `<div class="cr-vazio">Nenhum projeto concluído em ${mesNome(mes)}.</div>`)
+        : (andamento.length ? blocoSemanas(andamento, pp => semanaDoPipe[pp.id] || 0) : `<div class="cr-vazio">Nenhuma linha em andamento.</div>`);
+
+      // ---- tarefas avulsas: pendentes ou concluídas do período ----
+      const ref = new Date(prodAvRef);
+      const iniSem = new Date(ref); iniSem.setHours(0,0,0,0); iniSem.setDate(iniSem.getDate() - ((iniSem.getDay()+6)%7));
+      const fimSem = new Date(iniSem); fimSem.setDate(fimSem.getDate()+6); fimSem.setHours(23,59,59);
+      const mesRef = `${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,'0')}`;
+      const noPeriodo = t => { if (!t.done_at) return false; const d = new Date(t.done_at); return prodAvPeriodo === 'semana' ? (d >= iniSem && d <= fimSem) : mesDe(t.done_at) === mesRef; };
+      const avPend = tarefas.filter(t => !t.done).length;
+      const avConcl = tarefas.filter(t => t.done && noPeriodo(t));
+      tarefas = prodAvAba === 'concluidas' ? avConcl : tarefas.filter(t => !t.done);
+      const rotPeriodo = prodAvPeriodo === 'semana'
+        ? `${iniSem.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})} – ${fimSem.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`
+        : mesNome(mesRef);
+
+      topoHtml = `
+        <div class="ps-head">
+          <div class="ps-seg">
+            <button type="button" class="${prodPipeAba==='andamento'?'on':''}" data-ps-aba="andamento">🏭 Em andamento <b>${andamento.length}</b></button>
+            <button type="button" class="${prodPipeAba==='concluidos'?'on':''}" data-ps-aba="concluidos">✓ Concluídos do mês <b>${concluidos.length}</b></button>
+          </div>
+          <div class="ps-mes"><button type="button" data-ps-mes="-1">‹</button><b>${mesNome(mes)}</b><button type="button" data-ps-mes="1">›</button></div>
+        </div>
+        ${listaPipes}
+        <div class="ps-head ps-av">
+          <div class="pl-sep" style="margin:0;">Tarefas avulsas</div>
+          <div class="ps-seg">
+            <button type="button" class="${prodAvAba==='pendentes'?'on':''}" data-av-aba="pendentes">⏳ Pendentes <b>${avPend}</b></button>
+            <button type="button" class="${prodAvAba==='concluidas'?'on':''}" data-av-aba="concluidas">✓ Concluídas</button>
+          </div>
+          ${prodAvAba === 'concluidas' ? `<div class="ps-mes">
+            <div class="ps-seg ps-mini"><button type="button" class="${prodAvPeriodo==='semana'?'on':''}" data-av-per="semana">Semana</button><button type="button" class="${prodAvPeriodo==='mes'?'on':''}" data-av-per="mes">Mês</button></div>
+            <button type="button" data-av-nav="-1">‹</button><b>${rotPeriodo}</b><button type="button" data-av-nav="1">›</button>
+          </div>` : ''}
+        </div>
+        ${prodAvAba === 'concluidas' ? `<p class="ps-resumo">${avConcl.length} tarefa${avConcl.length===1?'':'s'} avulsa${avConcl.length===1?'':'s'} concluída${avConcl.length===1?'':'s'} ${prodAvPeriodo === 'semana' ? 'nesta semana' : 'no mês'}.</p>` : ''}`;
+    }
+    const ligarTopo = () => {
+      box.querySelectorAll('[data-pl-abrir]').forEach(c => c.addEventListener('click', () => abrirPipeline(c.dataset.plAbrir)));
+      box.querySelectorAll('[data-ps-aba]').forEach(b => b.onclick = () => { prodPipeAba = b.dataset.psAba; renderProducaoLista(); });
+      box.querySelectorAll('[data-ps-mes]').forEach(b => b.onclick = () => { prodMes = mesSomar(prodMes, Number(b.dataset.psMes)); renderProducaoLista(); });
+      box.querySelectorAll('[data-av-aba]').forEach(b => b.onclick = () => { prodAvAba = b.dataset.avAba; renderProducaoLista(); });
+      box.querySelectorAll('[data-av-per]').forEach(b => b.onclick = () => { prodAvPeriodo = b.dataset.avPer; renderProducaoLista(); });
+      box.querySelectorAll('[data-av-nav]').forEach(b => b.onclick = () => {
+        const d = new Date(prodAvRef); const n = Number(b.dataset.avNav);
+        if (prodAvPeriodo === 'semana') d.setDate(d.getDate() + 7*n); else d.setMonth(d.getMonth() + n);
+        prodAvRef = d.getTime(); renderProducaoLista();
+      });
+    };
+
+    if (prodVistaAtual !== 'kanban' && tarefas.length === 0){
+      box.innerHTML = topoHtml + `<div class="cr-vazio" style="padding:14px 4px;">${prodAvAba === 'concluidas' ? 'Nenhuma tarefa avulsa concluída nesse período.' : 'Nenhuma tarefa avulsa pendente.'}</div>`;
+      ligarTopo(); return;
+    }
 
     if (tarefas.length === 0){
       box.innerHTML = `
         <div style="text-align:center;padding:50px 20px;background:var(--surface);border-radius:16px;border:2px dashed var(--line);">
           <div style="font-size:48px;margin-bottom:10px;">🗂️</div>
           <p style="color:var(--muted);font-size:14px;font-weight:600;">Nenhuma missão ${prodProjetoFiltro ? 'delegada para este projeto ainda' : filtro === 'minhas' ? 'atribuída a você' : filtro === 'pendentes' ? 'pendente' : 'ainda'}.</p>
-          ${isAdmin && filtro!=='minhas' ? '<p style="color:var(--muted);font-size:12.5px;">Use o formulário acima pra criar a primeira!</p>' : ''}
         </div>`;
       return;
     }
@@ -15530,7 +15631,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${blocosEp}
         </div>`;
     }).join('');
-    if (pipesHtml){ box.insertAdjacentHTML('afterbegin', pipesHtml); ligarPipes(); }
+    if (topoHtml){ box.insertAdjacentHTML('afterbegin', topoHtml); ligarTopo(); }
 
     wireProducaoLista();
   }
