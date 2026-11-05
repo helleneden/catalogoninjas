@@ -2660,10 +2660,10 @@
   .pl-card:hover{ border-color:var(--blue); transform:translateY(-1px); }
   /* níveis de andamento (escuro) */
   :root{ --n100-bd:rgba(52,195,143,.6); --n100-bg:rgba(52,195,143,.12); --n100-tx:#4ADE9B;
-         --n70-bd:rgba(196,206,74,.45); --n70-bg:rgba(196,206,74,.07); --n70-tx:#D6E06B;
+         --n70-bd:rgba(74,155,224,.5); --n70-bg:rgba(74,155,224,.08); --n70-tx:#8EC5F2;
          --n0-tx:#E9EEF6; }
   :root[data-theme="light"]{ --n100-bd:#34C38F; --n100-bg:#E6F7EE; --n100-tx:#0F7F52;
-         --n70-bd:#D3D77E; --n70-bg:#FAFBE8; --n70-tx:#7C7F10;
+         --n70-bd:#A9CDEE; --n70-bg:#F1F7FD; --n70-tx:#1F64A3;
          --n0-tx:#334155; }
   .pl-card.n100, .fp-linha.n100{ border-color:var(--n100-bd); background:var(--n100-bg); }
   .pl-card.n70, .fp-linha.n70{ border-color:var(--n70-bd); background:var(--n70-bg); }
@@ -6305,7 +6305,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           semFoto.textContent = it.iniciais || (it.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
         }
       }
-      cap.innerHTML = `<div style="font-weight:800;font-size:16px;">${escapeHtml(it.nome||'')}</div><div style="font-size:13px;opacity:.85;margin-top:3px;">🎤 ${escapeHtml(it.voz||'(voz não definida)')}</div>${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+      cap.innerHTML = `<div style="font-weight:700;font-size:15px;opacity:.8;">${escapeHtml(it.nome||'')}</div><div style="display:inline-block;margin-top:8px;padding:8px 18px;border-radius:999px;background:rgba(74,155,224,.22);border:1px solid rgba(142,197,242,.55);font-size:clamp(20px,2.6vw,28px);font-weight:800;letter-spacing:.2px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);">🎙️ ${escapeHtml(it.voz||'(voz não definida)')}</div>${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
     }
     mostrar(_lightboxIdx);
 
@@ -9958,7 +9958,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
       </div>`;
     ov.classList.add('open');
-    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
+    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (p.kind === 'audiobook') sincronizarAudiobooks(); if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
     const ed = ov.querySelector('#plEditar'); if (ed) ed.onclick = () => { pipeSoLeitura = false; abrirPipeline(p.id); };
     const oi = ov.querySelector('#plItemCrono'); if (oi) oi.onclick = () => { const o = pipeOrigemItem; ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirItemCronograma(o.tabela, o.id); };
     ov.querySelector('#plFechar').onclick = fechar;
@@ -12077,7 +12077,62 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     return coverCache[key];
   }
 
+  // Cada linha de produção de audiobook vira (ou atualiza) a ficha na aba Audiobooks:
+  // título, autor, voz escolhida e — quando a linha termina — "concluído" + data.
+  let abSincronizando = false;
+  function tituloDoAudiobook(p){
+    let t = (p.project||'').replace(/^\s*audiobook\s*[:\-]\s*/i, '').trim();
+    const m = t.match(/\(([^)]+)\)\s*$/);
+    const autor = (p.autor || (m ? m[1] : '') || '').trim();
+    if (m) t = t.replace(/\s*\([^)]+\)\s*$/, '').trim();
+    return { titulo: t, autor };
+  }
+  async function sincronizarAudiobooks(){
+    if (abSincronizando || !isAdmin || !pipelinesOk) return;
+    abSincronizando = true;
+    let mudou = false;
+    try {
+      const norm = x => (x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      for (const p of pipelines.filter(x => x.kind === 'audiobook')){
+        const { titulo, autor } = tituloDoAudiobook(p);
+        if (!titulo) continue;
+        const r = pipeResumo(p);
+        const concluido = !r.atual;
+        const dataFim = concluido ? String(pipeDataConclusao(p) || '').slice(0,10) : null;
+        const voz = ((p.steps||[]).find(st => st.tipo === 'voz_livro') || {}).voz || '';
+        let a = audiobooks.find(x => norm(x.title) === norm(titulo));
+        if (!a){
+          const novo = { title: titulo, author: autor || null, in_production: !concluido, sort_order: audiobooks.length };
+          if (dataFim) novo.done_date = dataFim;
+          let { data, error } = await sb.from('audiobooks').insert(novo).select().single();
+          if (error && /done_date/i.test(error.message)){ delete novo.done_date; ({ data, error } = await sb.from('audiobooks').insert(novo).select().single()); }
+          if (error || !data) continue;
+          a = { ...data, voices: [] }; audiobooks.push(a); mudou = true;
+        } else {
+          const patch = {};
+          if (!a.author && autor) patch.author = autor;
+          if (concluido && a.in_production) patch.in_production = false;
+          if (concluido && !a.done_date && dataFim) patch.done_date = dataFim;
+          if (Object.keys(patch).length){
+            let { error } = await sb.from('audiobooks').update(patch).eq('id', a.id);
+            if (error && /done_date/i.test(error.message)){ delete patch.done_date; if (Object.keys(patch).length) ({ error } = await sb.from('audiobooks').update(patch).eq('id', a.id)); }
+            if (!error){ Object.assign(a, patch); mudou = true; }
+          }
+        }
+        // voz escolhida na linha → voz principal da ficha (se ainda não tiver)
+        if (voz && !(a.voices||[]).some(v => norm(v.voice) === norm(voz))){
+          const temPrincipal = (a.voices||[]).some(v => v.is_main);
+          const { error } = await sb.from('audiobook_voices').insert({ audiobook_id: a.id, role: 'Narrador', voice: voz, is_main: !temPrincipal, position: (a.voices||[]).length });
+          if (!error) mudou = true;
+        }
+      }
+    } catch(e){ console.warn('sincronizarAudiobooks:', e); }
+    abSincronizando = false;
+    if (mudou){ await loadAudiobooks(); if (currentView === 'audiobooks') renderAudiobooks(); }
+  }
+
   function renderAudiobooks(){
+    setTimeout(() => sincronizarAudiobooks(), 0);
     const ativos = audiobooks.filter(a => !a.archived);
     const lista = audiobooksFilter==='producao' ? ativos.filter(a=>a.in_production) : ativos.filter(a=>!a.in_production);
     const cards = lista.map(a => {
@@ -12096,7 +12151,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${cover}
           <div class="prod-body">
             <div class="prod-title">${escapeHtml(a.title)}</div>
-            <div class="prod-sub">${a.author?escapeHtml(a.author)+' · ':''}${nVozes} voz${nVozes===1?'':'es'}</div>
+            <div class="prod-sub">${a.author?escapeHtml(a.author)+' · ':''}${(() => { const vp = (a.voices||[]).find(v => v.is_main) || (a.voices||[])[0]; return vp && vp.voice ? '🎙️ ' + escapeHtml(vp.voice) : nVozes + ' voz' + (nVozes===1?'':'es'); })()}${a.done_date ? ' · ' + new Date(a.done_date + 'T00:00:00').toLocaleDateString('pt-BR') : ''}</div>
           </div>
         </div>`;
     }).join('');
@@ -12170,12 +12225,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     ov.innerHTML = `
       <div class="modal">
         <h2>🎧 ${escapeHtml(a.title)}</h2>
-        ${a.author?`<p style="font-size:13px; color:var(--muted); margin:-8px 0 12px;">de ${escapeHtml(a.author)}</p>`:''}
+        ${a.author || a.done_date ? `<p style="font-size:13px; color:var(--muted); margin:-8px 0 12px;">${a.author ? 'de ' + escapeHtml(a.author) : ''}${a.author && a.done_date ? ' · ' : ''}${a.done_date ? 'feito em ' + new Date(a.done_date + 'T00:00:00').toLocaleDateString('pt-BR') : ''}</p>` : ''}
         ${principais.length?`<div class="field"><label>Voz${principais.length>1?'es':''} principal${principais.length>1?'is':''}</label><ol class="dub-list">${principais.map(row).join('')}</ol></div>`:''}
         ${secundarias.length?`<div class="field"><label>Vozes secundárias</label><ol class="dub-list">${secundarias.map(row).join('')}</ol></div>`:''}
         ${!a.voices.length?`<p style="font-size:13px; color:var(--muted);">Nenhuma voz cadastrada ainda.</p>`:''}
         <div class="modal-actions">
-          ${isAdmin?`<button class="btn-ghost admin-only" id="abEdit" style="margin-right:auto;">Editar</button>`:''}
+          ${isAdmin?`<button class="btn-danger-ghost admin-only" id="abViewDel" style="margin-right:auto;">🗑️ Excluir</button>`:''}
+          ${isAdmin?`<button class="btn-ghost admin-only" id="abEdit">✎ Editar</button>`:''}
           <button class="btn-ghost" id="abViewClose">Fechar</button>
         </div>
       </div>`;
@@ -12184,6 +12240,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
     const ed = $('#abEdit');
     if (ed) ed.addEventListener('click', ()=>openAudiobookEdit(id));
+    const dl = $('#abViewDel');
+    if (dl) dl.addEventListener('click', ()=>openExcluirAudiobook(id));
   }
 
   function openAudiobookEdit(id){
@@ -12224,6 +12282,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <div id="abVoices">${voiceRowsHtml()}</div>
           <button class="btn-ghost" id="abAddVoice" style="margin-top:6px;">+ Adicionar voz</button>
         </div>
+        <div class="field"><label>Data em que foi feito</label><input type="date" id="abData" value="${a && a.done_date ? a.done_date : ''}" style="max-width:200px;"></div>
         <label style="display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:10px;">
           <input type="checkbox" id="abInProd" ${a?(a.in_production?'checked':''):'checked'}> Em produção
         </label>
@@ -12256,10 +12315,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const title=$('#abTitle').value.trim(); if(!title){ showToast('Dê um título.'); return; }
       const author=$('#abAuthor').value.trim();
       const inProd=$('#abInProd').checked;
+      const doneDate=($('#abData')||{}).value || null;
       $('#abEditSave').disabled=true;
       let abId=a?a.id:null;
-      if(a){ await sb.from('audiobooks').update({title, author, in_production:inProd}).eq('id',a.id); }
-      else { const {data}=await sb.from('audiobooks').insert({title, author, in_production:inProd, sort_order:audiobooks.length}).select('id').single(); abId=data?data.id:null; }
+      if(a){
+        let { error } = await sb.from('audiobooks').update({title, author, in_production:inProd, done_date:doneDate}).eq('id',a.id);
+        if (error && /done_date/i.test(error.message)){ await sb.from('audiobooks').update({title, author, in_production:inProd}).eq('id',a.id); showToast('Rode o SQL-audiobooks-data.sql para salvar a data.'); }
+      }
+      else {
+        let { data, error } = await sb.from('audiobooks').insert({title, author, in_production:inProd, done_date:doneDate, sort_order:audiobooks.length}).select('id').single();
+        if (error && /done_date/i.test(error.message)) ({ data } = await sb.from('audiobooks').insert({title, author, in_production:inProd, sort_order:audiobooks.length}).select('id').single());
+        abId=data?data.id:null;
+      }
       if(abId){
         if(typeof pendingAbCover==='string'){
           const blob=dataUrlToBlob(pendingAbCover);
