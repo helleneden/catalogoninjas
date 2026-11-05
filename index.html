@@ -2585,7 +2585,15 @@
   .cr-dot{ width:4px; align-self:stretch; border-radius:4px; background:var(--cat); flex:0 0 auto; }
   .cr-linha-txt{ flex:1; min-width:0; }
   .cr-linha-titulo{ font-size:14px; font-weight:600; line-height:1.3; }
-  .cr-linha.done .cr-linha-titulo{ color:var(--muted); font-weight:500; }
+  .cr-linha.done{ background:rgba(52,195,143,.10); }
+  .cr-linha.done:hover{ background:rgba(52,195,143,.16); }
+  .cr-linha.done .cr-dot{ background:var(--green); }
+  .cr-linha.done .cr-linha-titulo{ color:var(--ok-ink); }
+  .cr-item-wrap + .cr-item-wrap{ margin-top:4px; }
+  .cr-sem.completa .cr-sem-corpo{ border-color:rgba(52,195,143,.5); background:linear-gradient(0deg, rgba(52,195,143,.05), rgba(52,195,143,.05)), var(--surface); }
+  .cr-sem.completa .cr-data{ border-color:rgba(52,195,143,.5); }
+  .cr-sem.completa .cr-sem-cont{ color:var(--ok-ink); }
+  .cr-sem.completa .cr-sem-cont::before{ content:'✓ '; }
   .cr-linha-meta{ font-size:11.5px; color:var(--muted); margin-top:2px; }
   .cr-proj{ color:var(--blue-deep); }
   .cr-status{ flex:0 0 auto; border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:999px; padding:4px 10px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap; }
@@ -2632,6 +2640,99 @@
   .bk-btn{ border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
   .bk-btn.go{ border-color:var(--blue); color:var(--blue-deep); }
 
+  /* ---- Linha de produção ---- */
+  .pl-novo-btn{ background:var(--blue); border:none; color:#fff; font-weight:800; padding:11px 18px; border-radius:12px; cursor:pointer; font-family:inherit; font-size:13.5px; position:relative; z-index:1; }
+  .pl-cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; margin-bottom:16px; }
+  .pl-card{ text-align:left; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:16px; padding:14px 16px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:10px; transition:border-color .15s, transform .15s; }
+  .pl-card:hover{ border-color:var(--blue); transform:translateY(-1px); }
+  .pl-card.done{ border-color:rgba(52,195,143,.45); }
+  .pl-card-topo{ display:flex; align-items:center; gap:10px; }
+  .pl-card-kind{ width:36px; height:36px; border-radius:10px; background:var(--surface-soft); display:flex; align-items:center; justify-content:center; font-size:18px; flex:0 0 auto; }
+  .pl-card-nome{ font-weight:700; font-size:14.5px; line-height:1.25; }
+  .pl-card-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .pl-card-sub b{ color:var(--blue-deep); font-weight:600; }
+  .pl-card-pct{ font-family:var(--font-brand); font-size:20px; font-weight:600; color:var(--ink); }
+  .pl-dots{ display:flex; gap:4px; }
+  .pl-dot{ flex:1; height:6px; border-radius:6px; background:var(--line); }
+  .pl-dot.ok{ background:var(--green); }
+  .pl-dot.atual{ background:var(--blue); box-shadow:0 0 0 2px rgba(74,155,224,.25); }
+  .pl-card-falt{ font-size:11.5px; color:var(--warn-ink); background:rgba(226,177,79,.12); border-radius:8px; padding:5px 8px; }
+  .pl-sep{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:6px 0 10px; }
+  .pl-modal{ max-width:720px; }
+  .pl-topo{ display:flex; align-items:flex-start; gap:12px; }
+  .pl-eyebrow{ font-size:11.5px; color:var(--muted); margin:0; font-weight:600; }
+  .pl-pct{ text-align:right; display:flex; flex-direction:column; }
+  .pl-pct b{ font-family:var(--font-brand); font-size:26px; font-weight:600; line-height:1; }
+  .pl-pct span{ font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .pl-bar{ height:5px; border-radius:5px; background:var(--line); overflow:hidden; margin:12px 0; }
+  .pl-bar i{ display:block; height:100%; background:linear-gradient(90deg,var(--blue),var(--green)); }
+  .pl-aviso{ font-size:12.5px; color:var(--warn-ink); background:rgba(226,177,79,.12); border:1px solid rgba(226,177,79,.35); border-radius:10px; padding:8px 12px; margin:0 0 12px; }
+  .pl-partes-ctrl{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-bottom:10px; }
+  .pl-partes-ctrl button{ width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); cursor:pointer; font-size:15px; }
+  .pl-partes-ctrl b{ color:var(--ink); font-size:15px; min-width:18px; text-align:center; }
+  .pl-etapas{ display:flex; flex-direction:column; position:relative; }
+  .pl-etapa{ border-left:2px solid var(--line); margin-left:15px; padding-left:0; }
+  .pl-etapa.ok{ border-left-color:var(--green); }
+  .pl-etapa.atual{ border-left-color:var(--blue); }
+  .pl-etapa:last-child{ border-left-color:transparent; }
+  .pl-etapa-head{ width:100%; display:flex; align-items:center; gap:12px; background:none; border:none; color:var(--ink); cursor:pointer; padding:8px 4px 8px 0; margin-left:-16px; font-family:inherit; text-align:left; }
+  .pl-num{ width:30px; height:30px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700; background:var(--surface-soft); border:2px solid var(--line); color:var(--muted); }
+  .pl-etapa.ok .pl-num{ background:var(--green); border-color:var(--green); color:#fff; }
+  .pl-etapa.atual .pl-num{ border-color:var(--blue); color:var(--blue-deep); background:rgba(74,155,224,.14); }
+  .pl-etapa-nome{ flex:1; font-size:14px; font-weight:600; }
+  .pl-etapa.ok .pl-etapa-nome{ color:var(--ok-ink); }
+  .pl-falt{ font-style:normal; font-size:11.5px; color:var(--warn-ink); font-weight:600; margin-left:6px; }
+  .pl-etapa-info{ font-size:12px; color:var(--muted); white-space:nowrap; }
+  .pl-etapa-corpo{ padding:2px 0 14px 28px; }
+  .pl-nota{ font-size:12.5px; color:var(--muted); margin:0 0 8px; }
+  .pl-rows{ display:flex; flex-direction:column; gap:4px; }
+  .pl-row{ display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:10px; background:var(--surface-soft); }
+  .pl-row.ok{ background:rgba(52,195,143,.10); }
+  .pl-row-nome{ font-size:13px; font-weight:600; min-width:90px; }
+  .pl-quem{ font-size:13px; color:var(--muted); }
+  .pl-sel{ flex:1; min-width:0; max-width:240px; padding:6px 8px; border:1px solid var(--line); border-radius:8px; font-size:13px; margin-left:auto; }
+  .pl-check{ width:24px; height:24px; border-radius:7px; border:2px solid var(--line-strong); background:transparent; color:#fff; cursor:pointer; font-size:13px; font-weight:800; flex:0 0 auto; display:flex; align-items:center; justify-content:center; }
+  .pl-check.on{ background:var(--green); border-color:var(--green); }
+  .pl-check:disabled{ cursor:default; opacity:.6; }
+  .pl-mat{ display:flex; flex-direction:column; gap:6px; }
+  .pl-mat-item{ background:var(--surface-soft); border-radius:10px; padding:8px 10px; }
+  .pl-mat-item.st-ok{ background:rgba(52,195,143,.10); }
+  .pl-mat-item.st-faltando{ background:rgba(226,177,79,.12); }
+  .pl-mat-linha{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .pl-seg{ margin-left:auto; display:inline-flex; gap:4px; }
+  .pl-seg button{ border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pl-seg button.on.ok{ border-color:rgba(52,195,143,.5); color:var(--ok-ink); background:rgba(52,195,143,.14); }
+  .pl-seg button.on.falt{ border-color:rgba(226,177,79,.55); color:var(--warn-ink); background:rgba(226,177,79,.16); }
+  .pl-obs{ width:100%; margin-top:6px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; }
+  .pl-add{ display:flex; gap:6px; margin-top:6px; }
+  .pl-add input{ flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; }
+  .pl-add button{ padding:8px 12px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:12.5px; white-space:nowrap; }
+  .pl-add .pl-btn-sec{ background:transparent; color:var(--blue-deep); }
+  .pl-partes-chk{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pl-chip{ border:1px solid var(--line); background:var(--surface-soft); color:var(--muted); border-radius:8px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .pl-chip.on{ border-color:rgba(52,195,143,.45); background:rgba(52,195,143,.12); color:var(--ok-ink); }
+  .pl-etapa-edit{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:8px; border-top:1px dashed var(--line); }
+  .pl-etapa-edit button{ border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .pl-etapa-edit button:hover:not(:disabled){ color:var(--ink); border-color:var(--line-strong); }
+  .pl-etapa-edit button.del:hover{ color:#F87171; border-color:rgba(248,113,113,.5); }
+  .pl-etapa-edit button:disabled{ opacity:.35; cursor:default; }
+  .pl-nova-etapa{ margin:6px 0 4px 15px; padding-left:18px; }
+  .pl-add-etapa-btn{ border:1px dashed var(--line-strong); background:transparent; color:var(--blue-deep); border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+  .pl-add-etapa-btn[hidden], .pl-add-etapa[hidden]{ display:none; }
+  .pl-add-etapa{ display:grid; grid-template-columns:1.4fr 1fr 1fr auto; gap:6px; }
+  @media (max-width:640px){ .pl-add-etapa{ grid-template-columns:1fr; } }
+  .pl-add-etapa input, .pl-add-etapa select{ padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; min-width:0; }
+  .pl-add-etapa button{ padding:8px 14px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:13px; }
+  .pl-proj-links{ display:flex; flex-wrap:wrap; gap:6px; margin:-4px 0 12px; }
+  .pl-proj-link{ border:1px solid var(--blue); background:rgba(74,155,224,.10); color:var(--blue-ink); border-radius:999px; padding:6px 12px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .np-kinds{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  @media (max-width:560px){ .np-kinds{ grid-template-columns:1fr; } }
+  .np-kind{ text-align:left; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; }
+  .np-kind.on{ border-color:var(--blue); background:rgba(74,155,224,.12); }
+  .np-kind .np-ic{ font-size:20px; }
+  .np-kind small{ font-size:10.5px; color:var(--muted); line-height:1.35; }
+  .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  @media (max-width:560px){ .np-grid{ grid-template-columns:1fr; } }
   /* ---- Ficha enxuta (Todas as fichas) ---- */
   .voice-card.vc-clean{ box-shadow:none; gap:10px; padding:14px 14px 10px; }
   .voice-card.vc-clean::before{ display:none; }
@@ -3964,7 +4065,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     'Dropbox':               { ic:'☁️', cor:'#0284C7', bg:'#0284C726' },
     'Controle de qualidade': { ic:'🛡️', cor:'#16A34A', bg:'#16A34A26' },
     'Correção de qualidade': { ic:'🔧', cor:'#CA8A04', bg:'#CA8A0426' },
-    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#05966926' }
+    'Finalizar':             { ic:'🏁', cor:'#059669', bg:'#05966926' },
+    'Redublar':              { ic:'🔁', cor:'#9B7BEA', bg:'#9B7BEA26' },
+    'Organizar no Claude':   { ic:'🤖', cor:'#E8875A', bg:'#E8875A26' },
+    'Subir no Eleven':       { ic:'⬆️', cor:'#4A9BE0', bg:'#4A9BE026' },
+    'Exportar':              { ic:'📤', cor:'#2DB3B3', bg:'#2DB3B326' }
   };
   const stageInfo = (s) => STAGE_INFO[s] || { ic:'📌', cor:'#8A96AB', bg:'#8A96AB26' };
 
@@ -4106,6 +4211,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       loadProducaoTasks(),
       loadMetaCards(),
       loadCronograma(),
+      loadPipelines(),
       loadMuralFiles(),
       loadTaskNotifs(),
     ]);
@@ -8861,49 +8967,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // salvo; se não houver, tenta adivinhar pelo título.
   function cronoProjetoDoItem(it){
     if (it.project) return it.project;
-    const norm = x => (x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ');
-    const STOP = new Set(['vozes','voz','filme','documentario','desenho','serie','audiobook','ep','eps','episodio','episodios','de','do','da','dos','das','a','o','e','em','the','parte','aula','aulas','mini','legendas','temporada']);
-    const toks = x => norm(x).split(/\s+/).filter(w => w.length > 2 && !STOP.has(w) && !/^\d+$/.test(w));
-    const ti = new Set(toks(it.titulo));
-    if (!ti.size) return null;
-    let best = null, bs = 0;
-    allProjectsList().forEach(pr => {
-      const tp = toks(pr); if (!tp.length) return;
-      const hit = tp.filter(w => ti.has(w)).length;
-      const sc = hit / tp.length;
-      if (hit && sc > bs){ bs = sc; best = pr; }
-    });
-    return bs >= 0.5 ? best : null;
+    // Só liga sozinho quando o nome é exatamente o de um projeto (sem chutes)
+    const norm = x => (x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+    const alvo = norm(it.titulo);
+    return allProjectsList().find(pr => norm(pr) === alvo) || null;
   }
-
-  // "Ep. 1 a 4", "1-4", "Episódios 23, 24, 25", "Aulas 1 a 30"… → lista de episódios
-  function epsDoTitulo(titulo){
-    const t = (titulo||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-    let rot = 'Episódio';
-    if (/\baulas?\b/.test(t)) rot = 'Aula';
-    else if (/\bpalestras?\b/.test(t)) rot = 'Palestra';
-    else if (/\bpartes?\b/.test(t)) rot = 'Parte';
-    let nums = null;
-    const r = t.match(/(\d{1,3})\s*(?:a|ao|-|–|ate)\s*(\d{1,3})(?!\s*\/)/);
-    if (r){ const a = +r[1], b = +r[2]; if (b > a && b - a <= 60) nums = Array.from({length:b-a+1}, (_,i)=>a+i); }
-    if (!nums){
-      const l = t.match(/(?:eps?\.?|episodios?|aulas?|palestras?|partes?)\s*:?\s*((?:\d{1,3}\s*(?:,|e)\s*)+\d{1,3})/);
-      if (l){ const v = l[1].split(/\s*(?:,|e)\s*/).map(Number).filter(n => !isNaN(n)); if (v.length >= 2) nums = [...new Set(v)]; }
-    }
-    return nums ? { nums, rot } : null;
-  }
-  // Conta cada episódio como 1 unidade (um item "1 a 4" vale 4)
-  function crUnidades(it){
-    const eps = epsDoTitulo(it.titulo);
-    if (!eps) return { total:1, feitos: it.done ? 1 : 0, eps:null, feitosSet:null };
-    const feitosSet = new Set((Array.isArray(it.eps_done) ? it.eps_done : []).map(Number));
-    if (it.done) eps.nums.forEach(n => feitosSet.add(n));
-    return { total: eps.nums.length, feitos: eps.nums.filter(n => feitosSet.has(n)).length, eps, feitosSet };
-  }
-  function crSomar(lista){
-    return lista.reduce((acc, it) => { const u = crUnidades(it); acc.total += u.total; acc.feitos += u.feitos; return acc; }, { total:0, feitos:0 });
-  }
-  const crExpandidos = new Set();
 
   function crLinhaHtml(it, tabela){
     const cc = metaCatCor(it.categoria);
@@ -8963,7 +9031,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const data = d
         ? `<div class="cr-data"><b>${String(d.getDate()).padStart(2,'0')}</b><span>${MES_CURTO[d.getMonth()]}</span><small>sexta</small></div>`
         : `<div class="cr-data extra"><b>★</b><span>EXTRA</span><small>do mês</small></div>`;
-      return `<section class="cr-sem${atual?' atual':''}${passada?' passada':''}">
+      const completa = somaSem.total > 0 && somaSem.feitos === somaSem.total;
+      return `<section class="cr-sem${atual?' atual':''}${passada?' passada':''}${completa?' completa':''}">
         ${data}
         <div class="cr-sem-corpo">
           <div class="cr-sem-topo">
@@ -9123,13 +9192,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
         <div class="field" style="margin-top:16px;">
           <label>Projeto no app</label>
-          ${isAdmin ? `<div style="display:flex;gap:8px;">
-            <select id="crModalProj" style="flex:1;min-width:0;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
-              <option value="">— Nenhum —</option>
+          ${isAdmin ? `<select id="crModalProj" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;">
+              <option value="">— Escolha o projeto —</option>
               ${projetos.map(p => `<option value="${escapeHtml(p)}" ${p===proj?'selected':''}>${escapeHtml(p)}</option>`).join('')}
-            </select>
-            <button type="button" class="btn-ghost" id="crModalProjSalvar" style="padding:8px 14px;font-size:13px;">Ligar</button>
-          </div>` : `<div style="font-size:14px;">${proj?escapeHtml(proj):'<span style="color:var(--muted)">Nenhum projeto ligado</span>'}</div>`}
+            </select>` : `<div style="font-size:14px;">${proj?escapeHtml(proj):'<span style="color:var(--muted)">Nenhum projeto ligado</span>'}</div>`}
         </div>
 
         <div class="field">
@@ -9142,7 +9208,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <div class="modal-actions">
           ${isAdmin?`<button class="btn-danger-ghost" id="crModalDel" style="margin-right:auto;" title="Remover do cronograma">🗑️ Remover</button>`:''}
           <button class="btn-ghost" id="crModalFechar">Fechar</button>
-          ${proj ? `<button class="btn-primary" id="crModalProd">Abrir na Produção →</button>` : ''}
+          ${proj ? `<button class="btn-ghost" id="crModalProd">Ver na Produção →</button>` : ''}
+          ${isAdmin ? `<button class="btn-primary" id="crModalDelegar">👥 Delegar atividades</button>` : ''}
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -9160,14 +9227,25 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
     const pr = ov.querySelector('#crModalProd');
     if (pr) pr.addEventListener('click', () => { fechar(); abrirProducaoDoProjeto(proj); });
-    const ps = ov.querySelector('#crModalProjSalvar');
-    if (ps) ps.addEventListener('click', async () => {
-      const val = ov.querySelector('#crModalProj').value || null;
-      const { error } = await sb.from(tabela).update({ project: val }).eq('id', it.id);
-      if (error){ showToast(/project/i.test(error.message) ? '❌ Rode o SQL-cronograma-v2.sql para poder ligar projetos.' : '❌ '+error.message); return; }
-      it.project = val;
-      fechar(); renderCronograma(); abrirItemCronograma(tabela, id);
-      showToast(val ? `🔗 Ligado a "${val}"` : 'Projeto desligado.');
+    // escolher o projeto já liga o item a ele (fica salvo)
+    const salvarLigacao = async (val) => {
+      if ((it.project||null) === (val||null)) return true;
+      const { error } = await sb.from(tabela).update({ project: val || null }).eq('id', it.id);
+      if (error){ showToast(/project/i.test(error.message) ? '❌ Rode o SQL-cronograma-v3.sql para poder ligar projetos.' : '❌ '+error.message); return false; }
+      it.project = val || null;
+      return true;
+    };
+    const selProj = ov.querySelector('#crModalProj');
+    if (selProj) selProj.addEventListener('change', async () => {
+      if (await salvarLigacao(selProj.value)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); }
+    });
+    const dg = ov.querySelector('#crModalDelegar');
+    if (dg) dg.addEventListener('click', async () => {
+      const val = selProj ? selProj.value : proj;
+      if (val) await salvarLigacao(val);
+      fechar();
+      renderCronograma();
+      abrirDelegarParaProjeto(val || null);
     });
     const del = ov.querySelector('#crModalDel');
     if (del) del.addEventListener('click', async () => {
@@ -9181,6 +9259,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
+  // Abre o Painel de Gestão (delegar tarefa) já com o projeto selecionado
+  function abrirDelegarParaProjeto(proj){
+    openPainelGestao();
+    if (!proj) return;
+    setTimeout(() => {
+      const sel = document.getElementById('prodProjetoInput');
+      if (!sel) return;
+      if (![...sel.options].some(o => o.value === proj)){
+        const o = document.createElement('option'); o.value = proj; o.textContent = proj; sel.appendChild(o);
+      }
+      sel.value = proj;
+      sel.dispatchEvent(new Event('change', { bubbles:true }));
+      const box = document.getElementById('gestaoDelegar'); if (box) box.scrollIntoView({ behavior:'smooth', block:'start' });
+    }, 60);
+  }
+
   // Leva para a Produção já filtrando um projeto
   let prodProjetoFiltro = null;
   function abrirProducaoDoProjeto(proj){
@@ -9189,6 +9283,492 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     prodVistaAtual = 'projeto';
     switchView('producao');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ==========================================================
+  // LINHA DE PRODUÇÃO — a cadeia que cada projeto segue.
+  // Tabela production_pipelines (uma linha por projeto/episódio).
+  // Etapas com responsável viram tarefas normais (production_tasks),
+  // então aparecem em "Minhas missões", agenda, kanban e notificações.
+  // ==========================================================
+  let pipelines = [];
+  let pipelinesOk = true;
+  let pipeAberto = null;      // id do pipeline aberto na janela
+  const pipeEtapaAberta = {}; // pipeId -> key da etapa expandida
+
+  async function loadPipelines(){
+    try{
+      const { data, error } = await sb.from('production_pipelines').select('*').order('created_at');
+      if (error) throw error;
+      pipelines = (data || []).map(p => ({ ...p, steps: Array.isArray(p.steps) ? p.steps : [] }));
+      pipelinesOk = true;
+    }catch(e){ pipelines = []; pipelinesOk = false; }
+  }
+
+  const PIPE_KINDS = {
+    video:     { nome:'Vídeo',     ic:'🎬' },
+    audiobook: { nome:'Audiobook', ic:'🎧' },
+    especial:  { nome:'Especial',  ic:'✨' },
+  };
+  function pipeTemplate(kind, nomesEspecial){
+    if (kind === 'audiobook') return [
+      { key:'material', nome:'Receber o livro', tipo:'material', itens:[{ nome:'Livro em Word (.docx)', status:'pendente', obs:'' }] },
+      { key:'claude',   nome:'Organizar no Claude', tipo:'unica', stage:'Organizar no Claude' },
+      { key:'eleven',   nome:'Subir no Eleven', tipo:'unica', stage:'Subir no Eleven' },
+      { key:'voz',      nome:'Escolher a voz', tipo:'voz_livro', voz:'', done:false },
+      { key:'exportar', nome:'Exportar', tipo:'unica', stage:'Exportar' },
+      { key:'dropbox',  nome:'Subir no Dropbox', tipo:'unica', stage:'Dropbox' },
+    ];
+    if (kind === 'especial') return (nomesEspecial||[]).map((n, i) => ({ key:'e'+i, nome:n.nome, tipo: n.partes ? 'partes' : 'unica', stage:n.nome, atrib:{} }));
+    return [
+      { key:'material',  nome:'Receber material', tipo:'material', itens:['Vídeo sem defeitos','M&E (trilha sem voz)','SRT (legenda)'].map(n => ({ nome:n, status:'pendente', obs:'' })) },
+      { key:'eleven',    nome:'Cortar e subir no Eleven', tipo:'checkpartes', feitos:[] },
+      { key:'vozes',     nome:'Escolha das vozes', tipo:'vozes', done:false },
+      { key:'dublagem',  nome:'Dublagem', tipo:'partes', stage:'Dublar', atrib:{} },
+      { key:'revisao',   nome:'Revisão', tipo:'partes', stage:'Revisar', atrib:{} },
+      { key:'redublagem',nome:'Redublagem', tipo:'partes', stage:'Redublar', atrib:{} },
+      { key:'pos',       nome:'Pós-edição', tipo:'unica', stage:'Pós edição' },
+      { key:'cq',        nome:'Controle de qualidade', tipo:'unica', stage:'Controle de qualidade' },
+      { key:'correcao',  nome:'Correção de erros', tipo:'unica', stage:'Correção de qualidade' },
+      { key:'dropbox',   nome:'Versão final no Dropbox', tipo:'unica', stage:'Dropbox' },
+    ];
+  }
+
+  function pipeNome(p){ return p.episode ? `${p.project} · Ep ${p.episode}` : p.project; }
+  function pipeTask(id){ return id ? producaoTasks.find(t => t.id === id) : null; }
+  function pipePartes(p){ return Math.max(1, Number(p.partes) || 1); }
+  // Vozes já escolhidas em outro episódio do mesmo projeto (séries: pergunta só uma vez)
+  function pipeVozesHerdadas(p){
+    return pipelines.find(o => o.id !== p.id && o.project === p.project && (o.steps||[]).some(s => s.tipo === 'vozes' && s.done)) || null;
+  }
+
+  // Progresso de uma etapa: {feitos, total}
+  function pipeEtapaProg(p, s){
+    const N = pipePartes(p);
+    if (s.tipo === 'material'){ const t = (s.itens||[]).length || 1; return { feitos:(s.itens||[]).filter(i => i.status !== 'pendente').length, total:t }; }
+    if (s.tipo === 'checkpartes') return { feitos: Math.min(N, (s.feitos||[]).filter(n => n <= N).length), total:N };
+    if (s.tipo === 'vozes') return { feitos: (s.done || pipeVozesHerdadas(p)) ? 1 : 0, total:1 };
+    if (s.tipo === 'voz_livro' || s.tipo === 'check') return { feitos: s.done ? 1 : 0, total:1 };
+    if (s.tipo === 'partes'){ let f = 0; for (let n = 1; n <= N; n++){ const t = pipeTask((s.atrib||{})[n]); if (t ? t.done : ((s.feitosManual||[]).includes(n))) f++; } return { feitos:f, total:N }; }
+    if (s.tipo === 'unica'){ const t = pipeTask(s.taskId); return { feitos: (t ? t.done : !!s.done) ? 1 : 0, total:1 }; }
+    return { feitos:0, total:1 };
+  }
+  function pipeEtapaOk(p, s){ const g = pipeEtapaProg(p, s); return g.feitos >= g.total; }
+  function pipeResumo(p){
+    const steps = p.steps || [];
+    const feitas = steps.filter(s => pipeEtapaOk(p, s)).length;
+    const atual = steps.find(s => !pipeEtapaOk(p, s)) || null;
+    const faltando = steps.filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => i.nome));
+    return { feitas, total: steps.length, atual, faltando, pct: steps.length ? Math.round(feitas/steps.length*100) : 0 };
+  }
+  // quem está numa etapa (nomes)
+  function pipeQuemNaEtapa(p, s){
+    if (!s) return [];
+    const ids = s.tipo === 'partes' ? Object.values(s.atrib||{}) : s.tipo === 'unica' ? [s.taskId] : [];
+    return [...new Set(ids.map(pipeTask).filter(Boolean).map(t => t.assignee_name).filter(Boolean))];
+  }
+  function avisoMaterialHtml(project){
+    const falt = pipelines.filter(p => p.project === project).flatMap(p => (p.steps||[]).filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => (p.episode ? `${i.nome} (Ep ${p.episode})` : i.nome) + (i.obs ? ` — ${i.obs}` : ''))));
+    if (!falt.length) return '';
+    return `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> ${falt.map(escapeHtml).join(' · ')}</div>`;
+  }
+
+  async function pipeSalvar(p){
+    p.updated_at = new Date().toISOString();
+    const { error } = await sb.from('production_pipelines').update({ steps: p.steps, partes: p.partes, updated_at: p.updated_at }).eq('id', p.id);
+    if (error){ showToast('❌ Erro ao salvar: ' + error.message); return false; }
+    return true;
+  }
+
+  // cria / troca / remove o responsável de uma etapa (vira production_task)
+  async function pipeAtribuir(p, s, parte, userId){
+    const campo = s.tipo === 'partes' ? (s.atrib = s.atrib || {}) : null;
+    const taskIdAtual = s.tipo === 'partes' ? campo[parte] : s.taskId;
+    const atual = pipeTask(taskIdAtual);
+    if (!userId){
+      if (atual){ try { await sb.from('production_tasks').delete().eq('id', atual.id); } catch(e){} }
+      if (s.tipo === 'partes') delete campo[parte]; else delete s.taskId;
+      await pipeSalvar(p); await loadProducaoTasks(); return;
+    }
+    const perfil = profilesByUser[userId] || {};
+    const desc = [pipeNome(p), parte ? `Parte ${parte}` : '', s.nome].filter(Boolean).join(' · ');
+    if (atual){
+      await sb.from('production_tasks').update({ assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja' }).eq('id', atual.id);
+    } else {
+      const taskId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
+      const { error } = await sb.from('production_tasks').insert({
+        id: taskId, project: p.project, episode: p.episode || 'Filme', part: parte ? String(parte) : null,
+        assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja',
+        stage: s.stage || s.nome, priority: 1, created_by: myEmail || null
+      });
+      if (error){ showToast('❌ ' + error.message); return; }
+      if (s.tipo === 'partes') campo[parte] = taskId; else s.taskId = taskId;
+      await pipeSalvar(p);
+    }
+    try {
+      await sb.from('task_notifications').insert({
+        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
+        user_id: userId, task_id: s.tipo === 'partes' ? campo[parte] : s.taskId, project: p.project, stage: s.stage || s.nome,
+        message: `${myProfile.display_name || myEmail || 'Um admin'} passou uma etapa pra você: ${desc}`, read: false
+      });
+    } catch(e){}
+    await loadProducaoTasks();
+    showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${perfil.display_name || 'ninja'}`);
+  }
+  async function pipeMarcarTarefa(task, feita){
+    await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', task.id);
+    task.done = feita;
+    if (task.agenda_note_id){ try { await sb.from('agenda_notes').update({ done: feita }).eq('id', task.agenda_note_id); } catch(e){} }
+  }
+
+  // ---------- janela da linha de produção ----------
+  function membrosOptions(selId){
+    const membros = Object.values(profilesByUser || {}).filter(m => m.display_name).sort((a,b) => a.display_name.localeCompare(b.display_name,'pt-BR'));
+    return `<option value="">— ninguém —</option>` + membros.map(m => `<option value="${m.user_id}" ${m.user_id===selId?'selected':''}>${escapeHtml(m.display_name)}</option>`).join('');
+  }
+  function pipeLinhaPessoa(p, s, parte){
+    const taskId = s.tipo === 'partes' ? (s.atrib||{})[parte] : s.taskId;
+    const t = pipeTask(taskId);
+    const feito = t ? t.done : (s.tipo === 'partes' ? (s.feitosManual||[]).includes(parte) : !!s.done);
+    const podeMarcar = isAdmin || (t && t.assignee_user_id === myUserId);
+    return `<div class="pl-row${feito?' ok':''}">
+      <button type="button" class="pl-check${feito?' on':''}" data-pl-done="${s.key}" data-parte="${parte||''}" ${podeMarcar?'':'disabled'} title="${feito?'Feito':'Marcar como feito'}">${feito?'✓':''}</button>
+      <span class="pl-row-nome">${parte ? 'Parte ' + parte : 'Responsável'}</span>
+      ${isAdmin ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>`
+        : `<span class="pl-quem">${t ? escapeHtml(t.assignee_name || '') : '—'}</span>`}
+    </div>`;
+  }
+  function pipeCorpoEtapa(p, s){
+    const N = pipePartes(p);
+    if (s.tipo === 'material'){
+      return `<div class="pl-mat">${(s.itens||[]).map((it, i) => `
+        <div class="pl-mat-item st-${it.status}">
+          <div class="pl-mat-linha">
+            <span class="pl-row-nome">${escapeHtml(it.nome)}</span>
+            <div class="pl-seg">
+              <button type="button" class="${it.status==='ok'?'on ok':''}" data-pl-mat="${i}" data-st="ok" ${isAdmin?'':'disabled'}>✓ Recebido</button>
+              <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${isAdmin?'':'disabled'}>⚠ Faltando</button>
+            </div>
+          </div>
+          ${it.status === 'faltando' ? `<input type="text" class="pl-obs" data-pl-obs="${i}" placeholder="O que aconteceu? (fica registrado no projeto)" value="${escapeHtml(it.obs||'')}" ${isAdmin?'':'disabled'}>` : ''}
+        </div>`).join('')}
+        ${isAdmin ? `<div class="pl-add"><input type="text" id="plMatNovo" placeholder="Outro arquivo (ex.: roteiro, música)…"><button type="button" id="plMatAdd">+</button></div>` : ''}
+      </div>`;
+    }
+    if (s.tipo === 'checkpartes'){
+      return `<p class="pl-nota">Marque cada parte já cortada e subida no Eleven.</p><div class="pl-partes-chk">${Array.from({length:N}, (_, i) => i+1).map(n => {
+        const ok = (s.feitos||[]).includes(n);
+        return `<button type="button" class="pl-chip${ok?' on':''}" data-pl-subiu="${n}" ${isAdmin?'':'disabled'}>${ok?'✓ ':''}Parte ${n}</button>`;
+      }).join('')}</div>`;
+    }
+    if (s.tipo === 'vozes'){
+      const her = pipeVozesHerdadas(p);
+      return `<div class="pl-vozes">
+        ${her && !s.done ? `<p class="pl-nota">✓ As vozes desta série já foram escolhidas${her.episode ? ` no Ep ${escapeHtml(her.episode)}` : ''}. Só adicione novas se aparecer alguém diferente.</p>` : `<p class="pl-nota">Escolha as vozes nas fichas do projeto (ordem de dublagem).</p>`}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-ghost" id="plAbrirFichas" style="font-size:13px;padding:8px 14px;">🎭 ${her ? 'Adicionar vozes' : 'Abrir fichas e vozes do projeto'}</button>
+          ${isAdmin && !her ? `<button type="button" class="${s.done?'btn-ghost':'btn-primary'}" id="plVozesOk" style="font-size:13px;padding:8px 14px;">${s.done?'↺ Reabrir escolha':'✓ Vozes definidas'}</button>` : ''}
+        </div>
+      </div>`;
+    }
+    if (s.tipo === 'voz_livro'){
+      const autor = (p.autor||'').trim().toLowerCase();
+      const sug = autor ? audiobooks.filter(a => (a.author||'').trim().toLowerCase() === autor && (a.voices||[]).some(v => v.voice)) : [];
+      const vozSug = sug.length ? ((sug[0].voices.find(v => v.is_main && v.voice) || sug[0].voices.find(v => v.voice)) || {}).voice : '';
+      return `<div class="pl-vozes">
+        ${vozSug ? `<p class="pl-nota">💡 Outros livros de <b>${escapeHtml(p.autor)}</b> usaram a voz <b>${escapeHtml(vozSug)}</b> (${escapeHtml(sug[0].title)}). Use a mesma para manter o padrão.</p>`
+          : p.autor ? `<p class="pl-nota">Nenhum outro livro de ${escapeHtml(p.autor)} no app ainda.</p>` : `<p class="pl-nota">Informe o autor para o app sugerir a mesma voz dos outros livros dele.</p>`}
+        <div class="pl-add">
+          <input type="text" id="plVozLivro" placeholder="Voz escolhida…" value="${escapeHtml(s.voz||'')}" ${isAdmin?'':'disabled'}>
+          ${vozSug && isAdmin ? `<button type="button" id="plVozUsar" data-voz="${escapeHtml(vozSug)}" class="pl-btn-sec">Usar ${escapeHtml(vozSug)}</button>` : ''}
+          ${isAdmin ? `<button type="button" id="plVozSalvar">${s.done?'Salvar':'✓ Definir'}</button>` : ''}
+        </div>
+      </div>`;
+    }
+    if (s.tipo === 'partes') return `<div class="pl-rows">${Array.from({length:N}, (_, i) => pipeLinhaPessoa(p, s, i+1)).join('')}</div>`;
+    if (s.tipo === 'unica') return `<div class="pl-rows">${pipeLinhaPessoa(p, s, null)}</div>`;
+    if (s.tipo === 'check') return `<div class="pl-rows"><div class="pl-row${s.done?' ok':''}">
+        <button type="button" class="pl-check${s.done?' on':''}" data-pl-done="${s.key}" data-parte="" ${isAdmin?'':'disabled'}>${s.done?'✓':''}</button>
+        <span class="pl-row-nome">${s.done ? 'Feito' : 'Marcar como feito'}</span></div></div>`;
+    return '';
+  }
+
+  function abrirPipeline(id){
+    const p = pipelines.find(x => x.id === id); if (!p) return;
+    pipeAberto = id;
+    let ov = document.getElementById('pipeOverlay');
+    if (!ov){ ov = document.createElement('div'); ov.id = 'pipeOverlay'; ov.className = 'modal-overlay'; ov.style.zIndex = '300'; document.body.appendChild(ov); }
+    const r = pipeResumo(p);
+    if (!(p.id in pipeEtapaAberta)) pipeEtapaAberta[p.id] = r.atual ? r.atual.key : null;
+    const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
+    const temPartes = (p.steps||[]).some(s => s.tipo === 'partes' || s.tipo === 'checkpartes');
+    const etapas = (p.steps||[]).map((s, i) => {
+      const g = pipeEtapaProg(p, s), ok = g.feitos >= g.total, atual = r.atual && r.atual.key === s.key;
+      const aberto = pipeEtapaAberta[p.id] === s.key;
+      const quem = pipeQuemNaEtapa(p, s);
+      const faltou = s.tipo === 'material' ? (s.itens||[]).filter(it => it.status === 'faltando').length : 0;
+      return `<div class="pl-etapa${ok?' ok':''}${atual?' atual':''}${aberto?' aberta':''}">
+        <button type="button" class="pl-etapa-head" data-pl-etapa="${s.key}">
+          <span class="pl-num">${ok ? '✓' : i+1}</span>
+          <span class="pl-etapa-nome">${escapeHtml(s.nome)}${faltou ? ` <em class="pl-falt">⚠ ${faltou} faltando</em>` : ''}</span>
+          <span class="pl-etapa-info">${quem.length ? escapeHtml(quem.join(', ')) + ' · ' : ''}${g.total > 1 ? `${g.feitos}/${g.total}` : (ok ? 'feito' : atual ? 'agora' : '')}</span>
+        </button>
+        ${aberto ? `<div class="pl-etapa-corpo">${pipeCorpoEtapa(p, s)}
+          ${isAdmin ? `<div class="pl-etapa-edit">
+            <button type="button" data-pl-mover="${s.key}" data-dir="-1" ${i===0?'disabled':''} title="Subir">↑</button>
+            <button type="button" data-pl-mover="${s.key}" data-dir="1" ${i===(p.steps||[]).length-1?'disabled':''} title="Descer">↓</button>
+            <button type="button" data-pl-renomear="${s.key}">✎ Renomear</button>
+            <button type="button" data-pl-remover="${s.key}" class="del">🗑️ Remover etapa</button>
+          </div>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('');
+    ov.innerHTML = `
+      <div class="modal pl-modal">
+        <div class="pl-topo">
+          <div style="flex:1;min-width:0;">
+            <p class="pl-eyebrow">${kind.ic} Linha de produção · ${kind.nome}${p.categoria ? ' · ' + escapeHtml(p.categoria) : ''}${p.autor ? ' · ' + escapeHtml(p.autor) : ''}</p>
+            <h2 style="margin:2px 0 0;">${escapeHtml(pipeNome(p))}</h2>
+          </div>
+          <div class="pl-pct"><b>${r.pct}%</b><span>${r.feitas}/${r.total} etapas</span></div>
+        </div>
+        <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
+        ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+        ${temPartes && isAdmin ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>` : ''}
+        <div class="pl-etapas">${etapas}</div>
+        ${isAdmin ? `<div class="pl-nova-etapa">
+          <button type="button" class="pl-add-etapa-btn" id="plAddEtapaBtn">+ Adicionar etapa</button>
+          <div class="pl-add-etapa" id="plAddEtapaForm" hidden>
+            <input type="text" id="plNovaNome" placeholder="Nome da etapa (ex.: Mixagem, Legendagem…)">
+            <select id="plNovaTipo">
+              <option value="unica">Uma pessoa responsável</option>
+              <option value="partes">Uma pessoa por parte</option>
+              <option value="check">Só marcar como feita</option>
+            </select>
+            <select id="plNovaPos">
+              ${(p.steps||[]).map((st, k) => `<option value="${k+1}" ${k===(p.steps||[]).length-1?'selected':''}>Depois de: ${escapeHtml(st.nome)}</option>`).join('')}
+              <option value="0">No início</option>
+            </select>
+            <button type="button" id="plNovaSalvar">Adicionar</button>
+          </div>
+        </div>` : ''}
+        <div class="modal-actions">
+          ${isAdmin ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
+          ${p.kind !== 'audiobook' ? `<button class="btn-ghost" id="plFichas">🎭 Fichas do projeto</button>` : ''}
+          <button class="btn-primary" id="plFechar">Fechar</button>
+        </div>
+      </div>`;
+    ov.classList.add('open');
+    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; if (currentView === 'producao') renderProducao(); };
+    ov.querySelector('#plFechar').onclick = fechar;
+    fecharAoClicarFora(ov, fechar);
+    const reabrir = () => abrirPipeline(p.id);
+    const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
+    const fx = ov.querySelector('#plAbrirFichas'); if (fx) fx.onclick = () => openProjetoModal(p.project);
+
+    ov.querySelectorAll('[data-pl-etapa]').forEach(b => b.onclick = () => {
+      pipeEtapaAberta[p.id] = pipeEtapaAberta[p.id] === b.dataset.plEtapa ? null : b.dataset.plEtapa; reabrir();
+    });
+    ov.querySelectorAll('[data-pl-partes]').forEach(b => b.onclick = async () => {
+      p.partes = Math.min(40, Math.max(1, pipePartes(p) + Number(b.dataset.plPartes))); await pipeSalvar(p); reabrir();
+    });
+    const step = key => (p.steps||[]).find(s => s.key === key);
+    const aberta = step(pipeEtapaAberta[p.id]);
+    // material
+    ov.querySelectorAll('[data-pl-mat]').forEach(b => b.onclick = async () => {
+      const it = aberta.itens[Number(b.dataset.plMat)]; it.status = it.status === b.dataset.st ? 'pendente' : b.dataset.st;
+      await pipeSalvar(p); reabrir();
+    });
+    ov.querySelectorAll('[data-pl-obs]').forEach(inp => inp.onchange = async () => { aberta.itens[Number(inp.dataset.plObs)].obs = inp.value.trim(); await pipeSalvar(p); });
+    const ma = ov.querySelector('#plMatAdd');
+    if (ma) ma.onclick = async () => { const v = ov.querySelector('#plMatNovo').value.trim(); if (!v) return; aberta.itens.push({ nome:v, status:'pendente', obs:'' }); await pipeSalvar(p); reabrir(); };
+    // partes subidas no Eleven
+    ov.querySelectorAll('[data-pl-subiu]').forEach(b => b.onclick = async () => {
+      const n = Number(b.dataset.plSubiu); const f = new Set(aberta.feitos||[]); f.has(n) ? f.delete(n) : f.add(n); aberta.feitos = [...f].sort((a,b)=>a-b);
+      await pipeSalvar(p); reabrir();
+    });
+    // vozes
+    const vo = ov.querySelector('#plVozesOk'); if (vo) vo.onclick = async () => { aberta.done = !aberta.done; await pipeSalvar(p); reabrir(); };
+    const vu = ov.querySelector('#plVozUsar'); if (vu) vu.onclick = () => { ov.querySelector('#plVozLivro').value = vu.dataset.voz; };
+    const vs = ov.querySelector('#plVozSalvar'); if (vs) vs.onclick = async () => { aberta.voz = ov.querySelector('#plVozLivro').value.trim(); aberta.done = !!aberta.voz; await pipeSalvar(p); reabrir(); };
+    // responsável
+    ov.querySelectorAll('[data-pl-atrib]').forEach(sel => sel.onchange = async () => {
+      sel.disabled = true;
+      await pipeAtribuir(p, step(sel.dataset.plAtrib), sel.dataset.parte ? Number(sel.dataset.parte) : null, sel.value);
+      reabrir();
+    });
+    // feito
+    ov.querySelectorAll('[data-pl-done]').forEach(b => b.onclick = async () => {
+      const s = step(b.dataset.plDone); const parte = b.dataset.parte ? Number(b.dataset.parte) : null;
+      const t = pipeTask(parte ? (s.atrib||{})[parte] : s.taskId);
+      if (t) await pipeMarcarTarefa(t, !t.done);
+      else if (parte){ const f = new Set(s.feitosManual||[]); f.has(parte) ? f.delete(parte) : f.add(parte); s.feitosManual = [...f]; await pipeSalvar(p); }
+      else { s.done = !s.done; await pipeSalvar(p); }
+      reabrir();
+    });
+    // ---- editar etapas (admin) ----
+    const addBtn = ov.querySelector('#plAddEtapaBtn');
+    if (addBtn) addBtn.onclick = () => { addBtn.hidden = true; const f = ov.querySelector('#plAddEtapaForm'); f.hidden = false; f.querySelector('input').focus(); };
+    const addSalvar = ov.querySelector('#plNovaSalvar');
+    if (addSalvar){
+      const salvarNova = async () => {
+        const nome = ov.querySelector('#plNovaNome').value.trim();
+        if (!nome){ showToast('Dê um nome para a etapa.'); return; }
+        const tipo = ov.querySelector('#plNovaTipo').value;
+        const pos = Number(ov.querySelector('#plNovaPos').value);
+        const nova = { key:'x' + Date.now().toString(36), nome, tipo, stage:nome, custom:true };
+        if (tipo === 'partes') nova.atrib = {};
+        if (tipo === 'check') nova.done = false;
+        p.steps.splice(pos, 0, nova);
+        pipeEtapaAberta[p.id] = nova.key;
+        if (await pipeSalvar(p)){ showToast(`➕ Etapa "${nome}" adicionada`); reabrir(); }
+      };
+      addSalvar.onclick = salvarNova;
+      ov.querySelector('#plNovaNome').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); salvarNova(); } };
+    }
+    ov.querySelectorAll('[data-pl-mover]').forEach(b => b.onclick = async () => {
+      const i = p.steps.findIndex(st => st.key === b.dataset.plMover), j = i + Number(b.dataset.dir);
+      if (i < 0 || j < 0 || j >= p.steps.length) return;
+      [p.steps[i], p.steps[j]] = [p.steps[j], p.steps[i]];
+      await pipeSalvar(p); reabrir();
+    });
+    ov.querySelectorAll('[data-pl-renomear]').forEach(b => b.onclick = async () => {
+      const st = step(b.dataset.plRenomear); if (!st) return;
+      const novo = prompt('Novo nome da etapa:', st.nome);
+      if (!novo || !novo.trim() || novo.trim() === st.nome) return;
+      st.nome = novo.trim();
+      await pipeSalvar(p); reabrir();
+    });
+    ov.querySelectorAll('[data-pl-remover]').forEach(b => b.onclick = async () => {
+      const st = step(b.dataset.plRemover); if (!st) return;
+      const ids = [ ...Object.values(st.atrib||{}), st.taskId ].filter(Boolean);
+      const ok = await confirmarBonito({ titulo:'Remover esta etapa?', mensagem:`<b style="color:var(--ink);">${escapeHtml(st.nome)}</b>${ids.length ? `<br><span style="font-size:12px;">As ${ids.length} tarefa${ids.length===1?'':'s'} dessa etapa também saem da Produção.</span>` : ''}`, textoBotao:'🗑️ Remover', corBotao:'#DC2626', icone:'🏭' });
+      if (!ok) return;
+      for (const id of ids){ try { await sb.from('production_tasks').delete().eq('id', id); } catch(e){} }
+      p.steps = p.steps.filter(x => x.key !== st.key);
+      await pipeSalvar(p); if (ids.length) await loadProducaoTasks();
+      reabrir();
+    });
+
+    const ex = ov.querySelector('#plExcluir');
+    if (ex) ex.onclick = async () => {
+      const ok = await confirmarBonito({ titulo:'Excluir esta linha de produção?', mensagem:`<b style="color:var(--ink);">${escapeHtml(pipeNome(p))}</b><br><span style="font-size:12px;">As tarefas já delegadas continuam na Produção.</span>`, textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🏭' });
+      if (!ok) return;
+      await sb.from('production_pipelines').delete().eq('id', p.id);
+      pipelines = pipelines.filter(x => x.id !== p.id);
+      fechar();
+    };
+  }
+
+  // ---------- assistente: nova linha de produção ----------
+  function abrirNovoPipeline(opts){
+    opts = opts || {};
+    if (!pipelinesOk){ showToast('Rode o SQL-linha-producao.sql no Supabase primeiro.'); return; }
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open'; ov.style.zIndex = '320';
+    const kindPadrao = opts.kind || (opts.categoria === 'Audiobook' ? 'audiobook' : 'video');
+    ov.innerHTML = `
+      <div class="modal" style="max-width:580px;">
+        <h2>🏭 Nova linha de produção</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:-8px 0 14px;">Escolha o tipo e o app monta a cadeia de produção do projeto.</p>
+        <div class="field"><label>Projeto</label>
+          <input type="text" id="npNome" value="${escapeHtml(opts.nome||'')}" list="npProjetos" placeholder="Nome do projeto">
+          <datalist id="npProjetos">${allProjectsList().map(p => `<option value="${escapeHtml(p)}">`).join('')}</datalist>
+        </div>
+        <div class="field"><label>Tipo de produção</label>
+          <div class="np-kinds">
+            ${Object.entries(PIPE_KINDS).map(([k, v]) => `<button type="button" class="np-kind" data-kind="${k}"><span class="np-ic">${v.ic}</span><b>${v.nome}</b><small>${k==='video'?'Material → Eleven → Vozes → Dublagem → Revisão → Redublagem → Pós → CQ → Correção → Dropbox':k==='audiobook'?'Word → Claude → Eleven → Voz → Exportar → Dropbox':'Você monta o passo a passo'}</small></button>`).join('')}
+          </div>
+        </div>
+        <div id="npVideo">
+          <div class="np-grid">
+            <div class="field"><label>Categoria</label><select id="npCat">${['Filme','Série','Documentário','Desenho','Estudo'].map(c => `<option ${opts.categoria===c?'selected':''}>${c}</option>`).join('')}</select></div>
+            <div class="field"><label>Episódio <span style="font-weight:400;text-transform:none;">(série)</span></label><input type="text" id="npEp" placeholder="Ex: 01"></div>
+            <div class="field"><label>Partes</label><input type="number" id="npPartes" min="1" max="40" value="3"></div>
+          </div>
+        </div>
+        <div id="npAudio" hidden><div class="field"><label>Autor</label><input type="text" id="npAutor" placeholder="Ex: Joel Beeke" list="npAutores" value="${escapeHtml(opts.autor||'')}"><datalist id="npAutores">${[...new Set(audiobooks.map(a => a.author).filter(Boolean))].map(a => `<option value="${escapeHtml(a)}">`).join('')}</datalist></div></div>
+        <div id="npEspecial" hidden><div class="field"><label>Passo a passo <span style="font-weight:400;text-transform:none;">(um por linha; termine com * para dividir por partes)</span></label>
+          <textarea id="npPassos" rows="6" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-size:13.5px;font-family:inherit;" placeholder="Receber material&#10;Gravação*&#10;Edição&#10;Entrega"></textarea></div>
+          <div class="field"><label>Partes</label><input type="number" id="npPartesEsp" min="1" max="40" value="1"></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="npCancelar">Cancelar</button>
+          <button class="btn-primary" id="npCriar">Criar linha de produção</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    let kind = kindPadrao;
+    const sync = () => {
+      ov.querySelectorAll('.np-kind').forEach(b => b.classList.toggle('on', b.dataset.kind === kind));
+      ov.querySelector('#npVideo').hidden = kind !== 'video';
+      ov.querySelector('#npAudio').hidden = kind !== 'audiobook';
+      ov.querySelector('#npEspecial').hidden = kind !== 'especial';
+    };
+    sync();
+    ov.querySelectorAll('.np-kind').forEach(b => b.onclick = () => { kind = b.dataset.kind; sync(); });
+    const fechar = () => ov.remove();
+    ov.querySelector('#npCancelar').onclick = fechar;
+    fecharAoClicarFora(ov, fechar);
+    ov.querySelector('#npCriar').onclick = async () => {
+      const nome = ov.querySelector('#npNome').value.trim();
+      if (!nome){ showToast('Dê um nome ao projeto.'); return; }
+      let steps, partes = 1, categoria = null, episode = null, autor = null;
+      if (kind === 'video'){
+        categoria = ov.querySelector('#npCat').value;
+        episode = ov.querySelector('#npEp').value.trim() || null;
+        partes = Math.max(1, Number(ov.querySelector('#npPartes').value) || 1);
+        steps = pipeTemplate('video');
+      } else if (kind === 'audiobook'){
+        categoria = 'Audiobook'; autor = ov.querySelector('#npAutor').value.trim() || null;
+        steps = pipeTemplate('audiobook');
+      } else {
+        const linhas = ov.querySelector('#npPassos').value.split('\n').map(l => l.trim()).filter(Boolean);
+        if (!linhas.length){ showToast('Escreva pelo menos um passo.'); return; }
+        partes = Math.max(1, Number(ov.querySelector('#npPartesEsp').value) || 1);
+        steps = pipeTemplate('especial', linhas.map(l => ({ nome: l.replace(/\*$/,'').trim(), partes: /\*$/.test(l) })));
+      }
+      if (pipelines.some(x => x.project === nome && (x.episode||null) === episode)){ showToast('Já existe uma linha de produção para esse projeto/episódio.'); return; }
+      const btn = ov.querySelector('#npCriar'); btn.disabled = true; btn.textContent = 'Criando…';
+      const novo = { id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project:nome, episode, kind, categoria, autor, partes, steps, created_by: myProfile.display_name || myEmail || null };
+      const { error } = await sb.from('production_pipelines').insert(novo);
+      if (error){ showToast('❌ ' + error.message); btn.disabled = false; btn.textContent = 'Criar linha de produção'; return; }
+      // audiobook: o projeto vive na aba Audiobooks; vídeo/especial: vira projeto "Em produção"
+      if (kind !== 'audiobook'){
+        try {
+          await sb.from('project_meta').upsert({ project:nome, in_production:true, archived:false }, { onConflict:'project' });
+          projectMeta[nome] = { ...(projectMeta[nome]||{}), in_production:true, archived:false };
+          const tipo = categoria === 'Estudo' ? 'Estudo Bíblico' : categoria;
+          if (tipo && !projectCats[nome]){ await sb.from('project_categories').upsert({ project:nome, category:tipo }, { onConflict:'project' }); projectCats[nome] = tipo; }
+        } catch(e){}
+      }
+      if (opts.backlogId){ try { await sb.from('backlog_items').update({ started:true }).eq('id', opts.backlogId); const b = backlogItens.find(x => x.id === opts.backlogId); if (b) b.started = true; } catch(e){} }
+      pipelines.push(novo);
+      fechar();
+      showToast(`🏭 Linha de produção criada: ${pipeNome(novo)}`);
+      if (currentView === 'producao') renderProducao();
+      abrirPipeline(novo.id);
+    };
+  }
+
+  // ---------- cards na Produção ----------
+  function pipeCardHtml(p){
+    const r = pipeResumo(p);
+    const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
+    const quem = pipeQuemNaEtapa(p, r.atual);
+    const dots = (p.steps||[]).map(s => `<span class="pl-dot${pipeEtapaOk(p, s)?' ok':''}${r.atual && r.atual.key === s.key ? ' atual' : ''}" title="${escapeHtml(s.nome)}"></span>`).join('');
+    return `<button type="button" class="pl-card${r.atual?'':' done'}" data-pl-abrir="${p.id}">
+      <div class="pl-card-topo">
+        <span class="pl-card-kind">${kind.ic}</span>
+        <div style="flex:1;min-width:0;text-align:left;">
+          <div class="pl-card-nome">${escapeHtml(pipeNome(p))}</div>
+          <div class="pl-card-sub">${r.atual ? `Agora: <b>${escapeHtml(r.atual.nome)}</b>${quem.length ? ' · ' + escapeHtml(quem.join(', ')) : ''}` : '<b style="color:var(--ok-ink)">✓ Concluído</b>'}</div>
+        </div>
+        <span class="pl-card-pct">${r.pct}%</span>
+      </div>
+      <div class="pl-dots">${dots}</div>
+      ${r.faltando.length ? `<div class="pl-card-falt">⚠ Faltou: ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
+    </button>`;
   }
 
   // ---- A FAZER (backlog) — mostrado no topo da Produção ----
@@ -9202,7 +9782,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="bk-item">
             <span style="flex:1;min-width:0;">${escapeHtml(x.titulo)}</span>
             ${crCatTag(x.categoria)}
-            ${isAdmin?`<button class="bk-btn go" data-bk-start="${x.id}" title="Cria o projeto como 'Em produção' e tira da fila">▶ Iniciar</button>
+            ${isAdmin?`<button class="bk-btn go" data-bk-start="${x.id}" title="Monta a linha de produção do projeto">▶ Iniciar</button>
             <button class="bk-btn" data-bk-del="${x.id}" title="Remover da fila">✕</button>`:''}
           </div>`).join('') : '<div class="cr-vazio">Nada na fila.</div>'}
         ${isAdmin?`<div class="cr-add" id="bkAdd"><input type="text" placeholder="Adicionar projeto à fila…"><select>${CRONO_CATS.map(c=>`<option>${c}</option>`).join('')}</select><button type="button">+</button></div>`:''}
@@ -9218,22 +9798,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       backlogItens = backlogItens.filter(x => x.id !== b.dataset.bkDel);
       renderProducao();
     }));
-    cont.querySelectorAll('[data-bk-start]').forEach(b => b.addEventListener('click', async () => {
+    cont.querySelectorAll('[data-bk-start]').forEach(b => b.addEventListener('click', () => {
       const it = backlogItens.find(x => x.id === b.dataset.bkStart); if (!it) return;
-      const nome = it.titulo.trim();
-      b.disabled = true;
-      try{
-        const { error } = await sb.from('project_meta').upsert({ project: nome, in_production: true, archived: false }, { onConflict:'project' });
-        if (error) throw error;
-        const tipo = it.categoria === 'Estudo' ? 'Estudo Bíblico' : it.categoria;
-        if (tipo && tipo !== 'Outro') await sb.from('project_categories').upsert({ project: nome, category: tipo }, { onConflict:'project' });
-        await sb.from('backlog_items').update({ started: true }).eq('id', it.id);
-        it.started = true;
-        projectMeta[nome] = { ...(projectMeta[nome]||{}), in_production: true, archived: false };
-        if (tipo && tipo !== 'Outro') projectCats[nome] = tipo;
-        showToast(`▶ "${nome}" agora está em produção.`);
-        renderProducao();
-      }catch(err){ showToast('❌ '+(err.message||'')); b.disabled = false; }
+      const titulo = it.titulo.replace(/^audiobook\s*:\s*/i, '').trim();
+      const autor = (titulo.match(/\(([^)]+)\)\s*$/) || [])[1] || '';
+      abrirNovoPipeline({ nome: it.categoria === 'Audiobook' ? titulo.replace(/\s*\([^)]+\)\s*$/, '') : it.titulo.trim(), categoria: it.categoria, autor, backlogId: it.id, kind: it.categoria === 'Audiobook' ? 'audiobook' : undefined });
     }));
     const box = cont.querySelector('#bkAdd');
     if (box){
@@ -10980,6 +11549,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       await loadAudiobooks();
       renderAudiobooks();
       showToast('Audiobook salvo.');
+      if (!a && isAdmin && pipelinesOk && !pipelines.some(pp => pp.project === title)){
+        abrirNovoPipeline({ nome: title, kind:'audiobook', categoria:'Audiobook', autor: author });
+      }
     });
   }
 
@@ -12070,6 +12642,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     ov.innerHTML = `
       <div class="modal">
         <h2>${escapeHtml(project)}</h2>
+        ${typeof avisoMaterialHtml === 'function' ? avisoMaterialHtml(project) : ''}
+        ${pipelines.filter(pp => pp.project === project).length ? `<div class="pl-proj-links">${pipelines.filter(pp => pp.project === project).map(pp => `<button type="button" class="pl-proj-link" data-pl-abrir="${pp.id}">🏭 Linha de produção${pp.episode ? ' · Ep ' + escapeHtml(pp.episode) : ''} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
         ${isAdmin?`
         <div class="field">
           <label>Capa do projeto</label>
@@ -12233,6 +12807,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     ov.classList.add('open');
     hydratePhotos();
     wireParticipantesBox(project);
+    ov.querySelectorAll('.pl-proj-link[data-pl-abrir]').forEach(b => b.addEventListener('click', () => abrirPipeline(b.dataset.plAbrir)));
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
 
@@ -13982,6 +14557,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           </div>
           <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
             <button id="abrirMuralBtn" style="background:var(--surface);border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
+            ${isAdmin?`<button id="novaLinhaBtn" class="pl-novo-btn">🏭 Nova linha de produção</button>`:''}
             ${isAdmin?`<button id="abrirGestaoBtn" style="background:#FCD34D;border:none;color:var(--warn-ink);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.2);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">⚙️ Painel de Gestão</button>`:''}
           </div>
         </div>
@@ -14023,6 +14599,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     const btnGestao = $('#abrirGestaoBtn');
     if (btnGestao) btnGestao.addEventListener('click', openPainelGestao);
+    const btnLinha = $('#novaLinhaBtn');
+    if (btnLinha) btnLinha.addEventListener('click', () => abrirNovoPipeline({}));
     const btnMural = $('#abrirMuralBtn');
     if (btnMural) btnMural.addEventListener('click', openMural);
     wireVistaEfiltros();
@@ -14111,6 +14689,22 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (filtro === 'minhas') tarefas = tarefas.filter(t => t.assignee_user_id === myUserId);
     if (filtro === 'pendentes') tarefas = tarefas.filter(t => !t.done);
 
+    // Linhas de produção (só na vista por projeto)
+    let pipesVis = [];
+    if (prodVistaAtual !== 'kanban'){
+      pipesVis = pipelines.filter(pp => !prodProjetoFiltro || pp.project === prodProjetoFiltro);
+      if (filtro === 'minhas') pipesVis = pipesVis.filter(pp => (pp.steps||[]).some(st => pipeQuemNaEtapa(pp, st).length && [ ...Object.values(st.atrib||{}), st.taskId ].map(pipeTask).some(t => t && t.assignee_user_id === myUserId)));
+      if (filtro === 'pendentes') pipesVis = pipesVis.filter(pp => pipeResumo(pp).atual);
+      pipesVis.sort((x, y) => (pipeResumo(x).atual ? 0 : 1) - (pipeResumo(y).atual ? 0 : 1));
+      // tarefas que já pertencem a uma linha de produção não repetem embaixo
+      const idsPipe = new Set(pipelines.flatMap(pp => (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).filter(Boolean)));
+      tarefas = tarefas.filter(t => !idsPipe.has(t.id));
+    }
+    const pipesHtml = pipesVis.length ? `<div class="pl-cards">${pipesVis.map(pipeCardHtml).join('')}</div>${tarefas.length ? '<div class="pl-sep">Tarefas avulsas</div>' : ''}` : '';
+    const ligarPipes = () => box.querySelectorAll('[data-pl-abrir]').forEach(c => c.addEventListener('click', () => abrirPipeline(c.dataset.plAbrir)));
+
+    if (tarefas.length === 0 && pipesVis.length){ box.innerHTML = pipesHtml; ligarPipes(); return; }
+
     if (tarefas.length === 0){
       box.innerHTML = `
         <div style="text-align:center;padding:50px 20px;background:var(--surface);border-radius:16px;border:2px dashed var(--line);">
@@ -14194,6 +14788,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${blocosEp}
         </div>`;
     }).join('');
+    if (pipesHtml){ box.insertAdjacentHTML('afterbegin', pipesHtml); ligarPipes(); }
 
     wireProducaoLista();
   }
@@ -15409,6 +16004,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       else if (currentView === 'painel'){ if(!editando) renderPainel(); }
       else if (currentView === 'producao'){ if(!editando) renderProducao(); }
       else if (currentView === 'cronograma'){ if(!editando) renderCronograma(); }
+      if (pipeAberto && !document.querySelector('#pipeOverlay select:focus, #pipeOverlay input:focus')) abrirPipeline(pipeAberto);
       else if (currentView === 'projetos') renderProjetos();
       else if (currentView === 'audiobooks') renderAudiobooks();
       else if (currentView === 'colecoes') renderColecoes();
@@ -15439,6 +16035,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       .on('postgres_changes', { event:'*', schema:'public', table:'meta_cards' }, async ()=>{ await loadMetaCards(); await loadCronograma(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'app_releases' }, async ()=>{ await loadCronograma(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'backlog_items' }, async ()=>{ await loadCronograma(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'production_pipelines' }, async ()=>{ await loadPipelines(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'mural_files' }, async ()=>{ await loadMuralFiles(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
