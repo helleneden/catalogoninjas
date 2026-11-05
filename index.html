@@ -2582,6 +2582,7 @@
   .cr-sem-cont{ font-size:12px; color:var(--muted); font-weight:600; }
   .cr-linha{ display:flex; align-items:center; gap:10px; padding:8px 6px; border-radius:10px; cursor:pointer; transition:background .12s; }
   .cr-linha:hover{ background:var(--surface-soft); }
+  .cr-linha.so-status{ cursor:default; }
   .cr-dot{ width:4px; align-self:stretch; border-radius:4px; background:var(--cat); flex:0 0 auto; }
   .cr-linha-txt{ flex:1; min-width:0; }
   .cr-linha-titulo{ font-size:14px; font-weight:600; line-height:1.3; }
@@ -2617,6 +2618,9 @@
   .cr-add select{ padding:8px 6px; border:1px solid var(--line); border-radius:9px; font-size:12.5px; max-width:130px; }
   .cr-add button{ padding:8px 12px; border-radius:9px; border:1px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; font-weight:700; font-size:12.5px; }
   .cr-modal{ max-width:560px; }
+  .proj-titulo-linha{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .proj-renomear{ border:1px solid var(--line); background:transparent; color:var(--muted); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
+  .proj-renomear:hover{ color:var(--ink); border-color:var(--blue); }
   .cr-ligado{ border:1px solid var(--line); background:var(--surface-soft); border-radius:12px; padding:10px 12px; font-size:13px; display:flex; flex-direction:column; gap:8px; }
   .cr-ligado-eps{ display:flex; flex-wrap:wrap; gap:6px; }
   .cr-ligado-ep{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
@@ -9082,7 +9086,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function crLinhaHtml(it, tabela){
     const cc = metaCatCor(it.categoria);
     const proj = cronoProjetoDoItem(it);
-    const pipeIt = typeof pipelineDoItem === 'function' ? pipelineDoItem(it) : null;
+    const pipeIt = (tabela === 'meta_cards' && typeof pipelineDoItem === 'function') ? pipelineDoItem(it) : null;
+    const clicavel = tabela === 'meta_cards';
     const nTarefas = 0;
     const rotuloOk = tabela === 'app_releases' ? 'Lançado' : 'Renderizado';
     const u = crUnidades(it);
@@ -9095,11 +9100,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         <button type="button" class="cr-ep${u.feitosSet.has(n)?' ok':''}" data-cr-ep="${tabela}" data-id="${it.id}" data-n="${n}" ${isAdmin?'':'disabled'}>${u.feitosSet.has(n)?'✓ ':''}${u.eps.rot} ${n}</button>`).join('')}
       </div>` : '';
     return `<div class="cr-item-wrap">
-      <div class="cr-linha${completo?' done':''}" data-cr-abrir="${tabela}" data-id="${it.id}" style="--cat:${cc.c}">
+      <div class="cr-linha${completo?' done':''}${clicavel?'':' so-status'}" ${clicavel ? `data-cr-abrir="${tabela}"` : ''} data-id="${it.id}" style="--cat:${cc.c}">
         <span class="cr-dot"></span>
         <div class="cr-linha-txt">
           <div class="cr-linha-titulo">${escapeHtml(it.titulo||'')}</div>
-          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${pipeIt ? ` · <span class="cr-proj">🏭 ${(() => { const rr = pipeResumo(pipeIt); return rr.atual ? escapeHtml(rr.atual.nome) : '✓ produção concluída'; })()} · ${pipeResumo(pipeIt).pct}%</span>` : proj ? ` · <span class="cr-proj">${escapeHtml(proj)}</span>` : ''}</div>
+          <div class="cr-linha-meta">${escapeHtml(it.categoria||'Outro')}${u.eps ? ` · ${u.total} ${u.eps.rot.toLowerCase()}s` : ''}${!clicavel ? '' : pipeIt ? ` · <span class="cr-proj">🏭 ${(() => { const rr = pipeResumo(pipeIt); return rr.atual ? escapeHtml(rr.atual.nome) : '✓ produção concluída'; })()} · ${pipeResumo(pipeIt).pct}%</span>` : proj ? ` · <span class="cr-proj">${escapeHtml(proj)}</span>` : ''}</div>
         </div>
         ${u.eps ? `<button type="button" class="cr-expandir${aberto?' on':''}" data-cr-expandir="${it.id}" title="${aberto?'Recolher':'Marcar episódio por episódio'}">${aberto?'▾':'▸'}</button>` : ''}
         <button type="button" class="cr-status${completo?' ok':(u.feitos?' parcial':'')}" data-cr-toggle="${tabela}" data-id="${it.id}" ${isAdmin?'':'disabled'} title="${isAdmin?(u.eps?'Marcar/desmarcar todos':'Clique para alternar'):''}">${statusTxt}</button>
@@ -9203,7 +9208,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <span class="cr-aba-prog"><b>${somaR.feitos}/${somaR.total}</b> renderizados<span class="cr-bar"><i style="width:${pct(somaR.feitos,somaR.total)}%"></i></span></span>
         </button>
       </div>
-      <p class="cr-dica">Clique num item para abrir ou criar a linha de produção dele.</p>
+      <p class="cr-dica">${ehLanc ? 'Marque cada item como lançado quando for ao ar.' : 'Clique num item para abrir ou criar a linha de produção dele.'}</p>
       <div class="cr-lista">${semanasHtml}</div>`;
 
     $('#crPrev').addEventListener('click', () => { cronoMes = mesSomar(cronoMes,-1); renderCronograma(); });
@@ -13133,6 +13138,67 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     } catch(e){ console.warn('Limpar franquias órfãs:', e); }
   }
 
+  // ---- Renomear projeto: troca o nome em todas as tabelas que guardam o projeto ----
+  function abrirRenomearProjeto(antigo){
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay confirm-overlay open'; ov.style.zIndex = '9999';
+    ov.innerHTML = `
+      <div class="modal confirm-modal" style="max-width:480px;">
+        <h2 style="margin:0 0 6px;">✎ Renomear projeto</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Nome atual: <b style="color:var(--ink);">${escapeHtml(antigo)}</b><br>Fichas, vozes, coadjuvantes, coleção, linha de produção, tarefas e cronograma acompanham o novo nome.</p>
+        <div class="field"><label>Novo nome</label><input type="text" id="renProjInput" value="${escapeHtml(antigo)}"></div>
+        <div id="renProjAviso" style="font-size:12px;min-height:16px;"></div>
+        <div class="confirm-actions" style="margin-top:12px;">
+          <button class="btn-ghost" id="renProjCancel">Cancelar</button>
+          <button class="btn-primary" id="renProjOk">Renomear</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const inp = ov.querySelector('#renProjInput'), aviso = ov.querySelector('#renProjAviso'), ok = ov.querySelector('#renProjOk');
+    inp.focus(); inp.select();
+    const existe = n => allProjectsList().some(pr => pr !== antigo && pr.trim().toLowerCase() === n.trim().toLowerCase());
+    const validar = () => {
+      const n = inp.value.trim();
+      if (!n || n === antigo){ ok.disabled = true; aviso.textContent = ''; return; }
+      if (existe(n)){ ok.disabled = true; aviso.innerHTML = '<span style="color:var(--danger-ink)">Já existe um projeto com esse nome.</span>'; return; }
+      ok.disabled = false; aviso.textContent = '';
+    };
+    inp.addEventListener('input', validar); validar();
+    const fechar = () => ov.remove();
+    ov.querySelector('#renProjCancel').onclick = fechar;
+    fecharAoClicarFora(ov, fechar);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !ok.disabled) ok.click(); });
+    ok.onclick = async () => {
+      const novo = inp.value.trim();
+      ok.disabled = true; ok.textContent = 'Renomeando…';
+      const tabelas = ['entries','dub_order','project_meta','project_categories','project_franchise','project_season','project_participants',
+        'project_notes','project_note_mentions','production_tasks','production_pipelines','app_releases','meta_cards','task_notifications'];
+      const erros = [];
+      for (const t of tabelas){
+        try {
+          const { error } = await sb.from(t).update({ project: novo }).eq('project', antigo);
+          if (error && !/does not exist|schema cache|relation/i.test(error.message)) erros.push(t + ': ' + error.message);
+        } catch(e){}
+      }
+      // capa do projeto (arquivo guardado pelo nome)
+      try {
+        const kA = PROJ_COVER_PREFIX + projKey(antigo), kN = PROJ_COVER_PREFIX + projKey(novo);
+        if (kA !== kN){ await sb.storage.from(COVER_BUCKET).move(kA + '.jpg', kN + '.jpg'); delete coverCache[kA]; delete coverCache[kN]; }
+      } catch(e){}
+      // pasta de coadjuvantes do projeto
+      try { await sb.from('entries').update({ project: novo + COADJ_SUFFIX }).eq('project', antigo + COADJ_SUFFIX); } catch(e){}
+      try { await sb.from('dub_order').update({ project: novo + COADJ_SUFFIX }).eq('project', antigo + COADJ_SUFFIX); } catch(e){}
+      if (erros.length){ console.warn('Renomear projeto:', erros); }
+      await loadPeople();
+      try { await Promise.all([loadPipelines(), loadCronograma(), loadProducaoTasks()]); } catch(e){}
+      fechar();
+      showToast(erros.length ? `⚠️ Renomeado, mas houve ${erros.length} aviso(s) — veja o console.` : `✅ Projeto renomeado para "${novo}"`);
+      const ovProj = document.getElementById('colOverlay');
+      if (ovProj && ovProj.classList.contains('open')) openProjetoModal(novo);
+      if (typeof agendarRerender === 'function') agendarRerender();
+    };
+  }
+
   async function openProjetoModal(project){
     forcarLimpezaArrasteDub(); // garante que nada de um arraste anterior fique preso
     const ov = ensureColOverlay();
@@ -13140,7 +13206,10 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const url = projCoverUrl(project);
     ov.innerHTML = `
       <div class="modal">
-        <h2>${escapeHtml(project)}</h2>
+        <div class="proj-titulo-linha">
+          <h2 style="margin:0;">${escapeHtml(project)}</h2>
+          ${isAdmin ? `<button type="button" class="proj-renomear" id="projRenomear" title="Alterar o nome do projeto">✎ Renomear</button>` : ''}
+        </div>
         ${typeof avisoMaterialHtml === 'function' ? avisoMaterialHtml(project) : ''}
         ${pipelines.filter(pp => pp.project === project).length ? `<div class="pl-proj-links">${pipelines.filter(pp => pp.project === project).map(pp => `<button type="button" class="pl-proj-link" data-pl-abrir="${pp.id}">🏭 Linha de produção${pp.episode ? ' · Ep ' + escapeHtml(pp.episode) : ''} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
         ${isAdmin?`
@@ -13307,6 +13376,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     hydratePhotos();
     wireParticipantesBox(project);
     ov.querySelectorAll('.pl-proj-link[data-pl-abrir]').forEach(b => b.addEventListener('click', () => abrirPipeline(b.dataset.plAbrir)));
+    const btnRen = ov.querySelector('#projRenomear');
+    if (btnRen) btnRen.addEventListener('click', () => abrirRenomearProjeto(project));
     $('#projClose').addEventListener('click', ()=>ov.classList.remove('open'));
     fecharAoClicarFora(ov, () => { ov.classList.remove('open'); });
 
