@@ -109,6 +109,10 @@
     -webkit-overflow-scrolling: touch;
   }
   .view-tabs{ scrollbar-width: none !important; -ms-overflow-style: none; }
+  @media (min-width: 760px){
+    .view-tabs{ flex-wrap: wrap; justify-content: center; overflow: visible; }
+    .view-tabs .tab{ padding: 8px 12px; font-size: 13px; }
+  }
   .view-tabs::-webkit-scrollbar{ display:none; height:0; }
   .view-tabs .tab{
     border: none;
@@ -2626,6 +2630,14 @@
   .cr-ligado-eps{ display:flex; flex-wrap:wrap; gap:6px; }
   .cr-ligado-ep{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .cr-ligado-ep:hover{ border-color:var(--blue); }
+  .cr-ligado-ep.falta{ border-style:dashed; color:var(--muted); cursor:default; background:transparent; }
+  .cr-ligado-ep.outro{ opacity:.75; }
+  .cr-ligado-sub{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-top:4px; }
+  .ep-pick{ display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; margin:6px 0 14px; }
+  .ep-pick button{ display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:10px 12px; border-radius:12px; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); cursor:pointer; font-family:inherit; text-align:left; }
+  .ep-pick button:hover{ border-color:var(--blue); }
+  .ep-pick b{ font-size:15px; }
+  .ep-pick small{ font-size:11.5px; color:var(--muted); }
   .cr-ligado-editar{ align-self:flex-start; border:none; background:none; color:var(--blue-deep); font-size:12.5px; font-weight:700; cursor:pointer; padding:0; font-family:inherit; }
   .cr-ligado-editar:hover{ text-decoration:underline; }
   .cr-ligar-existente{ margin:4px 0 6px; font-size:12.5px; color:var(--muted); }
@@ -2802,6 +2814,26 @@
   .pl-leitura{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
   .pl-leitura button{ margin-left:auto; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-lote{ font-size:12px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:-4px 0 12px; }
+  .stars.media .star.on{ color: rgba(245,166,35,.45); }
+  .aval-avg{ font-size:11.5px; color:var(--muted); white-space:nowrap; min-width:64px; text-align:right; }
+  .aval-avg b{ color:#F5A623; font-weight:700; }
+  .badge.tipo.clicavel{ cursor:pointer; transition: transform .1s, border-color .15s; }
+  .badge.tipo.clicavel:hover{ transform: translateY(-1px); border-color: var(--blue); }
+  .uso-lista{ display:flex; flex-direction:column; gap:6px; max-height:56vh; overflow:auto; margin:4px 0 12px; }
+  .uso-item{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:var(--surface-soft); border:1px solid var(--line); cursor:pointer; text-align:left; width:100%; color:var(--ink); }
+  .uso-item:hover{ border-color: var(--blue); }
+  .uso-item img, .uso-item .uso-ini{ width:36px; height:36px; border-radius:50%; object-fit:cover; flex:0 0 auto; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .uso-item .uso-txt{ flex:1; min-width:0; }
+  .uso-item .uso-nome{ font-weight:700; font-size:13.5px; }
+  .uso-item .uso-proj{ font-size:12px; color:var(--muted); }
+  .pl-ep-big{ flex:0 0 auto; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:62px; padding:6px 10px; border-radius:14px; background:linear-gradient(135deg,var(--blue),var(--blue-deep)); color:#fff; line-height:1; margin-right:12px; }
+  .pl-ep-big small{ font-size:10px; text-transform:uppercase; letter-spacing:.6px; opacity:.85; }
+  .pl-ep-big b{ font-size:24px; font-weight:800; margin-top:3px; }
+  .pl-lote{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .pl-lote-chip{ font-size:11.5px; font-weight:700; padding:3px 9px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--muted); }
+  .pl-lote-chip.feito{ color:var(--n100-tx); border-color:var(--n100-bd); background:var(--n100-bg); }
+  .pl-lote-chip.atual{ color:#fff; background:var(--blue); border-color:var(--blue); }
+
   .rp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .rp-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface-soft); border-radius:9px; padding:6px 10px; font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; cursor:pointer; margin:0 !important; }
   .rp-lista{ display:flex; flex-direction:column; gap:4px; max-height:260px; overflow:auto; }
@@ -7449,7 +7481,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (audiobooks) renderAudiobooks();
     if (ranking) renderRanking();
     if (colecoes) renderColecoes();
-    if (avaliacao) renderAvaliacao();
+    if (avaliacao){ renderAvaliacao(); loadRatings().then(() => { if (currentView === 'avaliacao') renderAvaliacao(); }); }
     if (fichas) render();
     renderStats();
   }
@@ -8426,6 +8458,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let avalSort = 'nome';
   let myRatings = {};        // voice -> {crit: 0..5}  (só as MINHAS notas)
   let ratingAgg = {};        // voice -> {crit: {sum, n}}  (agregado de todos)
+  let ratersByVoice = {};    // voice -> Set(user_id) de quem deu pelo menos uma nota
   let commentsByVoice = {};  // voice -> [ {id,user_id,author_name,author_color,body,created_at} ]
   let openComments = {};     // voice -> bool
   // ---- Estado do Painel ----
@@ -8496,10 +8529,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         try{ await sb.rpc('purge_old_comments'); }catch(e){}
       }
       const { data } = await sb.from('voice_user_ratings').select('voice, user_id, ratings');
-      myRatings = {}; ratingAgg = {};
+      myRatings = {}; ratingAgg = {}; ratersByVoice = {};
       (data||[]).forEach(r => {
         const rt = r.ratings||{};
         if (myUserId && r.user_id === myUserId) myRatings[r.voice] = { ...rt };
+        if (RATING_CRITERIA.some(c => typeof rt[c]==='number' && rt[c]>0)) (ratersByVoice[r.voice] = ratersByVoice[r.voice] || new Set()).add(r.user_id);
         RATING_CRITERIA.forEach(c => {
           const v = rt[c];
           if (typeof v==='number' && v>0){
@@ -8535,8 +8569,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   // quantas pessoas avaliaram a voz (distintas, em qualquer critério)
   function ratersCount(voice){
-    const agg = ratingAgg[voice]; if(!agg) return 0;
-    return RATING_CRITERIA.reduce((mx,c)=> Math.max(mx, agg[c]?agg[c].n:0), 0);
+    return ratersByVoice[voice] ? ratersByVoice[voice].size : 0;
   }
   function critAvg(voice, crit){
     const a = ratingAgg[voice] && ratingAgg[voice][crit];
@@ -8544,13 +8577,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // estrelas: mostra a MINHA nota (interativa) e a média ao lado
+  function mediaCritHtml(voice, crit){
+    const a = ratingAgg[voice] && ratingAgg[voice][crit];
+    if (!a || !a.n) return '<span style="opacity:.6;">sem nota</span>';
+    return `média <b>${(a.sum/a.n).toFixed(1)}</b> · ${a.n}`;
+  }
   function starsHtml(voice, crit){
     const mine = (myRatings[voice] && myRatings[voice][crit]) || 0;
-    let out = `<span class="stars" data-voice="${escapeHtml(voice)}" data-crit="${escapeHtml(crit)}">`;
-    for (let i=1;i<=5;i++){ out += `<span class="star ${i<=mine?'on':''}" data-val="${i}">★</span>`; }
-    out += `</span>`;
-    const ca = critAvg(voice, crit);
-    if (ca>0) out += `<span class="aval-avg">${ca.toFixed(1)}</span>`;
+    const media = Math.round(critAvg(voice, crit));
+    const mostra = mine || media;
+    const titulo = mine ? `Sua nota: ${mine} (clique na mesma estrela para tirar)` : (media ? 'Média da equipe — clique para dar a sua nota' : 'Clique para dar a sua nota');
+    let out = `<span class="stars${mine ? '' : ' media'}" data-voice="${escapeHtml(voice)}" data-crit="${escapeHtml(crit)}" title="${titulo}">`;
+    for (let i=1;i<=5;i++){ out += `<span class="star ${i<=mostra?'on':''}" data-val="${i}">★</span>`; }
+    out += `</span><span class="aval-avg">${mediaCritHtml(voice, crit)}</span>`;
     return out;
   }
 
@@ -8629,7 +8668,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             </span>`:''}
           </div>
           <div class="aval-used">usada ${counts[voice]}× · ${nR? `avaliada por ${nR} pessoa${nR===1?'':'s'}` : 'sem avaliações'}</div>
-          ${tiposVoz[voice] && tiposVoz[voice].size ? `<div class="badges" style="margin:2px 0 6px;">${ordenarTipos([...tiposVoz[voice]].filter(t => t !== TIPO_NENHUM)).map(t => `<span class="badge tipo">${iconeTipoFiltro(t)} ${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+          ${tiposVoz[voice] && tiposVoz[voice].size ? `<div class="badges" style="margin:2px 0 6px;">${ordenarTipos([...tiposVoz[voice]].filter(t => t !== TIPO_NENHUM)).map(t => `<span class="badge tipo clicavel" data-uso-voz="${escapeHtml(voice)}" data-uso-tipo="${escapeHtml(t)}" title="Ver onde foi usada em ${escapeHtml(t)}">${iconeTipoFiltro(t)} ${escapeHtml(t)}</span>`).join('')}</div>` : ''}
           ${crits}
           <button class="cmt-toggle" data-toggle="${escapeHtml(voice)}">💬 ${nCmt? nCmt+' comentário'+(nCmt===1?'':'s') : 'Comentar'} ${aberto?'▲':'▼'}</button>
           ${aberto? commentsHtml(voice) : ''}
@@ -8839,8 +8878,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (!myUserId){ showToast('Faça login para avaliar.'); return; }
     const mine = myRatings[voice] || {};
     try{
-      await sb.from('voice_user_ratings').upsert({ voice, user_id: myUserId, ratings: mine, updated_at: new Date().toISOString() }, { onConflict:'voice,user_id' });
-    }catch(e){ showToast('Erro ao salvar avaliação.'); }
+      const { error } = await sb.from('voice_user_ratings').upsert({ voice, user_id: myUserId, ratings: mine, updated_at: new Date().toISOString() }, { onConflict:'voice,user_id' });
+      if (error){ showToast('❌ Avaliação não salva: ' + error.message); return false; }
+      return true;
+    }catch(e){ showToast('Erro ao salvar avaliação.'); return false; }
+  }
+  // redesenha só as estrelas/médias de um card (sem perder o que está digitado nos comentários)
+  function atualizarCardAval(voice){
+    const card = avaliacaoContent.querySelector(`[data-voice-card="${CSS.escape(voice)}"]`);
+    if (!card) return;
+    card.querySelectorAll('.stars').forEach(w => {
+      const cont = w.parentElement; cont.innerHTML = starsHtml(voice, w.dataset.crit);
+    });
+    const avg = avgRating(voice);
+    const nameEl = card.querySelector('.aval-voice-name > span:first-child');
+    if (nameEl) nameEl.innerHTML = `${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}`;
+    const usedEl = card.querySelector('.aval-used');
+    if (usedEl){ const nR = ratersCount(voice); usedEl.innerHTML = usedEl.innerHTML.replace(/·.*$/, '· ' + (nR ? `avaliada por ${nR} pessoa${nR===1?'':'s'}` : 'sem avaliações')); }
   }
 
   // recalcula o agregado local após eu mudar minha nota (sem recarregar tudo)
@@ -8853,7 +8907,46 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (cell.n<=0){ cell.sum=0; cell.n=0; }
   }
 
+  // lista de personagens/projetos onde a voz foi usada (opcionalmente só de um tipo)
+  function abrirUsosDaVoz(voz, tipo){
+    const usos = [];
+    visiblePeople().forEach(p => (p.entries||[]).forEach(e => {
+      if ((e.voice||'').trim() !== voz) return;
+      if (tipo && !tiposDaEntrada(e).includes(tipo)) return;
+      usos.push({ p, e });
+    }));
+    usos.sort((a,b) => (a.e.project||'').localeCompare(b.e.project||'','pt-BR') || (a.p.name||'').localeCompare(b.p.name||'','pt-BR'));
+    const ini = n => (n||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open'; ov.style.zIndex = '330';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:520px;">
+        <p class="pl-eyebrow" style="margin:0;">${tipo ? iconeTipoFiltro(tipo) + ' ' + escapeHtml(tipo) : 'Todos os usos'}</p>
+        <h2 style="margin:2px 0 4px;">🎙️ ${escapeHtml(voz)}</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px;">${usos.length} uso${usos.length===1?'':'s'} · clique para abrir a ficha</p>
+        <div class="uso-lista">
+          ${usos.map(({p,e}) => `<button type="button" class="uso-item" data-uso-pessoa="${p.id}">
+            <span class="uso-ini" ${p.hasPhoto ? `data-uso-foto="${p.id}"` : ''}>${escapeHtml(ini(p.name))}</span>
+            <span class="uso-txt"><div class="uso-nome">${escapeHtml(p.name||'(Sem nome)')}</div><div class="uso-proj">${escapeHtml(e.project||'')}${e.date ? ' · ' + escapeHtml(e.date) : ''}</div></span>
+          </button>`).join('') || '<p style="font-size:13px;color:var(--muted);">Nenhum uso encontrado.</p>'}
+        </div>
+        <div class="modal-actions">
+          ${tipo ? `<button class="btn-ghost" id="usoTodos" style="margin-right:auto;">Ver todos os usos</button>` : ''}
+          <button class="btn-primary" id="usoFechar">Fechar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.addEventListener('click', ev => { if (ev.target === ov) fechar(); });
+    ov.querySelector('#usoFechar').onclick = fechar;
+    const t = ov.querySelector('#usoTodos'); if (t) t.onclick = () => { fechar(); abrirUsosDaVoz(voz, null); };
+    ov.querySelectorAll('[data-uso-pessoa]').forEach(b => b.onclick = () => { fechar(); openModal(b.dataset.usoPessoa); });
+    ov.querySelectorAll('[data-uso-foto]').forEach(async el => { try { const url = await fetchPhoto(el.dataset.usoFoto); if (url){ const img = document.createElement('img'); img.src = url; img.alt = ''; el.replaceWith(img); } } catch(e){} });
+  }
+
   avaliacaoContent.addEventListener('click', async (e) => {
+    const tag = e.target.closest('[data-uso-tipo]');
+    if (tag){ abrirUsosDaVoz(tag.dataset.usoVoz, tag.dataset.usoTipo); return; }
     // clicar estrela -> minha nota
     const star = e.target.closest('.star');
     if (star){
@@ -8863,20 +8956,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       myRatings[voice] = myRatings[voice] || {};
       const old = myRatings[voice][crit] || 0;
       if (old === val) val = 0; // toggle
+      if (!myUserId){ showToast('Faça login para avaliar.'); return; }
       myRatings[voice][crit] = val;
       recomputeAggForVoice(voice, crit, old, val);
-      [...wrap.children].forEach((s,i)=> s.classList.toggle('on', (i+1)<=val));
-      saveMyRating(voice);
-      // atualiza média/critério ao lado sem re-render completo
-      const avgEl = wrap.parentElement.querySelector('.aval-avg');
-      const ca = critAvg(voice, crit);
-      if (avgEl) avgEl.textContent = ca>0? ca.toFixed(1):'';
-      const card = wrap.closest('[data-voice-card]');
-      const avg = avgRating(voice);
-      const nameEl = card.querySelector('.aval-voice-name > span:first-child');
-      if (nameEl){
-        nameEl.innerHTML = `${escapeHtml(voice)} ${avg>0?`<span style="font-size:12px; color:#F5A623;">★ ${avg.toFixed(1)}</span>`:''}`;
-      }
+      const temNota = RATING_CRITERIA.some(c => (myRatings[voice][c]||0) > 0);
+      ratersByVoice[voice] = ratersByVoice[voice] || new Set();
+      if (temNota) ratersByVoice[voice].add(myUserId); else ratersByVoice[voice].delete(myUserId);
+      atualizarCardAval(voice);
+      const okSalvo = await saveMyRating(voice);
+      if (!okSalvo){ await loadRatings(); atualizarCardAval(voice); }
       return;
     }
     // abrir/fechar comentários
@@ -9441,6 +9529,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const projPipes = !pipe && projLig && !ehItemLegenda(it) ? pipelines.filter(pp => pp.project === projLig && pp.kind !== 'legenda').sort((a,b) => epNum(a) - epNum(b)) : [];
     const projVozes = (pipe && pipe.project) || projLig || null;
     const temFichas = projVozes && allProjectsList().includes(projVozes);
+    const epsItem = (() => { const e = epsDoTitulo(it.titulo); if (e) return e.nums; const u = episodioDoTitulo(it.titulo); return u && /^\d+$/.test(u) ? [parseInt(u,10)] : []; })();
+    const pipesDoItem = epsItem.length ? projPipes.filter(pp => epsItem.includes(epNum(pp))) : [];
+    const outrosPipes = projPipes.filter(pp => !pipesDoItem.includes(pp));
+    const epsFaltando = epsItem.filter(n => !pipesDoItem.some(pp => epNum(pp) === n));
+    const rotEpItem = projPipes[0] && ehEstudo(projPipes[0]) ? 'Aula' : 'Ep';
+    const faixaFaltando = epsFaltando.length ? (epsFaltando.length > 1 ? `${epsFaltando[0]} a ${epsFaltando[epsFaltando.length-1]}` : String(epsFaltando[0])) : '';
     const ov = document.createElement('div');
     ov.className = 'modal-overlay open';
     ov.style.zIndex = '400';
@@ -9474,10 +9568,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               <button type="button" class="cr-ligado-editar" id="crLegAvulsa">ou criar uma linha de legenda avulsa e associar depois</button>
             </div>` : `<div class="cr-vazio">Ainda sem linha de legenda.</div>`)
           : projPipes.length ? `<div class="cr-ligado">
-              <div>🔗 Ligado à produção de <b>${escapeHtml(projLig)}</b></div>
-              <div class="cr-ligado-eps">${projPipes.map(pp => `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? rotuloEp(pp) + ' ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>
-              ${(() => { const epI = episodioDoTitulo(it.titulo); return epI && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar a linha ${projPipes[0] && ehEstudo(projPipes[0]) ? 'da Aula' : 'do Ep'} ${escapeHtml(epI)}</button>` : ''; })()}
-              <button type="button" class="cr-ligado-editar" id="crModalFicha">📚 Ver ficha de produção de ${escapeHtml(projLig)}</button>
+              <div>🔗 Faz parte da produção de <b>${escapeHtml(projLig)}</b></div>
+              ${epsItem.length ? `<div class="cr-ligado-sub">Deste item${epsFaltando.length ? ` · <span style="color:var(--warn-ink,#E2B14F);">${epsFaltando.length} sem linha</span>` : ' · todos com linha ✓'}</div>
+              <div class="cr-ligado-eps">${epsItem.map(n => { const pp = pipesDoItem.find(x => epNum(x) === n); return pp
+                  ? `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${rotEpItem} ${n} · ${pipeResumo(pp).pct}%</button>`
+                  : `<span class="cr-ligado-ep falta" title="Ainda sem linha de produção">${rotEpItem} ${n} · —</span>`; }).join('')}</div>` : ''}
+              ${pipesDoItem.length && isAdmin ? `<button type="button" class="btn-ghost" id="crModalEditarEps" style="width:100%;justify-content:center;">✎ Editar ${pipesDoItem.length > 1 ? 'linhas de produção' : 'linha de produção'}${pipesDoItem.length > 1 ? ' — escolher episódio' : ''}</button>` : ''}
+              ${faixaFaltando && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar a linha ${rotEpItem === 'Aula' ? 'da Aula' : 'do Ep'} ${escapeHtml(faixaFaltando)} em ${escapeHtml(projLig)}</button>` : ''}
+              ${outrosPipes.length ? `<div class="cr-ligado-sub">Outros episódios do projeto</div><div class="cr-ligado-eps">${outrosPipes.map(pp => `<button type="button" class="cr-ligado-ep outro" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? rotuloEp(pp) + ' ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
+              <button type="button" class="cr-ligado-editar" id="crModalFicha">📚 Painel de produção de ${escapeHtml(projLig)} (todos os episódios)</button>
             </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
@@ -9538,11 +9637,31 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
     });
     const fc = ov.querySelector('#crModalFicha'); if (fc) fc.addEventListener('click', () => { fechar(); abrirFichaProducao(projLig); });
+    const ed = ov.querySelector('#crModalEditarEps');
+    if (ed) ed.addEventListener('click', () => {
+      fechar();
+      if (pipesDoItem.length === 1){ pipeOrigemItem = { tabela, id }; abrirPipeline(pipesDoItem[0].id); return; }
+      const pk = document.createElement('div');
+      pk.className = 'modal-overlay open'; pk.style.zIndex = '410';
+      pk.innerHTML = `<div class="modal" style="max-width:520px;">
+        <p class="pl-eyebrow" style="margin:0;">✎ Editar linha de produção</p>
+        <h2 style="margin:2px 0 4px;">${escapeHtml(projLig)}</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 8px;">Qual episódio você quer editar?</p>
+        <div class="ep-pick">${pipesDoItem.map(pp => { const rr = pipeResumo(pp); return `<button type="button" data-ep-edit="${pp.id}"><b>${rotuloEp(pp)} ${escapeHtml(pp.episode || '')}</b><small>${rr.atual ? escapeHtml(rr.atual.nome) : '✓ Concluído'} · ${rr.pct}%</small></button>`; }).join('')}</div>
+        <div class="modal-actions"><button class="btn-ghost" id="epPickPainel" style="margin-right:auto;">📚 Painel do projeto</button><button class="btn-ghost" id="epPickFechar">Fechar</button></div>
+      </div>`;
+      document.body.appendChild(pk);
+      const fk = () => pk.remove();
+      pk.addEventListener('click', ev => { if (ev.target === pk) fk(); });
+      pk.querySelector('#epPickFechar').onclick = fk;
+      pk.querySelector('#epPickPainel').onclick = () => { fk(); abrirFichaProducao(projLig); };
+      pk.querySelectorAll('[data-ep-edit]').forEach(b => b.onclick = () => { fk(); pipeOrigemItem = { tabela, id }; abrirPipeline(b.dataset.epEdit); });
+    });
     const ce = ov.querySelector('#crModalCriarEp');
     if (ce) ce.addEventListener('click', () => {
       const sug = sugestaoDoItem(it); const modelo = projPipes[0];
       fechar();
-      abrirNovoPipeline({ nome: projLig, episode: sug.episode, categoria: modelo ? modelo.categoria : sug.categoria, kind: modelo ? modelo.kind : sug.kind,
+      abrirNovoPipeline({ nome: projLig, episode: faixaFaltando || sug.episode, categoria: modelo ? modelo.categoria : sug.categoria, kind: modelo ? modelo.kind : sug.kind,
         aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
     });
     const cp = ov.querySelector('#crModalCriarPipe');
@@ -9797,6 +9916,24 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${perfil.display_name || 'ninja'} · agenda ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`);
     }
   }
+  // Apaga tudo que uma tarefa delegada gerou: item da agenda, notificação e a própria tarefa.
+  function pipeTaskIds(steps){
+    const ids = [];
+    (steps||[]).forEach(st => { if (st.taskId) ids.push(st.taskId); Object.values(st.atrib||{}).forEach(v => v && ids.push(v)); });
+    return [...new Set(ids)];
+  }
+  async function apagarTarefasDelegadas(ids){
+    ids = [...new Set((ids||[]).filter(Boolean))];
+    if (!ids.length) return 0;
+    const agendaIds = ids.map(id => (pipeTask(id) || {}).agenda_note_id).filter(Boolean);
+    try { if (agendaIds.length) await sb.from('agenda_notes').delete().in('id', agendaIds); } catch(e){ console.warn(e); }
+    try { await sb.from('agenda_notes').delete().in('from_task_id', ids); } catch(e){ console.warn(e); }
+    try { await sb.from('task_notifications').delete().in('task_id', ids); } catch(e){ console.warn(e); }
+    try { await sb.from('production_tasks').delete().in('id', ids); } catch(e){ console.warn(e); }
+    producaoTasks = (producaoTasks||[]).filter(t => !ids.includes(t.id));
+    return ids.length;
+  }
+
   async function pipeMarcarTarefa(task, feita){
     await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', task.id);
     task.done = feita;
@@ -9916,6 +10053,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.innerHTML = `
       <div class="modal pl-modal">
         <div class="pl-topo">
+          ${p.episode ? `<div class="pl-ep-big" title="${rotuloEp(p, true)} ${escapeHtml(p.episode)}"><small>${rotuloEp(p, true)}</small><b>${escapeHtml(p.episode)}</b></div>` : ''}
           <div style="flex:1;min-width:0;">
             <p class="pl-eyebrow">${kind.ic} Linha de produção · ${kind.nome}${p.categoria ? ' · ' + escapeHtml(p.categoria) : ''}${p.autor ? ' · ' + escapeHtml(p.autor) : ''}</p>
             <h2 style="margin:2px 0 0;">${escapeHtml(pipeNome(p))}</h2>
@@ -9924,7 +10062,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         </div>
         <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
         ${pipeSoLeitura ? `<div class="pl-leitura">👁 Esta linha de produção já existe — você está só visualizando.${isAdmin ? ` <button type="button" id="plEditar">✎ Editar linha</button>` : ''}</div>` : ''}
-        ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote">Episódio ${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length} deste lote · ao fechar, você escolhe se repete as informações nos próximos.</div>` : ''}
+        ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote"><span>Criando a linha do <b>${rotuloEp(p, true)} ${escapeHtml(p.episode || String(pipeLote.ids.indexOf(p.id)+1))}</b> (${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length}):</span>
+          ${pipeLote.ids.map(id => { const q = pipelines.find(x => x.id === id); const rot = q && q.episode ? q.episode : '?'; return `<span class="pl-lote-chip ${id === p.id ? 'atual' : (pipeLote.feitos.has(id) ? 'feito' : '')}">${pipeLote.feitos.has(id) && id !== p.id ? '✓ ' : ''}${rotuloEp(p)} ${escapeHtml(rot)}</span>`; }).join('')}
+          <span style="flex-basis:100%;opacity:.8;">Ao fechar, você escolhe se repete as informações nos próximos.</span></div>` : ''}
         ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
         ${p.kind === 'legenda' ? `<div class="pl-leg-assoc">🔤 ${allProjectsList().includes(p.project) ? 'Extensão de legenda do projeto' : 'Linha de legenda avulsa —'} <b>${escapeHtml(p.project)}</b>${allProjectsList().includes(p.project) ? '' : ' · associe ao projeto:'}
           ${pipeAdm() && !allProjectsList().includes(p.project) ? `<select id="plLegProj"><option value="">Associar a outro projeto…</option>${allProjectsList().filter(pr => pr !== p.project).map(pr => `<option value="${escapeHtml(pr)}">${escapeHtml(pr)}</option>`).join('')}</select>` : ''}</div>` : ''}
@@ -10078,17 +10218,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const ids = [ ...Object.values(st.atrib||{}), st.taskId ].filter(Boolean);
       const ok = await confirmarBonito({ titulo:'Remover esta etapa?', mensagem:`<b style="color:var(--ink);">${escapeHtml(st.nome)}</b>${ids.length ? `<br><span style="font-size:12px;">As ${ids.length} tarefa${ids.length===1?'':'s'} dessa etapa também saem da Produção.</span>` : ''}`, textoBotao:'🗑️ Remover', corBotao:'#DC2626', icone:'🏭' });
       if (!ok) return;
-      for (const id of ids){ try { await sb.from('production_tasks').delete().eq('id', id); } catch(e){} }
+      await apagarTarefasDelegadas(ids);
       p.steps = p.steps.filter(x => x.key !== st.key);
-      await pipeSalvar(p); if (ids.length) await loadProducaoTasks();
+      await pipeSalvar(p); if (ids.length){ await loadProducaoTasks(); if (typeof loadAgenda === 'function') await loadAgenda(); }
       reabrir();
     });
 
     const ex = ov.querySelector('#plExcluir');
     if (ex) ex.onclick = async () => {
-      const ok = await confirmarBonito({ titulo:'Excluir esta linha de produção?', mensagem:`<b style="color:var(--ink);">${escapeHtml(pipeNome(p))}</b><br><span style="font-size:12px;">As tarefas já delegadas continuam na Produção.</span>`, textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🏭' });
+      const nT = pipeTaskIds(p.steps).length;
+      const ok = await confirmarBonito({ titulo:'Excluir esta linha de produção?', mensagem:`<b style="color:var(--ink);">${escapeHtml(pipeNome(p))}</b>${nT ? `<br><span style="font-size:12px;">As ${nT} tarefa${nT===1?'':'s'} delegada${nT===1?'':'s'} também ${nT===1?'sai':'saem'} da Produção, da agenda de cada um e das notificações.</span>` : ''}`, textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🏭' });
       if (!ok) return;
+      await apagarTarefasDelegadas(pipeTaskIds(p.steps));
       await sb.from('production_pipelines').delete().eq('id', p.id);
+      if (nT){ await loadProducaoTasks(); if (typeof loadAgenda === 'function') await loadAgenda(); }
       pipelines = pipelines.filter(x => x.id !== p.id);
       fechar();
     };
@@ -15954,9 +16097,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       });
       if (!ok) return;
       try {
-        if (t && t.agenda_note_id) await apagarItemAgendaDaTarefa(t.agenda_note_id);
-        await sb.from('production_tasks').delete().eq('id', taskId);
-        producaoTasks = producaoTasks.filter(x => x.id !== taskId);
+        await apagarTarefasDelegadas([taskId]);
         if (t && t.assignee_user_id === myUserId) await loadAgenda();
         renderProducao();
         showToast('Missão excluída.');
@@ -16954,6 +17095,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       // Catálogo (fichas, vozes, projetos) — loadPeople recarrega o conjunto principal
       .on('postgres_changes', { event:'*', schema:'public', table:'people' },   async ()=>{ await loadPeople(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'entries' },  async ()=>{ await loadPeople(); agendarRerender(); })
+      .on('postgres_changes', { event:'*', schema:'public', table:'voice_user_ratings' }, async ()=>{ await loadRatings(); if (currentView === 'avaliacao') Object.keys(ratingAgg).concat(Object.keys(myRatings)).forEach(v => atualizarCardAval(v)); })
       .on('postgres_changes', { event:'*', schema:'public', table:'project_meta' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'project_categories' }, async ()=>{ await loadPeople(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'dub_order' }, async ()=>{ await loadProjectMeta(); agendarRerender(); })
