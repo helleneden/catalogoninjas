@@ -2776,6 +2776,11 @@
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pl-rod{ white-space:nowrap; }
+  .ab-filtros{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; }
+  .ab-filtros select{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); color:var(--ink); font:inherit; font-size:13px; max-width:240px; }
+  .ab-limpar{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
+  .ab-limpar:hover{ color:var(--ink); border-color:var(--blue); }
+  .ab-resumo{ font-size:13px; color:var(--muted); margin:-4px 0 12px; }
   .np-modos{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   @media (max-width:560px){ .np-modos{ grid-template-columns:1fr; } }
   .np-modo{ text-align:left; border:1px solid var(--line); background:var(--surface-soft); color:var(--ink); border-radius:12px; padding:10px 12px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:3px; font-size:13.5px; }
@@ -3930,6 +3935,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let projetosFilter = 'producao'; // 'producao' | 'concluidos' | 'arquivados'
   let audiobooks = [];        // [{id,title,author,in_production,archived,has_cover,voices:[...]}]
   let audiobooksFilter = 'producao';
+  let abFiltroVoz = '', abFiltroAutor = ''; // filtros da aba Audiobooks (procuram em produção + concluídos)
   let projectParticipants = {}; // project -> [{user_id, display_name, ninja_color}]
   let backupLog = { last_backup_at: null, last_backup_by: null }; // último backup registrado
 
@@ -10338,7 +10344,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     };
     const fpb = ov.querySelector('#plFicha'); if (fpb) fpb.onclick = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirFichaProducao(p.project); };
     const rp = ov.querySelector('#plRepetir');
-    if (rp) rp.onclick = () => abrirRepetir(p, pipelines.filter(o => o.id !== p.id && o.project === p.project && o.kind === p.kind).map(o => o.id), () => { if (pipeAberto === p.id) reabrir(); }, { novos: true });
+    if (rp) rp.onclick = () => abrirRepetir(p, [], () => { if (pipeAberto === p.id) reabrir(); }, { novos: true });
     const fx = ov.querySelector('#plAbrirFichas'); if (fx) fx.onclick = () => openProjetoModal(p.project);
 
     ov.querySelectorAll('[data-pl-etapa]').forEach(b => b.onclick = () => {
@@ -10554,12 +10560,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const etapas = (src.steps||[]);
     ov.innerHTML = `
       <div class="modal" style="max-width:560px;">
-        <h2>📋 Repetir a linha ${escapeHtml(src.episode ? 'do ' + rot + ' ' + src.episode : 'de ' + src.project)}</h2>
+        <h2>📋 Repetir a linha ${escapeHtml(src.episode ? (rot === 'Aula' ? 'da ' : 'do ') + rot + ' ' + src.episode : 'de ' + src.project)}</h2>
         <p style="font-size:12.5px;color:var(--muted);margin:-8px 0 14px;">Os responsáveis, prazos e checklists marcados aqui vão para os episódios escolhidos (cada pessoa recebe a notificação e a tarefa na agenda).</p>
         ${opts.novos ? `<div class="field"><label>Criar nova linha para ${rot === 'Aula' ? 'as aulas' : 'os episódios'}</label>
-          <input type="text" id="rpNovos" placeholder="Ex.: ${proxEp} ou ${proxEp} a ${proxEp + 3}" style="width:100%;">
-          <small style="font-size:11.5px;color:var(--muted);">Deixe vazio se não quiser criar nenhuma nova.</small></div>` : ''}
-        ${alvos.length ? `<div class="field"><label>${opts.novos ? 'E/ou repetir em linhas que já existem' : 'Em quais episódios?'}</label>
+          <input type="text" id="rpNovos" value="${proxEp}" placeholder="Ex.: ${proxEp} ou ${proxEp} a ${proxEp + 3}" style="width:100%;">
+          <small style="font-size:11.5px;color:var(--muted);">Próxima: ${rot} ${proxEp}. Para várias, escreva por exemplo "${proxEp} a ${proxEp + 3}".</small></div>` : ''}
+        ${alvos.length && !opts.novos ? `<div class="field"><label>Em quais episódios?</label>
           <div class="rp-chips">${alvos.map(a => `<label class="rp-chip"><input type="checkbox" value="${a.id}" ${opts.novos ? '' : 'checked'}> ${escapeHtml(a.episode ? rotuloEp(a) + ' ' + a.episode : pipeNome(a))}</label>`).join('')}</div>
         </div>` : ''}
         <div class="field"><label>Repetir tudo ou só algumas etapas?</label>
@@ -10579,7 +10585,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <small style="font-size:11.5px;color:var(--muted);">Quem dubla/revisa cada parte só é copiado nas partes marcadas.</small></div>` : ''}
         <div class="modal-actions">
           <button class="btn-ghost" id="rpNao">${aoTerminar && !opts.novos ? 'Não, configurar o próximo do zero' : 'Cancelar'}</button>
-          <button class="btn-primary" id="rpSim">Repetir</button>
+          <button class="btn-primary" id="rpSim">${opts.novos ? '🏭 Criar linha' : 'Repetir'}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -10598,7 +10604,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const existentes = new Set(pipelines.filter(x => x.project === src.project && x.kind === src.kind).map(epNum));
       const jaTem = novosEps.filter(n => existentes.has(n));
       novosEps = novosEps.filter(n => !existentes.has(n));
-      if (jaTem.length) showToast(`${rot} ${jaTem.join(', ')} já tem linha — marque na lista para repetir nela.`);
+      if (jaTem.length && !novosEps.length){ showToast(`${rot} ${jaTem.join(', ')} já tem linha de produção.`); return; }
+      if (jaTem.length) showToast(`${rot} ${jaTem.join(', ')} já tem linha — pulei.`);
       if (!ids.length && !novosEps.length){ showToast('Escolha pelo menos um episódio.'); return; }
       const keys = modo === 'tudo' ? etapas.map(st => st.key) : [...ov.querySelectorAll('.rp-et:checked')].map(i => i.value);
       const copiarPartes = modo === 'tudo' ? true : ov.querySelector('#rpPartes').checked;
@@ -12543,7 +12550,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   function renderAudiobooks(){
     setTimeout(() => sincronizarAudiobooks(), 0);
     const ativos = audiobooks.filter(a => !a.archived);
-    const lista = audiobooksFilter==='producao' ? ativos.filter(a=>a.in_production) : ativos.filter(a=>!a.in_production);
+    const filtrando = !!(abFiltroVoz || abFiltroAutor);
+    // com filtro, procura em todos (em produção e concluídos)
+    const lista = filtrando
+      ? ativos.filter(a => (!abFiltroVoz || (a.voices||[]).some(v => chaveNome(v.voice) === chaveNome(abFiltroVoz)))
+                        && (!abFiltroAutor || chaveNome(a.author) === chaveNome(abFiltroAutor)))
+      : (audiobooksFilter==='producao' ? ativos.filter(a=>a.in_production) : ativos.filter(a=>!a.in_production));
+    const vozesAb = {}, autoresAb = {};
+    ativos.forEach(a => {
+      new Set((a.voices||[]).map(v => limparEspacos(v.voice)).filter(Boolean)).forEach(v => { const k = chaveNome(v); vozesAb[k] = vozesAb[k] || { nome: v, n: 0 }; vozesAb[k].n++; });
+      const au = limparEspacos(a.author); if (au){ const k = chaveNome(au); autoresAb[k] = autoresAb[k] || { nome: au, n: 0 }; autoresAb[k].n++; }
+    });
+    const ordena = o => Object.values(o).sort((x,y) => x.nome.localeCompare(y.nome, 'pt-BR'));
     const cards = lista.map(a => {
       const url = abCoverUrl(a.id);
       const cover = url
@@ -12570,14 +12588,29 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div><h1>🎧 Audiobooks</h1><p>Obras narradas e suas vozes.</p></div>
         ${isAdmin?`<button class="btn-primary admin-only" id="abNovo">+ Novo audiobook</button>`:''}
       </div>
-      <div class="seg-filter">
-        <button class="${audiobooksFilter==='producao'?'on':''}" data-abfilter="producao">Em produção</button>
-        <button class="${audiobooksFilter==='concluidos'?'on':''}" data-abfilter="concluidos">Concluídos</button>
+      <div class="ab-filtros">
+        <div class="seg-filter" style="margin:0;${filtrando ? 'opacity:.45;' : ''}">
+          <button class="${audiobooksFilter==='producao'&&!filtrando?'on':''}" data-abfilter="producao">Em produção</button>
+          <button class="${audiobooksFilter==='concluidos'&&!filtrando?'on':''}" data-abfilter="concluidos">Concluídos</button>
+        </div>
+        <select id="abFVoz" title="Filtrar por voz">
+          <option value="">🎙️ Todas as vozes</option>
+          ${ordena(vozesAb).map(v => `<option value="${escapeHtml(v.nome)}" ${chaveNome(v.nome)===chaveNome(abFiltroVoz)?'selected':''}>${escapeHtml(v.nome)} (${v.n})</option>`).join('')}
+        </select>
+        <select id="abFAutor" title="Filtrar por autor">
+          <option value="">✍️ Todos os autores</option>
+          ${ordena(autoresAb).map(v => `<option value="${escapeHtml(v.nome)}" ${chaveNome(v.nome)===chaveNome(abFiltroAutor)?'selected':''}>${escapeHtml(v.nome)} (${v.n})</option>`).join('')}
+        </select>
+        ${filtrando ? `<button type="button" class="ab-limpar" id="abFLimpar">✕ Limpar filtro</button>` : ''}
       </div>
+      ${filtrando ? `<p class="ab-resumo">${lista.length} audiobook${lista.length===1?'':'s'}${abFiltroVoz ? ` com a voz <b>${escapeHtml(abFiltroVoz)}</b>` : ''}${abFiltroAutor ? ` de <b>${escapeHtml(abFiltroAutor)}</b>` : ''} · em produção e concluídos</p>` : ''}
       ${lista.length? `<div class="prod-grid">${cards}</div>`
         : `<div class="empty-state"><h2 style="font-family:var(--font-head)">Nenhum audiobook</h2><p>${isAdmin?'Clique em “+ Novo audiobook” para criar.':'Nada por aqui ainda.'}</p></div>`}`;
 
-    audiobooksContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{ audiobooksFilter=b.dataset.abfilter; renderAudiobooks(); }));
+    audiobooksContent.querySelectorAll('.seg-filter button').forEach(b => b.addEventListener('click', ()=>{ audiobooksFilter=b.dataset.abfilter; abFiltroVoz=''; abFiltroAutor=''; renderAudiobooks(); }));
+    const fv = $('#abFVoz'); if (fv) fv.addEventListener('change', () => { abFiltroVoz = fv.value; renderAudiobooks(); });
+    const fa = $('#abFAutor'); if (fa) fa.addEventListener('change', () => { abFiltroAutor = fa.value; renderAudiobooks(); });
+    const fl = $('#abFLimpar'); if (fl) fl.addEventListener('click', () => { abFiltroVoz = ''; abFiltroAutor = ''; renderAudiobooks(); });
     const novo = $('#abNovo');
     if (novo) novo.addEventListener('click', ()=>openAudiobookEdit(null));
   }
