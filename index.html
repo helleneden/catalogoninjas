@@ -109,11 +109,6 @@
     -webkit-overflow-scrolling: touch;
   }
   .view-tabs{ scrollbar-width: none !important; -ms-overflow-style: none; }
-  @media (min-width: 760px){
-    .view-tabs{ flex-wrap: wrap; justify-content: center; overflow: visible; }
-    .view-tabs .tab{ padding: 8px 12px; font-size: 13px; }
-  }
-  .view-tabs::-webkit-scrollbar{ display:none; height:0; }
   .view-tabs .tab{
     border: none;
     background: transparent;
@@ -2630,6 +2625,12 @@
   .cr-ligado-eps{ display:flex; flex-wrap:wrap; gap:6px; }
   .cr-ligado-ep{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; }
   .cr-ligado-ep:hover{ border-color:var(--blue); }
+  .hist-lista{ display:flex; flex-direction:column; gap:6px; overflow:auto; max-height:22vh; }
+  .hist-row{ display:flex; align-items:center; gap:8px; padding:7px 9px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; margin:0 !important; font-weight:500 !important; }
+  .hist-row .hist-tit{ flex:1; min-width:0; }
+  .hist-row .hist-tit small{ font-size:11px; color:var(--muted); }
+  .hist-row input[type=text]{ flex:0 0 230px; padding:6px 9px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--ink); font-size:12.5px; }
+  @media (max-width:700px){ .hist-row{ flex-wrap:wrap; } .hist-row input[type=text]{ flex:1 1 45%; } }
   .cr-ligado-ep.falta{ border-style:dashed; color:var(--muted); cursor:default; background:transparent; }
   .cr-ligado-ep.outro{ opacity:.75; }
   .cr-ligado-sub{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-top:4px; }
@@ -2985,6 +2986,18 @@
     display:flex;
     gap: 8px;
   }
+  /* tudo numa linha só: as abas encolhem e, em telas menores, usam o nome curto */
+  .view-tabs .tab .t-curto{ display:none; }
+  @media (min-width: 760px){
+    .view-tabs{ flex-wrap: nowrap; justify-content: space-between; overflow-x: auto; gap: 2px; }
+    .view-tabs .tab{ flex: 1 0 auto; padding: 8px 9px; font-size: 13px; text-align: center; }
+  }
+  @media (min-width: 760px) and (max-width: 1150px){
+    .view-tabs .tab{ padding: 7px 5px; font-size: 12px; }
+    .view-tabs .tab .t-longo{ display:none; }
+    .view-tabs .tab .t-curto{ display:inline; }
+  }
+  .view-tabs::-webkit-scrollbar{ display:none; height:0; }
   .view-tab{
     padding: 9px 18px;
     border-radius: 999px;
@@ -3403,13 +3416,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   <div class="header-tabs-row">
     <div class="view-tabs" role="tablist">
       <button class="tab" data-view="home" role="tab">🏠 Home</button>
-      <button class="tab active" data-view="painel" role="tab">👤 Meu Painel</button>
+      <button class="tab active" data-view="painel" role="tab">👤 <span class="t-longo">Meu Painel</span><span class="t-curto">Painel</span></button>
       <button class="tab" data-view="producao" role="tab">🎯 Produção</button>
       <button class="tab" data-view="cronograma" role="tab">📅 Cronograma</button>
       <button class="tab" data-view="audiobooks" role="tab">🎧 Audiobooks</button>
       <button class="tab" data-view="colecoes" role="tab">🗂 Coleções</button>
-      <button class="tab" data-view="fichas" role="tab">📇 Todas as fichas</button>
-      <button class="tab" data-view="ranking" role="tab">📊 Vozes mais usadas</button>
+      <button class="tab" data-view="fichas" role="tab">📇 <span class="t-longo">Todas as fichas</span><span class="t-curto">Fichas</span></button>
+      <button class="tab" data-view="ranking" role="tab">📊 <span class="t-longo">Vozes mais usadas</span><span class="t-curto">Mais usadas</span></button>
       <button class="tab" data-view="avaliacao" role="tab">⭐ Avaliação</button>
     </div>
   </div>
@@ -3639,6 +3652,44 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const sb = (window.supabase && SUPABASE_URL.indexOf('COLE_AQUI') === -1)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
     : null;
+
+  // ---------- Mesma voz / mesmo nome, independente de maiúscula, acento ou espaço ----------
+  // chaveNome('  otto de la LUNA ') === chaveNome('Otto De La Luna')
+  function chaveNome(x){ return (x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toLowerCase(); }
+  function limparEspacos(x){ return (x||'').trim().replace(/\s+/g,' '); }
+  let _vozCanon = {};   // chave -> grafia oficial (a mais usada)
+  function montarVozesCanonicas(lista){
+    const cont = {};
+    (lista||[]).forEach(p => (p.entries||[]).forEach(e => {
+      const v = limparEspacos(e.voice); if (!v) return;
+      const k = chaveNome(v); (cont[k] = cont[k] || {}); cont[k][v] = (cont[k][v]||0) + 1;
+    }));
+    _vozCanon = {};
+    Object.entries(cont).forEach(([k, grafias]) => {
+      // a mais usada; empate → a que tem mais maiúsculas (ex.: "Otto De La Luna")
+      _vozCanon[k] = Object.keys(grafias).sort((a,b) => (grafias[b]-grafias[a]) || ((b.match(/[A-ZÀ-Ý]/g)||[]).length - (a.match(/[A-ZÀ-Ý]/g)||[]).length) || a.localeCompare(b))[0];
+    });
+  }
+  function vozCanonica(v){
+    const l = limparEspacos(v); if (!l) return v;
+    return _vozCanon[chaveNome(l)] || l;
+  }
+  // Toda gravação de voz passa pela grafia oficial — vale para todos os pontos do app que salvam entradas,
+  // notas e comentários (não precisa lembrar disso em cada tela).
+  if (sb){
+    const fromOriginal = sb.from.bind(sb);
+    const ajustar = (payload) => {
+      const um = r => (r && typeof r === 'object' && typeof r.voice === 'string') ? { ...r, voice: vozCanonica(r.voice) } : r;
+      return Array.isArray(payload) ? payload.map(um) : um(payload);
+    };
+    sb.from = (tabela) => {
+      const q = fromOriginal(tabela);
+      if (['entries','voice_user_ratings','voice_comments'].includes(tabela)){
+        ['insert','update','upsert'].forEach(m => { const orig = q[m].bind(q); q[m] = (payload, ...rest) => orig(ajustar(payload), ...rest); });
+      }
+      return q;
+    };
+  }
 
   // Quando a pessoa clica no link de recuperação de senha que chega por
   // e-mail, o Supabase dispara esse evento assim que ela volta pro app.
@@ -4318,6 +4369,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       hasPhoto: !!p.has_photo,
       entries: (p.entries || []).map(e => ({ id: e.id, project: e.project, voice: e.voice, date: e.date || '' }))
     }));
+    montarVozesCanonicas(people);
+    people.forEach(p => p.entries.forEach(e => { if (e.voice) e.voice = vozCanonica(e.voice); }));
 
     // Primeira execução: se o banco estiver vazio, faz a carga inicial do Trello.
     if (people.length === 0 && Array.isArray(SEED_DATA) && SEED_DATA.length){
@@ -8532,7 +8585,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       myRatings = {}; ratingAgg = {}; ratersByVoice = {};
       (data||[]).forEach(r => {
         const rt = r.ratings||{};
-        if (myUserId && r.user_id === myUserId) myRatings[r.voice] = { ...rt };
+        r.voice = vozCanonica(r.voice);
+        if (myUserId && r.user_id === myUserId) myRatings[r.voice] = { ...(myRatings[r.voice]||{}), ...rt };
         if (RATING_CRITERIA.some(c => typeof rt[c]==='number' && rt[c]>0)) (ratersByVoice[r.voice] = ratersByVoice[r.voice] || new Set()).add(r.user_id);
         RATING_CRITERIA.forEach(c => {
           const v = rt[c];
@@ -8550,7 +8604,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     try{
       const { data } = await sb.from('voice_comments').select('*').order('created_at', { ascending:true });
       commentsByVoice = {};
-      (data||[]).forEach(c => { (commentsByVoice[c.voice] = commentsByVoice[c.voice]||[]).push(c); });
+      (data||[]).forEach(c => { c.voice = vozCanonica(c.voice); (commentsByVoice[c.voice] = commentsByVoice[c.voice]||[]).push(c); });
     }catch(e){ commentsByVoice = {}; }
   }
 
@@ -8826,7 +8880,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
       try {
         // Atualiza todas as entradas: voice = destino WHERE voice = vozAtual
-        const { error: e1 } = await sb.from('entries').update({ voice: destino }).eq('voice', vozAtual);
+        _vozCanon[chaveNome(destino)] = destino; // permite corrigir só a maiúscula/minúscula
+        const { error: e1 } = await sb.from('entries').update({ voice: destino }).ilike('voice', vozAtual.replace(/[%_\\]/g, m => '\\' + m));
         if (e1) throw e1;
 
         // Se for MERGE: junta avaliações e comentários também (transfere de vozAtual pra destino)
@@ -9346,12 +9401,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <span class="cr-aba-prog"><b>${somaR.feitos}/${somaR.total}</b> renderizados<span class="cr-bar"><i style="width:${pct(somaR.feitos,somaR.total)}%"></i></span></span>
         </button>
       </div>
-      <p class="cr-dica">${ehLanc ? 'Marque cada item como lançado quando for ao ar.' : 'Clique num item para abrir ou criar a linha de produção dele.'}</p>
+      <p class="cr-dica">${ehLanc ? 'Marque cada item como lançado quando for ao ar.' : 'Clique num item para abrir ou criar a linha de produção dele.'}${!ehLanc && isAdmin ? ` <button type="button" class="cr-add-link" id="crHistorico" title="Cria linhas já concluídas para o que foi produzido antes">📦 Linhas do que já foi feito</button>` : ''}</p>
       <div class="cr-lista">${semanasHtml}</div>`;
 
     $('#crPrev').addEventListener('click', () => { cronoMes = mesSomar(cronoMes,-1); renderCronograma(); });
     $('#crNext').addEventListener('click', () => { cronoMes = mesSomar(cronoMes, 1); renderCronograma(); });
     const h = $('#crHoje'); if (h) h.addEventListener('click', () => { cronoMes = mesAtualStr(); renderCronograma(); });
+    const hb = $('#crHistorico'); if (hb) hb.addEventListener('click', abrirHistoricoAno);
     cont.querySelectorAll('[data-cr-aba]').forEach(b => b.addEventListener('click', () => { cronoAba = b.dataset.crAba; renderCronograma(); }));
 
     // alternar status (Pendente ⇄ Lançado/Renderizado)
@@ -9455,6 +9511,112 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return m ? m[1] : null;
   }
   // Sugere nome/episódio/categoria da linha de produção a partir do item do cronograma
+  // ---------- Histórico: linhas já concluídas para o que foi produzido antes ----------
+  // Tudo marcado como feito, menos M&E e SRT (ficam sem marcar = não recebidos).
+  function pipeStepsConcluidos(kind, dataFim){
+    const st = pipeTemplate(kind === 'especial' ? 'video' : kind);
+    st.forEach(x => {
+      if (x.tipo === 'material'){
+        (x.itens||[]).forEach(i => { i.status = /m&e|srt|legenda/i.test(i.nome) ? 'pendente' : 'ok'; });
+        x.concluido = true; x.historico = true; if (dataFim) x.concluido_em = dataFim;
+      }
+      else if (x.tipo === 'checkpartes') x.feitos = [1];
+      else if (x.tipo === 'partes') x.feitosManual = [1];
+      else x.done = true;
+    });
+    return st;
+  }
+  function abrirHistoricoAno(){
+    const ano = String(new Date().getFullYear());
+    const IGNORAR = /ajust|cortar|clean|m[aá]scara|p[oó]s-?edi|marca d|separad|^\s*-+|add logo|intro\b/i;
+    const fimDoMes = m => { const [y, mm] = m.split('-').map(Number); return new Date(Date.UTC(y, mm, 0)).toISOString().slice(0,10); };
+    const itens = (metaCardsTodos||[]).filter(it => (it.mes||'').startsWith(ano) && it.done && !pipelineDoItem(it))
+      .sort((a,b) => (a.mes||'').localeCompare(b.mes||'') || (a.semana||0) - (b.semana||0))
+      .map(it => {
+        const sug = sugestaoDoItem(it);
+        const leg = ehItemLegenda(it);
+        const eps = epsDoTitulo(it.titulo);
+        const epTxt = eps ? eps.nums.join(', ') : (episodioDoTitulo(it.titulo) || '');
+        let projeto = leg ? (it.project || projetoParecido(it.titulo) || sug.nome) : sug.nome;
+        if (!it.project && !allProjectsList().includes(projeto)){
+          projeto = projeto.replace(/^\s*(audiobook|mini-?document[aá]rio|document[aá]rio|filme|desenho|legendad[oa]s?|legendas?(\s+do)?)\s*[-–:]\s*/i, '').replace(/^\s*document[aá]rios?\s*[-–:]\s*/i, '').replace(/[“”"]/g, '').trim();
+          if (sug.kind === 'audiobook') projeto = projeto.replace(/\s*\([^)]*\)\s*(-+.*)?$/, '').trim();
+        }
+        return { it, projeto, epTxt, kind: leg ? 'legenda' : sug.kind, categoria: leg ? 'Legenda' : sug.categoria, autor: sug.autor, marcado: !IGNORAR.test(it.titulo), data: fimDoMes(it.mes) };
+      });
+    // projetos com linha começando depois do Ep 1 → completar os anteriores
+    const lacunas = [];
+    const porProj = {};
+    pipelines.filter(pp => pp.kind !== 'legenda' && /^\d+$/.test(String(pp.episode||''))).forEach(pp => { (porProj[pp.project] = porProj[pp.project] || []).push(pp); });
+    Object.entries(porProj).forEach(([proj, lst]) => {
+      const nums = lst.map(epNum); const max = Math.max(...nums);
+      const falta = []; for (let n = 1; n < max; n++) if (!nums.includes(n)) falta.push(n);
+      if (falta.length) lacunas.push({ projeto: proj, falta, modelo: lst[0], marcado: true });
+    });
+    const projetosDl = [...new Set([...allProjectsList(), ...pipelines.map(x => x.project)])].sort((a,b) => a.localeCompare(b,'pt-BR'));
+    const ov = document.createElement('div');
+    ov.className = 'modal-overlay open'; ov.style.zIndex = '420';
+    ov.innerHTML = `
+      <div class="modal" style="max-width:860px;">
+        <p class="pl-eyebrow" style="margin:0;">📦 Histórico de ${ano}</p>
+        <h2 style="margin:2px 0 4px;">Criar linhas do que já foi feito</h2>
+        <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px;">As linhas entram <b>concluídas</b> (100%), com M&E e SRT <b>sem marcar</b> (não recebidos). Confira o nome do projeto — use o mesmo nome do projeto que já existe no app para juntar tudo. Itens de ajuste/corte vêm desmarcados.</p>
+        <datalist id="histProjs">${projetosDl.map(pr => `<option value="${escapeHtml(pr)}">`).join('')}</datalist>
+        ${lacunas.length ? `<div class="cr-ligado-sub" style="margin:0 0 6px;">Episódios/aulas anteriores que ainda não têm linha</div>
+          <div class="hist-lista">${lacunas.map((l, i) => `<label class="hist-row"><input type="checkbox" data-lac="${i}" checked>
+            <span class="hist-tit"><b>${escapeHtml(l.projeto)}</b> — ${rotuloEp(l.modelo)} ${l.falta.length > 1 ? `${l.falta[0]} a ${l.falta[l.falta.length-1]}` : l.falta[0]} <span style="color:var(--muted);">(${l.falta.length} linha${l.falta.length===1?'':'s'})</span></span></label>`).join('')}</div>` : ''}
+        <div class="cr-ligado-sub" style="margin:12px 0 6px;">Itens renderizados no cronograma de ${ano} sem linha (${itens.length})</div>
+        <div class="hist-lista" style="max-height:46vh;">${itens.map((x, i) => `<div class="hist-row">
+            <input type="checkbox" data-hi="${i}" ${x.marcado ? 'checked' : ''}>
+            <div class="hist-tit"><small>${mesNome(x.it.mes)} · ${escapeHtml(x.it.categoria||'')}</small><div>${escapeHtml(x.it.titulo)}</div></div>
+            <input type="text" list="histProjs" data-hp="${i}" value="${escapeHtml(x.projeto)}" placeholder="Projeto">
+            <input type="text" data-he="${i}" value="${escapeHtml(x.epTxt)}" placeholder="Eps (ex.: 1, 2)" style="max-width:110px;">
+          </div>`).join('') || '<p style="font-size:13px;color:var(--muted);">Nada pendente.</p>'}</div>
+        <div class="modal-actions">
+          <span id="histInfo" style="margin-right:auto;font-size:12.5px;color:var(--muted);"></span>
+          <button class="btn-ghost" id="histFechar">Cancelar</button>
+          <button class="btn-primary" id="histCriar">📦 Criar linhas concluídas</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    const fechar = () => ov.remove();
+    ov.querySelector('#histFechar').onclick = fechar;
+    ov.querySelector('#histCriar').onclick = async () => {
+      const btn = ov.querySelector('#histCriar'); btn.disabled = true; btn.textContent = 'Criando…';
+      const novos = []; const ligar = [];
+      const existe = (proj, ep, kind) => pipelines.concat(novos).some(pp => pp.project === proj && String(pp.episode||'') === String(ep||'') && (pp.kind === 'legenda') === (kind === 'legenda'));
+      const add = (proj, ep, kind, categoria, autor, data) => {
+        if (!proj || existe(proj, ep, kind)) return;
+        novos.push({ id:(crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(), project: proj, episode: ep ? String(ep) : null, kind, categoria: categoria || null, autor: autor || null, partes: 1, steps: pipeStepsConcluidos(kind, data), created_by: myProfile.display_name || myEmail || null });
+      };
+      itens.forEach((x, i) => {
+        if (!ov.querySelector(`[data-hi="${i}"]`).checked) return;
+        const proj = limparEspacos(ov.querySelector(`[data-hp="${i}"]`).value);
+        const eps = ov.querySelector(`[data-he="${i}"]`).value.split(/[,;e\s]+/).map(v => v.trim()).filter(v => /^\d+$/.test(v));
+        // categoria do projeto existente vence
+        const cat = (pipelines.find(pp => pp.project === proj && pp.kind !== 'legenda') || {}).categoria || x.categoria;
+        if (eps.length) eps.forEach(ep => add(proj, ep, x.kind, cat, x.autor, x.data)); else add(proj, null, x.kind, cat, x.autor, x.data);
+        if (proj) ligar.push({ id: x.it.id, proj });
+      });
+      lacunas.forEach((l, i) => {
+        if (!ov.querySelector(`[data-lac="${i}"]`).checked) return;
+        l.falta.forEach(n => add(l.projeto, n, l.modelo.kind, l.modelo.categoria, l.modelo.autor, `${Number(ano)-1}-12-31`));
+      });
+      if (!novos.length){ showToast('Nada novo para criar.'); btn.disabled = false; btn.textContent = '📦 Criar linhas concluídas'; return; }
+      try {
+        for (let k = 0; k < novos.length; k += 50){
+          const { error } = await sb.from('production_pipelines').insert(novos.slice(k, k + 50));
+          if (error) throw error;
+        }
+        pipelines.push(...novos);
+        for (const l of ligar){ try { await sb.from('meta_cards').update({ project: l.proj }).eq('id', l.id); const it = metaCardsTodos.find(m => m.id === l.id); if (it) it.project = l.proj; } catch(e){} }
+        fechar();
+        showToast(`📦 ${novos.length} linha${novos.length===1?'':'s'} concluída${novos.length===1?'':'s'} criada${novos.length===1?'':'s'}.`);
+        renderCronograma();
+      } catch(e){ showToast('❌ ' + (e.message || e)); btn.disabled = false; btn.textContent = '📦 Criar linhas concluídas'; }
+    };
+  }
+
   function sugestaoDoItem(it){
     const limpo = limparTituloCrono(it.titulo);
     const base = baseSerie(limpo);
@@ -9569,13 +9731,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             </div>` : `<div class="cr-vazio">Ainda sem linha de legenda.</div>`)
           : projPipes.length ? `<div class="cr-ligado">
               <div>🔗 Faz parte da produção de <b>${escapeHtml(projLig)}</b></div>
-              ${epsItem.length ? `<div class="cr-ligado-sub">Deste item${epsFaltando.length ? ` · <span style="color:var(--warn-ink,#E2B14F);">${epsFaltando.length} sem linha</span>` : ' · todos com linha ✓'}</div>
-              <div class="cr-ligado-eps">${epsItem.map(n => { const pp = pipesDoItem.find(x => epNum(x) === n); return pp
-                  ? `<button type="button" class="cr-ligado-ep" data-abrir-pipe="${pp.id}" title="Abrir">${rotEpItem} ${n} · ${pipeResumo(pp).pct}%</button>`
-                  : `<span class="cr-ligado-ep falta" title="Ainda sem linha de produção">${rotEpItem} ${n} · —</span>`; }).join('')}</div>` : ''}
               ${pipesDoItem.length && isAdmin ? `<button type="button" class="btn-ghost" id="crModalEditarEps" style="width:100%;justify-content:center;">✎ Editar ${pipesDoItem.length > 1 ? 'linhas de produção' : 'linha de produção'}${pipesDoItem.length > 1 ? ' — escolher episódio' : ''}</button>` : ''}
               ${faixaFaltando && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar a linha ${rotEpItem === 'Aula' ? 'da Aula' : 'do Ep'} ${escapeHtml(faixaFaltando)} em ${escapeHtml(projLig)}</button>` : ''}
-              ${outrosPipes.length ? `<div class="cr-ligado-sub">Outros episódios do projeto</div><div class="cr-ligado-eps">${outrosPipes.map(pp => `<button type="button" class="cr-ligado-ep outro" data-abrir-pipe="${pp.id}" title="Abrir">${escapeHtml(pp.episode ? rotuloEp(pp) + ' ' + pp.episode : 'Linha')} · ${pipeResumo(pp).pct}%</button>`).join('')}</div>` : ''}
+              ${!epsItem.length && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar nova linha em ${escapeHtml(projLig)}</button>` : ''}
               <button type="button" class="cr-ligado-editar" id="crModalFicha">📚 Painel de produção de ${escapeHtml(projLig)} (todos os episódios)</button>
             </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
@@ -9809,7 +9967,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const N = pipePartes(p);
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p)) return { feitos:0, total:1 };
     if (s.condicional === 'srt' && pipeSrtRecebido(p)) return { feitos:1, total:1 };
-    if (s.tipo === 'material'){ const t = (s.itens||[]).length || 1; return { feitos:(s.itens||[]).filter(i => i.status !== 'pendente').length, total:t }; }
+    if (s.tipo === 'material'){ const t = (s.itens||[]).length || 1; if (s.concluido) return { feitos:t, total:t }; return { feitos:(s.itens||[]).filter(i => i.status !== 'pendente').length, total:t }; }
     if (s.tipo === 'checkpartes') return { feitos: Math.min(N, (s.feitos||[]).filter(n => n <= N).length), total:N };
     if (s.tipo === 'vozes') return { feitos: (s.done || pipeVozesHerdadas(p)) ? 1 : 0, total:1 };
     if (s.tipo === 'voz_livro' || s.tipo === 'check') return { feitos: s.done ? 1 : 0, total:1 };
@@ -9820,6 +9978,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function pipeEtapaOk(p, s){ const g = pipeEtapaProg(p, s); return g.feitos >= g.total; }
   // quando a linha foi concluída (último done_at das tarefas ou última edição)
   function pipeDataConclusao(pp){
+    const hist = (pp.steps||[]).find(st => st.concluido_em);
+    if (hist) return hist.concluido_em;
     const ts = (pp.steps||[]).flatMap(st => [ ...Object.values(st.atrib||{}), st.taskId ]).map(pipeTask).filter(t => t && t.done_at).map(t => t.done_at);
     return [pp.updated_at, ...ts].filter(Boolean).sort().pop() || pp.created_at;
   }
@@ -9967,7 +10127,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p))
       return `<p class="pl-nota">⚠ Defina primeiro em quantas partes este ${p.episode ? 'episódio' : 'projeto'} foi dividido (no topo desta janela).</p>`;
     if (s.tipo === 'material'){
-      return `<div class="pl-mat">${(s.itens||[]).map((it, i) => `
+      return `<div class="pl-mat">${s.concluido ? `<p class="pl-nota">📦 Produção já feita (histórico). Itens sem marcar não foram recebidos.</p>` : ''}${(s.itens||[]).map((it, i) => `
         <div class="pl-mat-item st-${it.status}">
           <div class="pl-mat-linha">
             <span class="pl-row-nome">${escapeHtml(it.nome)}</span>
@@ -12515,19 +12675,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         ? `<div class="photo-fallback" data-photo-for="${c.personId}" data-name="${escapeHtml(c.person)}" data-voz="${escapeHtml(c.voice)}" data-abre-foto="1">${initials}</div>`
         : `<div class="photo-fallback" data-name="${escapeHtml(c.person)}" data-voz="${escapeHtml(c.voice)}" data-abre-foto="1">${initials}</div>`;
       return `
-        <div class="voice-card coadj-card" data-id="${c.personId}">
+        <div class="voice-card vc-clean coadj-card" data-id="${c.personId}">
           <div class="card-top">
             ${photo}
             <div class="card-name-block">
-              <p class="eyebrow">Coadjuvante</p>
               <h3 class="card-name">${escapeHtml(c.person)}</h3>
+              ${c.voice ? `<div class="vc-voz">${escapeHtml(c.voice)}</div>` : ''}
             </div>
           </div>
-          <div class="voice-summary"><b>${escapeHtml(c.voice)}</b></div>
           ${isAdmin?`
-          <div class="coadj-acoes">
-            <button type="button" class="coadj-btn coadj-editar" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">✎ Editar ficha</button>
-            <button type="button" class="coadj-btn coadj-tirar" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}">↩ Tirar</button>
+          <div class="card-actions" data-role="actions">
+            <button type="button" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">Editar</button>
+            <button type="button" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Volta para a lista principal de dublagem">Tirar de coadjuvante</button>
           </div>`:''}
         </div>`;
     }).join('');
@@ -12577,7 +12736,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           titulo: 'Tirar de coadjuvante?',
           mensagem: `<b style="color:var(--ink);">"${escapeHtml(nome)}"</b><br><span style="font-size:12px;">Volta pra lista principal de dublagem de "${escapeHtml(base)}".</span>`,
           textoBotao: '↩ Sim, tirar de coadjuvante',
-          corBotao: '#7C3AED',
+          corBotao: 'var(--blue-deep)',
           icone: '↩'
         });
         if (!ok) return;
