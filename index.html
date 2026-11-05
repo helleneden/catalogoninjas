@@ -2742,6 +2742,8 @@
   .np-modo small{ font-size:11px; color:var(--muted); }
   #npDeBox[hidden], #npAteBox[hidden]{ display:none; }
   .pl-data{ width:138px; padding:5px 8px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; flex:0 0 auto; }
+  .pl-leitura{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); background:var(--surface-soft); border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:-4px 0 12px; }
+  .pl-leitura button{ margin-left:auto; border:1px solid var(--blue); background:var(--blue); color:#fff; border-radius:8px; padding:6px 14px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-lote{ font-size:12px; color:var(--blue-ink); background:rgba(74,155,224,.10); border-radius:9px; padding:7px 10px; margin:-4px 0 12px; }
   .rp-chips{ display:flex; flex-wrap:wrap; gap:6px; }
   .rp-chip{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface-soft); border-radius:9px; padding:6px 10px; font-size:13px; text-transform:none !important; letter-spacing:0 !important; color:var(--ink) !important; cursor:pointer; margin:0 !important; }
@@ -2784,6 +2786,11 @@
   .vc-clean .card-actions{ border-top:none; padding-top:0; opacity:0; transition:opacity .15s; }
   .vc-clean:hover .card-actions, .vc-clean:focus-within .card-actions{ opacity:1; }
   @media (hover:none){ .vc-clean .card-actions{ opacity:1; } }
+  .fr-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 16px; }
+  .fr-secao{ margin-bottom:22px; }
+  .fr-secao-tit{ display:flex; align-items:baseline; gap:10px; margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }
+  .fr-secao-tit span{ font-family:var(--font-brand); font-weight:600; font-size:19px; }
+  .fr-secao-tit small{ font-size:12px; color:var(--muted); }
   .tipo-chips-label{ font-size:12px; font-weight:700; color:var(--muted); margin-right:2px; }
   .tipo-chip{
     border:1px solid var(--line); background:transparent; color:var(--muted);
@@ -7711,24 +7718,42 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const pessoas = mainPeople()
       .filter(p => p.entries.some(e => projs.includes((e.project||'').toLowerCase())))
       .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'));
-    const cards2 = pessoas.map(p => {
-      const relevant = p.entries.filter(e => projs.includes((e.project||'').toLowerCase()));
+    // Cards agrupados por projeto (ex.: cada temporada da série separada)
+    const cardDe = (p, projL) => {
+      const relevant = p.entries.filter(e => (e.project||'').toLowerCase() === projL);
       const counts = {}; relevant.forEach(e=>counts[e.voice]=(counts[e.voice]||0)+1);
       const distinct = Object.keys(counts).length;
-      const initials = p.name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      const nomeLimpo = p.name.replace(/\s*\([^)]*\)\s*$/,'') || p.name;
+      const initials = nomeLimpo.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
       const photo = p.hasPhoto
         ? `<div class="photo-fallback" data-photo-for="${p.id}" data-name="${escapeHtml(p.name)}">${initials}</div>`
         : `<div class="photo-fallback">${initials}</div>`;
       const voz = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0] || '';
       return `
-        <div class="voice-card" data-id="${p.id}">
+        <div class="voice-card vc-clean" data-id="${p.id}">
           <div class="card-top">${photo}
-            <div class="card-name-block"><p class="eyebrow">Personagem</p><h3 class="card-name">${escapeHtml(p.name)}</h3></div>
+            <div class="card-name-block"><h3 class="card-name">${escapeHtml(nomeLimpo)}</h3><div class="vc-voz">${escapeHtml(voz)}</div></div>
           </div>
-          <div class="badges">${distinct>1?'<span class="badge warn">⚑ voz trocada</span>':'<span class="badge ok">✓ voz única</span>'}</div>
-          <div class="voice-summary"><b>${escapeHtml(voz)}</b></div>
+          ${distinct>1?'<div class="vc-meta"><span class="vc-warn">voz trocada</span></div>':''}
         </div>`;
+    };
+    const projsOrdenados = projsOriginais.slice().sort((a,b)=>a.localeCompare(b,'pt-BR',{numeric:true}));
+    const selProj = (window.__frProjSel||{})[frId] || 'todos';
+    const visiveis = selProj === 'todos' ? projsOrdenados : projsOrdenados.filter(p => p === selProj);
+    const secoes = visiveis.map(pr => {
+      const prL = pr.toLowerCase();
+      const ps = pessoas.filter(p => p.entries.some(e => (e.project||'').toLowerCase() === prL));
+      if (!ps.length) return '';
+      return `<section class="fr-secao">
+        <div class="fr-secao-tit"><span>${escapeHtml(pr)}</span><small>${ps.length} voz${ps.length===1?'':'es'}</small></div>
+        <div class="card-grid">${ps.map(p => cardDe(p, prL)).join('')}</div>
+      </section>`;
     }).join('');
+    const chipsProj = projsOrdenados.length > 1 ? `<div class="fr-chips">
+        <button type="button" class="tipo-chip${selProj==='todos'?' on':''}" data-frsel="todos">Todas</button>
+        ${projsOrdenados.map(pr => `<button type="button" class="tipo-chip${selProj===pr?' on':''}" data-frsel="${escapeHtml(pr)}">${escapeHtml(pr)}</button>`).join('')}
+      </div>` : '';
+    const cards2 = secoes;
 
     // Lista "Projetos desta franquia" com botão excluir por projeto — útil quando
     // a franquia agrupa vários projetos (senão o card da franquia já resolve).
@@ -7747,8 +7772,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 
     colecoesContent.innerHTML = `${breadcrumb}
       ${listaProjetos}
-      ${pessoas.length? `<div class="card-grid">${cards2}</div>`
+      ${pessoas.length? `${chipsProj}${cards2}`
         : `<div class="empty-state"><h2>Sem pessoas ainda</h2><p>Vincule projetos a esta franquia no botão ✎ da franquia.</p></div>`}`;
+    colecoesContent.querySelectorAll('[data-frsel]').forEach(b => b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.__frProjSel = window.__frProjSel || {};
+      window.__frProjSel[frId] = b.dataset.frsel;
+      renderColecoes();
+    }));
+    colecoesContent.querySelectorAll('.fr-projeto-nome').forEach(n => { n.style.cursor = 'pointer'; n.title = 'Ver só as vozes deste projeto'; n.addEventListener('click', (e) => {
+      e.stopPropagation();
+      window.__frProjSel = window.__frProjSel || {};
+      window.__frProjSel[frId] = n.textContent.trim();
+      renderColecoes();
+    }); });
     hydratePhotos();
 
     // Handler: excluir um projeto direto da lista (abre escolha Arquivar/Excluir)
@@ -9193,7 +9230,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (tab === 'meta_cards') loadMetaCards();
     }));
     // abrir detalhes
-    cont.querySelectorAll('[data-cr-abrir]').forEach(row => row.addEventListener('click', () => abrirItemCronograma(row.dataset.crAbrir, row.dataset.id)));
+    cont.querySelectorAll('[data-cr-abrir]').forEach(row => row.addEventListener('click', () => {
+      const tab = row.dataset.crAbrir, id = row.dataset.id;
+      const it = (tab === 'app_releases' ? lancamentos : metaCardsTodos).find(x => x.id === id);
+      const pp = it ? pipelineDoItem(it) : null;
+      if (pp){ pipeOrigemItem = { tabela: tab, id }; abrirPipeline(pp.id, true); }
+      else abrirItemCronograma(tab, id);
+    }));
     // adicionar
     cont.querySelectorAll('[data-cr-novo]').forEach(link => link.addEventListener('click', () => {
       const box = link.nextElementSibling; link.hidden = true; box.hidden = false; box.querySelector('input').focus();
@@ -9255,11 +9298,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   // A linha de produção ligada ao item (pelo projeto + episódio)
   function pipelineDoItem(it){
-    const proj = it.project; if (!proj) return null;
+    let proj = it.project;
+    if (!proj){
+      // sem ligação: procura pelo nome-base (ex.: "Trilha Selvagem Ep. 8" → projeto "Trilha Selvagem")
+      const base = baseSerie(limparTituloCrono(it.titulo));
+      const cand = base ? pipelines.find(p => baseSerie(p.project) === base) : null;
+      if (!cand) return null;
+      proj = cand.project;
+    }
     const doProj = pipelines.filter(p => p.project === proj);
     if (!doProj.length) return null;
     const ep = episodioDoTitulo(it.titulo);
-    return doProj.find(p => (p.episode||null) === (ep||null)) || (doProj.length === 1 ? doProj[0] : null);
+    const normEp = e => String(e||'').replace(/\b0+(\d)/g,'$1').replace(/\s+/g,' ').trim().toLowerCase();
+    if (ep) return doProj.find(p => normEp(p.episode) === normEp(ep)) || null;   // tem episódio: só o mesmo episódio
+    return doProj.find(p => !p.episode) || (doProj.length === 1 ? doProj[0] : null);
   }
   // "Esse projeto é a sequência da franquia X da coleção Y?"
   function sugestaoFranquia(nome){
@@ -9314,12 +9366,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
         </div>
 
-        ${isAdmin && !pipe && pipelines.length ? `<details class="cr-ligar-existente">
-          <summary>Já existe uma linha de produção para ele? Ligar a ela</summary>
+        ${isAdmin && !pipe ? `<details class="cr-ligar-existente" ${it.project ? 'open' : ''}>
+          <summary>${it.project ? `Ligado ao projeto <b>${escapeHtml(it.project)}</b> — trocar` : 'Esse projeto já existe no app? Ligar a ele'}</summary>
           <select id="crModalPipeSel" style="width:100%;margin-top:8px;padding:9px 11px;border:1.5px solid var(--line);border-radius:10px;font-size:13px;">
-            <option value="">— Escolha —</option>
-            ${pipelines.slice().sort((x,y) => pipeNome(x).localeCompare(pipeNome(y),'pt-BR')).map(pp => `<option value="${pp.id}">${escapeHtml(pipeNome(pp))}</option>`).join('')}
+            <option value="">— Escolha o projeto —</option>
+            ${pipelines.length ? `<optgroup label="Com linha de produção">${pipelines.slice().sort((x,y) => pipeNome(x).localeCompare(pipeNome(y),'pt-BR')).map(pp => `<option value="pipe:${pp.id}">🏭 ${escapeHtml(pipeNome(pp))}</option>`).join('')}</optgroup>` : ''}
+            <optgroup label="Projetos do app">${allProjectsList().map(pr => `<option value="proj:${escapeHtml(pr)}" ${pr===it.project?'selected':''}>${escapeHtml(pr)}</option>`).join('')}</optgroup>
           </select>
+          <p style="font-size:11.5px;margin:6px 0 0;">Ligando a um projeto sem linha, o botão acima cria a linha já com esse projeto.</p>
         </details>` : ''}
 
         <div class="modal-actions">
@@ -9357,8 +9411,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
     const ps = ov.querySelector('#crModalPipeSel');
     if (ps) ps.addEventListener('change', async () => {
-      const pp = pipelines.find(x => x.id === ps.value); if (!pp) return;
-      if (await salvarLigacao(pp.project)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); showToast(`🔗 Ligado a ${pipeNome(pp)}`); }
+      const v = ps.value; if (!v) return;
+      let projeto, rotulo;
+      if (v.startsWith('pipe:')){ const pp = pipelines.find(x => x.id === v.slice(5)); if (!pp) return; projeto = pp.project; rotulo = pipeNome(pp); }
+      else { projeto = v.slice(5); rotulo = projeto; }
+      if (await salvarLigacao(projeto)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); showToast(`🔗 Ligado a ${rotulo}`); }
     });
     const dl = ov.querySelector('#crModalDesligar');
     if (dl) dl.addEventListener('click', async () => { if (await salvarLigacao(null)){ fechar(); renderCronograma(); abrirItemCronograma(tabela, id); } });
@@ -9409,6 +9466,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let pipelines = [];
   let pipelinesOk = true;
   let pipeAberto = null;      // id do pipeline aberto na janela
+  let pipeSoLeitura = false;  // aberta só para ver (botão "Editar linha" libera)
+  let pipeOrigemItem = null;  // {tabela,id} quando aberta a partir do cronograma
+  function pipeAdm(){ return isAdmin && !pipeSoLeitura; }
   const pipeEtapaAberta = {}; // pipeId -> key da etapa expandida
 
   async function loadPipelines(){
@@ -9563,11 +9623,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const taskId = s.tipo === 'partes' ? (s.atrib||{})[parte] : s.taskId;
     const t = pipeTask(taskId);
     const feito = t ? t.done : (s.tipo === 'partes' ? (s.feitosManual||[]).includes(parte) : !!s.done);
-    const podeMarcar = isAdmin || (t && t.assignee_user_id === myUserId);
+    const podeMarcar = pipeAdm() || (t && t.assignee_user_id === myUserId);
     return `<div class="pl-row${feito?' ok':''}">
       <button type="button" class="pl-check${feito?' on':''}" data-pl-done="${s.key}" data-parte="${parte||''}" ${podeMarcar?'':'disabled'} title="${feito?'Feito':'Marcar como feito'}">${feito?'✓':''}</button>
       <span class="pl-row-nome">${parte ? 'Parte ' + parte : 'Responsável'}</span>
-      ${isAdmin ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>
+      ${pipeAdm() ? `<select class="pl-sel" data-pl-atrib="${s.key}" data-parte="${parte||''}">${membrosOptions(t ? t.assignee_user_id : '')}</select>
           <input type="date" class="pl-data" data-pl-prazo="${s.key}" data-parte="${parte||''}" value="${t && t.due_date ? t.due_date : ''}" title="Prazo (vai para a agenda de quem fizer)">`
         : `<span class="pl-quem">${t ? escapeHtml(t.assignee_name || '') : '—'}${t && t.due_date ? ` · até ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}` : ''}</span>`}
     </div>`;
@@ -9582,19 +9642,19 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="pl-mat-linha">
             <span class="pl-row-nome">${escapeHtml(it.nome)}</span>
             <div class="pl-seg">
-              <button type="button" class="${it.status==='ok'?'on ok':''}" data-pl-mat="${i}" data-st="ok" ${isAdmin?'':'disabled'}>✓ Recebido</button>
-              <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${isAdmin?'':'disabled'}>⚠ Faltando</button>
+              <button type="button" class="${it.status==='ok'?'on ok':''}" data-pl-mat="${i}" data-st="ok" ${pipeAdm()?'':'disabled'}>✓ Recebido</button>
+              <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${pipeAdm()?'':'disabled'}>⚠ Faltando</button>
             </div>
           </div>
-          ${it.status === 'faltando' ? `<input type="text" class="pl-obs" data-pl-obs="${i}" placeholder="O que aconteceu? (fica registrado no projeto)" value="${escapeHtml(it.obs||'')}" ${isAdmin?'':'disabled'}>` : ''}
+          ${it.status === 'faltando' ? `<input type="text" class="pl-obs" data-pl-obs="${i}" placeholder="O que aconteceu? (fica registrado no projeto)" value="${escapeHtml(it.obs||'')}" ${pipeAdm()?'':'disabled'}>` : ''}
         </div>`).join('')}
-        ${isAdmin ? `<div class="pl-add"><input type="text" id="plMatNovo" placeholder="Outro arquivo (ex.: roteiro, música)…"><button type="button" id="plMatAdd">+</button></div>` : ''}
+        ${pipeAdm() ? `<div class="pl-add"><input type="text" id="plMatNovo" placeholder="Outro arquivo (ex.: roteiro, música)…"><button type="button" id="plMatAdd">+</button></div>` : ''}
       </div>`;
     }
     if (s.tipo === 'checkpartes'){
       return `<p class="pl-nota">Marque cada parte já cortada e subida no Eleven.</p><div class="pl-partes-chk">${Array.from({length:N}, (_, i) => i+1).map(n => {
         const ok = (s.feitos||[]).includes(n);
-        return `<button type="button" class="pl-chip${ok?' on':''}" data-pl-subiu="${n}" ${isAdmin?'':'disabled'}>${ok?'✓ ':''}Parte ${n}</button>`;
+        return `<button type="button" class="pl-chip${ok?' on':''}" data-pl-subiu="${n}" ${pipeAdm()?'':'disabled'}>${ok?'✓ ':''}Parte ${n}</button>`;
       }).join('')}</div>`;
     }
     if (s.tipo === 'vozes'){
@@ -9603,7 +9663,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         ${her && !s.done ? `<p class="pl-nota">✓ As vozes desta série já foram escolhidas${her.episode ? ` no Ep ${escapeHtml(her.episode)}` : ''}. Só adicione novas se aparecer alguém diferente.</p>` : `<p class="pl-nota">Escolha as vozes nas fichas do projeto (ordem de dublagem).</p>`}
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button type="button" class="btn-ghost" id="plAbrirFichas" style="font-size:13px;padding:8px 14px;">🎭 ${her ? 'Adicionar vozes' : 'Abrir fichas e vozes do projeto'}</button>
-          ${isAdmin && !her ? `<button type="button" class="${s.done?'btn-ghost':'btn-primary'}" id="plVozesOk" style="font-size:13px;padding:8px 14px;">${s.done?'↺ Reabrir escolha':'✓ Vozes definidas'}</button>` : ''}
+          ${pipeAdm() && !her ? `<button type="button" class="${s.done?'btn-ghost':'btn-primary'}" id="plVozesOk" style="font-size:13px;padding:8px 14px;">${s.done?'↺ Reabrir escolha':'✓ Vozes definidas'}</button>` : ''}
         </div>
       </div>`;
     }
@@ -9615,21 +9675,22 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         ${vozSug ? `<p class="pl-nota">💡 Outros livros de <b>${escapeHtml(p.autor)}</b> usaram a voz <b>${escapeHtml(vozSug)}</b> (${escapeHtml(sug[0].title)}). Use a mesma para manter o padrão.</p>`
           : p.autor ? `<p class="pl-nota">Nenhum outro livro de ${escapeHtml(p.autor)} no app ainda.</p>` : `<p class="pl-nota">Informe o autor para o app sugerir a mesma voz dos outros livros dele.</p>`}
         <div class="pl-add">
-          <input type="text" id="plVozLivro" placeholder="Voz escolhida…" value="${escapeHtml(s.voz||'')}" ${isAdmin?'':'disabled'}>
-          ${vozSug && isAdmin ? `<button type="button" id="plVozUsar" data-voz="${escapeHtml(vozSug)}" class="pl-btn-sec">Usar ${escapeHtml(vozSug)}</button>` : ''}
-          ${isAdmin ? `<button type="button" id="plVozSalvar">${s.done?'Salvar':'✓ Definir'}</button>` : ''}
+          <input type="text" id="plVozLivro" placeholder="Voz escolhida…" value="${escapeHtml(s.voz||'')}" ${pipeAdm()?'':'disabled'}>
+          ${vozSug && pipeAdm() ? `<button type="button" id="plVozUsar" data-voz="${escapeHtml(vozSug)}" class="pl-btn-sec">Usar ${escapeHtml(vozSug)}</button>` : ''}
+          ${pipeAdm() ? `<button type="button" id="plVozSalvar">${s.done?'Salvar':'✓ Definir'}</button>` : ''}
         </div>
       </div>`;
     }
     if (s.tipo === 'partes') return `<div class="pl-rows">${Array.from({length:N}, (_, i) => pipeLinhaPessoa(p, s, i+1)).join('')}</div>`;
     if (s.tipo === 'unica') return `<div class="pl-rows">${pipeLinhaPessoa(p, s, null)}</div>`;
     if (s.tipo === 'check') return `<div class="pl-rows"><div class="pl-row${s.done?' ok':''}">
-        <button type="button" class="pl-check${s.done?' on':''}" data-pl-done="${s.key}" data-parte="" ${isAdmin?'':'disabled'}>${s.done?'✓':''}</button>
+        <button type="button" class="pl-check${s.done?' on':''}" data-pl-done="${s.key}" data-parte="" ${pipeAdm()?'':'disabled'}>${s.done?'✓':''}</button>
         <span class="pl-row-nome">${s.done ? 'Feito' : 'Marcar como feito'}</span></div></div>`;
     return '';
   }
 
-  function abrirPipeline(id){
+  function abrirPipeline(id, leitura){
+    if (arguments.length > 1) pipeSoLeitura = !!leitura;
     const p = pipelines.find(x => x.id === id); if (!p) return;
     pipeAberto = id;
     let ov = document.getElementById('pipeOverlay');
@@ -9650,7 +9711,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <span class="pl-etapa-info">${quem.length ? escapeHtml(quem.join(', ')) + ' · ' : ''}${g.total > 1 ? `${g.feitos}/${g.total}` : (ok ? 'feito' : atual ? 'agora' : '')}</span>
         </button>
         ${aberto ? `<div class="pl-etapa-corpo">${pipeCorpoEtapa(p, s)}
-          ${isAdmin ? `<div class="pl-etapa-edit">
+          ${pipeAdm() ? `<div class="pl-etapa-edit">
             <button type="button" data-pl-mover="${s.key}" data-dir="-1" ${i===0?'disabled':''} title="Subir">↑</button>
             <button type="button" data-pl-mover="${s.key}" data-dir="1" ${i===(p.steps||[]).length-1?'disabled':''} title="Descer">↓</button>
             <button type="button" data-pl-renomear="${s.key}">✎ Renomear</button>
@@ -9669,13 +9730,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="pl-pct"><b>${r.pct}%</b><span>${r.feitas}/${r.total} etapas</span></div>
         </div>
         <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
+        ${pipeSoLeitura ? `<div class="pl-leitura">👁 Esta linha de produção já existe — você está só visualizando.${isAdmin ? ` <button type="button" id="plEditar">✎ Editar linha</button>` : ''}</div>` : ''}
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote">Episódio ${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length} deste lote · ao fechar, você escolhe se repete as informações nos próximos.</div>` : ''}
         ${r.faltando.length ? `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> faltou ${r.faltando.map(escapeHtml).join(', ')}</div>` : ''}
-        ${temPartes && isAdmin ? (pipePartesOk(p)
+        ${temPartes && pipeAdm() ? (pipePartesOk(p)
           ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>`
           : `<div class="pl-partes-ctrl pl-partes-def">⚠ Partes a definir: <input type="number" id="plPartesDef" min="1" max="40" placeholder="Qtd."><button type="button" id="plPartesDefOk" class="ok">Definir</button></div>`) : ''}
         <div class="pl-etapas">${etapas}</div>
-        ${isAdmin ? `<div class="pl-nova-etapa">
+        ${pipeAdm() ? `<div class="pl-nova-etapa">
           <button type="button" class="pl-add-etapa-btn" id="plAddEtapaBtn">+ Adicionar etapa</button>
           <div class="pl-add-etapa" id="plAddEtapaForm" hidden>
             <input type="text" id="plNovaNome" placeholder="Nome da etapa (ex.: Mixagem, Legendagem…)">
@@ -9692,14 +9754,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         </div>` : ''}
         <div class="modal-actions">
-          ${isAdmin ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
-          ${isAdmin && pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plRepetir">📋 Repetir em outros episódios</button>` : ''}
+          ${pipeAdm() ? `<button class="btn-danger-ghost" id="plExcluir" style="margin-right:auto;">🗑️ Excluir linha</button>` : ''}
+          ${pipeOrigemItem ? `<button class="btn-ghost" id="plItemCrono" style="margin-right:auto;">📅 Item do cronograma</button>` : ''}
+          ${pipeAdm() && pipelines.some(o => o.id !== p.id && o.project === p.project) ? `<button class="btn-ghost" id="plRepetir">📋 Repetir em outros episódios</button>` : ''}
           ${p.kind !== 'audiobook' ? `<button class="btn-ghost" id="plFichas">🎭 Fichas do projeto</button>` : ''}
           <button class="btn-primary" id="plFechar">Fechar</button>
         </div>
       </div>`;
     ov.classList.add('open');
-    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); };
+    const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
+    const ed = ov.querySelector('#plEditar'); if (ed) ed.onclick = () => { pipeSoLeitura = false; abrirPipeline(p.id); };
+    const oi = ov.querySelector('#plItemCrono'); if (oi) oi.onclick = () => { const o = pipeOrigemItem; ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; abrirItemCronograma(o.tabela, o.id); };
     ov.querySelector('#plFechar').onclick = fechar;
     fecharAoClicarFora(ov, fechar);
     const reabrir = () => abrirPipeline(p.id);
