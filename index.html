@@ -2967,11 +2967,23 @@
   .prod-topo{ margin:4px 0 18px; }
   .prod-topo-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .prod-topo h1{ margin:0; font-family:var(--font-head); font-size:24px; font-weight:800; letter-spacing:-.3px; }
-  .prod-topo-acoes{ display:flex; gap:8px; }
-  .prod-topo-btn{ background:none; border:1px solid var(--line-strong); color:var(--ink); border-radius:10px; padding:7px 14px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .prod-topo-acoes{ display:flex; gap:6px; align-items:center; }
+  .prod-topo-btn{ display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 14px; border-radius:10px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; transition:filter .15s, border-color .15s, background .15s; background:var(--surface); border:1px solid var(--line-strong); color:var(--ink); }
   .prod-topo-btn:hover{ border-color:var(--blue); }
-  .prod-topo-btn span{ background:var(--surface-soft); border-radius:999px; padding:0 7px; font-size:11px; margin-left:2px; color:var(--muted); }
+  .prod-topo-btn .ic{ font-size:14px; line-height:1; }
+  .prod-topo-btn .qtd{ background:rgba(239,68,68,.16); color:#FCA5A5; border-radius:999px; padding:0 7px; font-size:11px; line-height:17px; }
   .prod-topo-btn.primario{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .prod-topo-btn.primario:hover{ filter:brightness(1.08); }
+  .prod-topo-btn .mais{ font-size:16px; font-weight:600; line-height:1; }
+  @media (max-width:520px){ .prod-topo-btn .rot{ display:none; } .prod-topo-btn{ padding:0 10px; } }
+  .prod-kpis{ display:flex; flex-wrap:wrap; gap:6px 28px; margin-top:10px; }
+  .prod-kpi{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .prod-kpi-rot{ font-size:11px; color:var(--muted); }
+  .prod-kpi-num{ font-size:16px; font-weight:700; color:var(--ink); line-height:1.2; }
+  .prod-kpi-num small{ font-size:12px; font-weight:500; color:var(--muted); }
+  .prod-kpi.destaque .prod-kpi-num{ color:var(--blue-deep); }
+  .prod-kpi-barra{ display:block; width:90px; height:2px; border-radius:2px; background:var(--line); overflow:hidden; margin-top:3px; }
+  .prod-kpi-barra i{ display:block; height:100%; background:var(--blue); border-radius:2px; }
   .prod-topo-stats{ display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; font-size:13px; color:var(--muted); }
   .prod-topo-stats b{ color:var(--ink); font-weight:700; }
   .prod-topo-stats .mut{ opacity:.7; }
@@ -9608,7 +9620,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06l';
+  const APP_VERSAO = '2026-11-06p';
   async function conferirVersaoNova(){
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
@@ -16736,16 +16748,30 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="prod-topo-linha">
           <h1>Produção</h1>
           <div class="prod-topo-acoes">
-            <button id="abrirMuralBtn" class="prod-topo-btn">📌 Mural${muralFiles.length ? ` <span>${muralFiles.length}</span>` : ''}</button>
-            ${isAdmin ? `<button id="novaLinhaBtn" class="prod-topo-btn primario">+ Nova linha</button>` : ''}
+            <button id="abrirMuralBtn" class="prod-topo-btn" title="Mural da equipe"><span class="ic">📌</span><span class="rot">Mural</span>${muralFiles.length ? ` <span class="qtd">${muralFiles.length}</span>` : ''}</button>
+            ${isAdmin ? `<button id="novaLinhaBtn" class="prod-topo-btn primario" title="Criar uma linha de produção"><span class="mais">+</span><span class="rot">Nova linha</span></button>` : ''}
           </div>
         </div>
-        <div class="prod-topo-stats">
-          <span><b>${minhas}</b> suas pendentes</span>
-          <span><b>${feitasMes}</b> concluídas no mês</span>
-          <span>meta do mês <b>${meta.pct}%</b></span>
-          <span><b>${projConcluidosMes}</b>/${projConcluidosMes + projAndamento} projetos concluídos</span>
-          <span class="mut">${total} missões no total</span>
+        <div class="prod-kpis">
+          ${(() => { const totP = projConcluidosMes + projAndamento; const pctP = totP ? Math.round(projConcluidosMes / totP * 100) : 0;
+            return `<div class="prod-kpi destaque">
+              <span class="prod-kpi-rot">Projetos concluídos no mês</span>
+              <span class="prod-kpi-num">${projConcluidosMes}<small>/${totP}</small></span>
+              <span class="prod-kpi-barra"><i style="width:${pctP}%"></i></span>
+            </div>`; })()}
+          <div class="prod-kpi destaque">
+            <span class="prod-kpi-rot">Meta do mês</span>
+            <span class="prod-kpi-num">${meta.pct}<small>%</small></span>
+            <span class="prod-kpi-barra"><i style="width:${Math.min(100, meta.pct)}%"></i></span>
+          </div>
+          <div class="prod-kpi">
+            <span class="prod-kpi-rot">Suas pendentes</span>
+            <span class="prod-kpi-num">${minhas}</span>
+          </div>
+          <div class="prod-kpi">
+            <span class="prod-kpi-rot">Tarefas concluídas no mês</span>
+            <span class="prod-kpi-num">${feitasMes}<small> de ${total}</small></span>
+          </div>
         </div>
       </div>
 
