@@ -264,7 +264,10 @@
   }
   .home-greeting h1{ font-family:var(--font-head); font-size:24px; font-weight:800; position:relative; z-index:1; }
   .home-greet-tasks{ position:relative; z-index:1; }
-  .home-verso{ position:relative; z-index:1; margin-top:18px; padding-top:16px; border-top:1px solid rgba(255,255,255,.12); }
+  .home-verso{ position:relative; z-index:1; margin:14px 0 0; font-family:var(--font-brand); font-style:italic; font-size:16px; line-height:1.5; color:rgba(255,255,255,.82); }
+  .home-verso span{ font-family:var(--font-body); font-style:normal; font-size:12px; color:rgba(255,255,255,.5); white-space:nowrap; }
+  :root[data-theme="light"] .home-verso{ color:var(--muted); }
+  :root[data-theme="light"] .home-verso span{ color:var(--muted); opacity:.8; }
   .home-verso-txt{ margin:0; font-family:var(--font-brand); font-size:clamp(19px,2.2vw,24px); font-weight:500; font-style:italic; line-height:1.4; color:#fff; }
   .home-verso-ref{ margin:6px 0 0; font-size:12.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--blue-ink); opacity:.9; }
   :root[data-theme="light"] .home-verso-txt{ color:var(--ink); }
@@ -2936,6 +2939,17 @@
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pl-rod{ white-space:nowrap; }
+  .prod-topo{ margin:4px 0 18px; }
+  .prod-topo-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .prod-topo h1{ margin:0; font-family:var(--font-head); font-size:24px; font-weight:800; letter-spacing:-.3px; }
+  .prod-topo-acoes{ display:flex; gap:8px; }
+  .prod-topo-btn{ background:none; border:1px solid var(--line-strong); color:var(--ink); border-radius:10px; padding:7px 14px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+  .prod-topo-btn:hover{ border-color:var(--blue); }
+  .prod-topo-btn span{ background:var(--surface-soft); border-radius:999px; padding:0 7px; font-size:11px; margin-left:2px; color:var(--muted); }
+  .prod-topo-btn.primario{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .prod-topo-stats{ display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; font-size:13px; color:var(--muted); }
+  .prod-topo-stats b{ color:var(--ink); font-weight:700; }
+  .prod-topo-stats .mut{ opacity:.7; }
   .pl-voz-ok{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--n100-bg); border:1px solid var(--n100-bd); color:var(--n100-tx); border-radius:10px; padding:9px 12px; font-size:13.5px; }
   .pl-voz-ok b{ color:var(--ink); }
   .rp-passos{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
@@ -4952,16 +4966,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
     // Home: fichas / vozes / projetos · Todas as fichas: só "voz trocada" · demais abas: nada
     const view = (typeof currentView !== 'undefined') ? currentView : 'home';
-    if (view === 'home'){
-      statPlates.style.display = '';
-      statPlates.innerHTML = `
-        <div class="pill" data-stat="fichas" title="Ver todas as fichas"><strong>${totalFichas}</strong><span>fichas</span></div>
-        <div class="pill green" data-stat="vozes" title="Ver ranking de vozes"><strong>${voiceSet.size}</strong><span>vozes</span></div>
-        <div class="pill" data-stat="projetos" title="Ir para a lista de projetos"><strong>${projectSet.size}</strong><span>projetos</span></div>`;
-    } else if (view === 'fichas'){
+    if (view === 'fichas'){
       statPlates.style.display = '';
       const ativo = inconsistentToggle.checked;
       statPlates.innerHTML = `
+        <div class="pill" title="Fichas cadastradas"><strong>${totalFichas}</strong><span>fichas</span></div>
+        <div class="pill green" data-stat="vozes" title="Ver ranking de vozes"><strong>${voiceSet.size}</strong><span>vozes</span></div>
+        <div class="pill" data-stat="projetos" title="Ir para a lista de projetos"><strong>${projectSet.size}</strong><span>projetos</span></div>
         <div class="pill alert${ativo?' on':''}" data-stat="trocadas" title="${ativo?'Mostrar todas as fichas':'Filtrar só vozes trocadas'}"><strong>${inconsistentCount}</strong><span>voz trocada</span></div>`;
     } else {
       statPlates.style.display = 'none';
@@ -9535,7 +9546,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06d';
+  const APP_VERSAO = '2026-11-06f';
   async function conferirVersaoNova(){
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
@@ -11971,7 +11982,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           </div>
         </div>
         ${(() => { const hoje = new Date(); const dia = Math.floor((hoje - new Date(hoje.getFullYear(), 0, 0)) / 86400000); const v = VERSICULOS_CITACOES[dia % VERSICULOS_CITACOES.length];
-          return `<div class="home-verso"><p class="home-verso-txt">“${escapeHtml(v.texto)}”</p><p class="home-verso-ref">${escapeHtml(v.ref)}</p></div>`; })()}
+          return `<p class="home-verso">“${escapeHtml(v.texto)}” <span>— ${escapeHtml(v.ref)}</span></p>`; })()}
       </div>
       <div class="home-section-title" id="homeProjetosTitulo" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;scroll-margin-top:170px;">
         <span>🎬 Projetos</span>
@@ -15534,11 +15545,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const naoLidasTask = (taskNotifs||[]).filter(n => !n.read);
     const mencoes = (minhasMencoes||[]).filter(m => !m.read);
     const prazos = (typeof prazosTerminando === 'function') ? prazosTerminando() : [];
-    const itens = [];
+    const itens = []; const _ordem = []; // [grupo, chave] → urgentes no topo, depois da mais recente para a mais antiga
 
     prazos.forEach(t => {
       const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
       const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      _ordem.push([0, (t._quando==='atrasada'?0:t._quando==='vence hoje'?1:2) * 1e13 + new Date(t.due_date+'T00:00:00').getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid ${cor};">
           <div class="notif-ic" style="background:${cor}22;">⏰</div>
@@ -15551,6 +15563,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     });
     naoLidasTask.forEach(n => {
       const ehChat = n.project === '__chat__';
+      _ordem.push([1, -new Date(n.created_at).getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
           <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
@@ -15562,6 +15575,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>`);
     });
     mencoes.forEach(m => {
+      _ordem.push([1, -new Date(m.created_at).getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid #7C3AED;">
           <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
@@ -15572,7 +15586,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
         </div>`);
     });
-    return itens;
+    const idx = itens.map((_, k) => k).sort((a, b) => (_ordem[a][0] - _ordem[b][0]) || (_ordem[a][1] - _ordem[b][1]));
+    return idx.map(k => itens[k]);
   }
 
   function fecharNotifDropdown(){
@@ -16590,24 +16605,20 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const projAndamento = pipelines.filter(pp => pipeResumo(pp).atual).length;
 
     cont.innerHTML = `
-      <div class="prod-hero">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:200px;">
-            <h1>🎯 Central de Produção</h1>
-            <p>Acompanhe o que cada um está fazendo e o progresso da equipe.</p>
-          </div>
-          <div style="flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap;">
-            <button id="abrirMuralBtn" style="background:var(--surface);border:none;color:var(--blue-deep);font-weight:800;padding:11px 18px;border-radius:12px;cursor:pointer;font-family:inherit;font-size:13.5px;position:relative;z-index:1;box-shadow:0 4px 14px rgba(0,0,0,.18);transition:transform .12s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">📎 Mural${muralFiles.length?` <span style="background:var(--blue);color:#fff;border-radius:20px;padding:1px 8px;font-size:11px;margin-left:2px;">${muralFiles.length}</span>`:''}</button>
-            ${isAdmin?`<button id="novaLinhaBtn" class="pl-novo-btn">🏭 Nova linha de produção</button>`:''}
-
+      <div class="prod-topo">
+        <div class="prod-topo-linha">
+          <h1>Produção</h1>
+          <div class="prod-topo-acoes">
+            <button id="abrirMuralBtn" class="prod-topo-btn">📌 Mural${muralFiles.length ? ` <span>${muralFiles.length}</span>` : ''}</button>
+            ${isAdmin ? `<button id="novaLinhaBtn" class="prod-topo-btn primario">+ Nova linha</button>` : ''}
           </div>
         </div>
-        <div class="prod-hero-stats">
-          <div class="prod-hero-stat"><b>${total}</b><span>missões totais</span></div>
-          <div class="prod-hero-stat"><b>${feitasMes}</b><span>concluídas no mês</span></div>
-          <div class="prod-hero-stat"><b>${minhas}</b><span>suas pendentes</span></div>
-          <div class="prod-hero-stat"><b>${meta.pct}%</b><span>meta do mês (${meta.itens} itens)</span></div>
-          <div class="prod-hero-stat"><b>${projConcluidosMes}<small style="font-size:14px;opacity:.75;">/${projConcluidosMes + projAndamento}</small></b><span>projetos concluídos no mês</span></div>
+        <div class="prod-topo-stats">
+          <span><b>${minhas}</b> suas pendentes</span>
+          <span><b>${feitasMes}</b> concluídas no mês</span>
+          <span>meta do mês <b>${meta.pct}%</b></span>
+          <span><b>${projConcluidosMes}</b>/${projConcluidosMes + projAndamento} projetos concluídos</span>
+          <span class="mut">${total} missões no total</span>
         </div>
       </div>
 
@@ -17297,12 +17308,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (totalNovas === 0 && (taskNotifs||[]).length === 0) return '';
 
     // Monta as linhas de cada tipo
-    const itens = [];
+    const itens = []; const _ordem = []; // [grupo, chave] → urgentes no topo, depois da mais recente para a mais antiga
 
     // 1) Prazos terminando (urgente, aparece primeiro)
     prazos.forEach(t => {
       const cor = t._quando==='atrasada' ? '#DC2626' : (t._quando==='vence hoje' ? '#EA580C' : '#CA8A04');
       const partesTxt = [nomeProjetoExibicao(t.project), t.episode?(t.episode==='Filme'?'Único':`Ep ${t.episode}`):'', t.part?`Parte ${t.part}`:''].filter(Boolean).join(' · ');
+      _ordem.push([0, (t._quando==='atrasada'?0:t._quando==='vence hoje'?1:2) * 1e13 + new Date(t.due_date+'T00:00:00').getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid ${cor};">
           <div class="notif-ic" style="background:${cor}22;">⏰</div>
@@ -17317,6 +17329,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // 2) Novas tarefas atribuídas (e menções de chat)
     naoLidasTask.forEach(n => {
       const ehChat = n.project === '__chat__';
+      _ordem.push([1, -new Date(n.created_at).getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid ${ehChat?'#7C3AED':'var(--blue)'};">
           <div class="notif-ic" style="background:${ehChat?'rgba(124,58,237,.12)':'rgba(37,99,235,.12)'};">${ehChat?'💬':'🎯'}</div>
@@ -17330,6 +17343,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
 
     // 3) Marcações no chat/observações
     mencoes.forEach(m => {
+      _ordem.push([1, -new Date(m.created_at).getTime()]);
       itens.push(`
         <div class="notif-item" style="border-left:3px solid #7C3AED;">
           <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
@@ -17341,8 +17355,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         </div>`);
     });
 
+    const _idx = itens.map((_, k) => k).sort((a, b) => (_ordem[a][0] - _ordem[b][0]) || (_ordem[a][1] - _ordem[b][1]));
     const corpo = itens.length
-      ? itens.join('')
+      ? _idx.map(k => itens[k]).join('')
       : `<p style="font-size:12.5px;color:var(--muted);margin:0;">🎉 Nenhuma notificação nova.</p>`;
 
     return `
