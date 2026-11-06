@@ -2809,7 +2809,11 @@
   .mc-pend{ color:var(--warn-ink); }
   .mc-link{ background:none; border:none; color:var(--muted); font:inherit; font-size:11.5px; cursor:pointer; padding:0; }
   .mc-link:hover{ color:var(--ink); text-decoration:underline; }
-  .mc-novo{ display:flex; gap:6px; align-items:flex-end; }
+  .mc-novo{ display:flex; flex-direction:column; gap:6px; }
+  .mc-novo[hidden], .mc-abrir[hidden]{ display:none; }
+  .mc-novo-acoes{ display:flex; justify-content:flex-end; align-items:center; gap:10px; }
+  .mc-abrir{ align-self:flex-start; background:none; border:none; color:var(--muted); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; padding:2px 0; }
+  .mc-abrir:hover{ color:var(--blue-deep); }
   .mc-editor{ min-height:38px !important; padding:8px 10px !important; font-size:13px !important; }
   .mc-enviar{ padding:8px 12px; font-size:12.5px; white-space:nowrap; }
   .pl-obs{ width:100%; margin-top:6px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; }
@@ -10318,9 +10322,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           </div>
         </div>`;
       }).join('')}
-      ${pipeAdm() ? `<div class="mc-novo">
+      ${pipeAdm() ? `<button type="button" class="mc-abrir" data-mc-abrir="${i}">💬 Comentar</button>
+      <div class="mc-novo" data-mc-novo="${i}" hidden>
         <div class="notes-editor mc-editor" contenteditable="true" data-mc-editor="${i}" data-placeholder="Comentar o motivo… use @ para marcar alguém"></div>
-        <button type="button" class="btn-primary mc-enviar" data-mc-enviar="${i}">Comentar</button>
+        <div class="mc-novo-acoes">
+          <button type="button" class="mc-link" data-mc-cancelar="${i}">Cancelar</button>
+          <button type="button" class="btn-primary mc-enviar" data-mc-enviar="${i}">Enviar</button>
+        </div>
       </div>` : ''}
     </div>`;
   }
@@ -10636,6 +10644,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
     // comentários do material faltando
     ov.querySelectorAll('[data-mc-editor]').forEach(ed => { try { iniciarMencoesEditor(ed); } catch(e){} });
+    ov.querySelectorAll('[data-mc-abrir]').forEach(b => b.onclick = () => { const i = b.dataset.mcAbrir; b.hidden = true; const box = ov.querySelector(`[data-mc-novo="${i}"]`); box.hidden = false; const ed = box.querySelector('[data-mc-editor]'); if (ed) ed.focus(); });
+    ov.querySelectorAll('[data-mc-cancelar]').forEach(b => b.onclick = () => { const i = b.dataset.mcCancelar; const box = ov.querySelector(`[data-mc-novo="${i}"]`); box.hidden = true; box.querySelector('[data-mc-editor]').innerHTML = ''; const a = ov.querySelector(`[data-mc-abrir="${i}"]`); if (a) a.hidden = false; });
     ov.querySelectorAll('[data-mc-enviar]').forEach(b => b.onclick = async () => {
       const i = Number(b.dataset.mcEnviar); const it = aberta.itens[i];
       const ed = ov.querySelector(`[data-mc-editor="${i}"]`); if (!ed) return;
@@ -10658,9 +10668,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       c.resolvido = !c.resolvido;
       if (c.resolvido){ c.resolvido_por = myProfile.display_name || myEmail || ''; c.resolvido_em = new Date().toISOString(); } else { delete c.resolvido_por; delete c.resolvido_em; }
       // tudo resolvido → pergunta se o material já chegou
+      // tudo resolvido → o material passa a "Recebido" sozinho (o aviso de material incompleto some)
       if (c.resolvido && it.status === 'faltando' && it.comentarios.every(x => x.resolvido)){
-        const ok = await confirmarBonito({ titulo: 'Marcar como recebido?', mensagem: `<b style="color:var(--ink);">${escapeHtml(matCurto(it.nome))}</b> — todos os comentários foram resolvidos.`, textoBotao: '✓ Sim, recebido', icone: '📦' });
-        if (ok) it.status = 'ok';
+        it.status = 'ok';
+        showToast(`✓ ${matCurto(it.nome)} marcado como recebido.`);
+      }
+      // desfez o "resolvido" de um item que tinha sido recebido por isso → volta a faltar
+      else if (!c.resolvido && it.status === 'ok'){
+        it.status = 'faltando';
       }
       await pipeSalvar(p); reabrir();
     });
@@ -16399,9 +16414,15 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="pl-cards">${pipeCardsAgrupados(grupos[n], n)}</div>
           </div>`).join('');
       };
+      // episódios/aulas do mesmo projeto ficam juntos, na primeira semana em que o projeto aparece
+      const juntarProjeto = (lista, semanaDe) => {
+        const primeira = {};
+        lista.forEach(pp => { if (pp.kind === 'legenda') return; const w = semanaDe(pp) || 99; primeira[pp.project] = Math.min(primeira[pp.project] || 99, w); });
+        return pp => (pp.kind !== 'legenda' && primeira[pp.project] && primeira[pp.project] < 99) ? primeira[pp.project] : (semanaDe(pp) || 0);
+      };
       const listaPipes = prodPipeAba === 'concluidos'
-        ? (concluidos.length ? blocoSemanas(concluidos, pp => semanaDaData(conclusao(pp))) : `<div class="cr-vazio">Nenhum projeto concluído em ${mesNome(mes)}.</div>`)
-        : (andamento.length ? blocoSemanas(andamento, pp => semanaDoPipe[pp.id] || 0) : `<div class="cr-vazio">Nada do cronograma de ${mesNome(mes)} em andamento.</div>`);
+        ? (concluidos.length ? blocoSemanas(concluidos, juntarProjeto(concluidos, pp => semanaDaData(conclusao(pp)))) : `<div class="cr-vazio">Nenhum projeto concluído em ${mesNome(mes)}.</div>`)
+        : (andamento.length ? blocoSemanas(andamento, juntarProjeto(andamento, pp => semanaDoPipe[pp.id] || 0)) : `<div class="cr-vazio">Nada do cronograma de ${mesNome(mes)} em andamento.</div>`);
 
       // ---- tarefas avulsas: pendentes ou concluídas do período ----
       const ref = new Date(prodAvRef);
