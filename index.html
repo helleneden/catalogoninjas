@@ -2703,6 +2703,11 @@
 
   /* ---- Linha de produção ---- */
   .pl-novo-btn{ background:var(--blue); border:none; color:#fff; font-weight:800; padding:11px 18px; border-radius:12px; cursor:pointer; font-family:inherit; font-size:13.5px; position:relative; z-index:1; }
+  .pl-grupo{ display:contents; }
+  .pl-grupo.aberto{ display:block; grid-column:1/-1; border:1px solid var(--line); border-radius:14px; padding:8px; background:rgba(255,255,255,.015); }
+  .pl-grupo.aberto > .pl-card{ width:100%; }
+  .pl-grupo-itens{ display:grid; grid-template-columns:repeat(auto-fill, minmax(260px,1fr)); gap:8px; margin-top:8px; }
+  .pl-grupo-seta{ color:var(--muted); font-size:13px; margin-left:6px; }
   .pl-cards{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; margin-bottom:16px; }
   .pl-card{ text-align:left; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:16px; padding:14px 16px; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; gap:10px; transition:border-color .15s, transform .15s; }
   .pl-card:hover{ border-color:var(--blue); transform:translateY(-1px); }
@@ -11213,6 +11218,41 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // ---------- cards na Produção ----------
+  // várias linhas do mesmo projeto (episódios/aulas) viram um card só, que expande ao clicar
+  const prodGruposAbertos = new Set();
+  function pipeCardsAgrupados(lista, grupoKey){
+    const porProj = new Map();
+    lista.forEach(pp => { const k = pp.kind === 'legenda' ? 'id:' + pp.id : pp.project; if (!porProj.has(k)) porProj.set(k, []); porProj.get(k).push(pp); });
+    return [...porProj.entries()].map(([k, lst]) => {
+      if (lst.length < 2) return lst.map(pipeCardHtml).join('');
+      lst.sort((a,b) => epNum(a) - epNum(b));
+      const chave = grupoKey + '|' + k;
+      const aberto = prodGruposAbertos.has(chave);
+      const nums = lst.map(epNum);
+      const seguidos = nums.every((n, i) => i === 0 || n === nums[i-1] + 1);
+      const rot = rotuloEp(lst[0]);
+      const faixa = seguidos ? `${nums[0]} a ${nums[nums.length-1]}` : nums.join(', ');
+      const pct = Math.round(lst.reduce((a, pp) => a + pipeResumo(pp).pct, 0) / lst.length);
+      const feitos = lst.filter(pp => !pipeResumo(pp).atual).length;
+      const avisos = lst.reduce((a, pp) => a + pipeResumo(pp).faltando.length, 0);
+      const nivel = pct >= 100 ? 'n100' : pct >= 70 ? 'n70' : 'n0';
+      return `<div class="pl-grupo${aberto ? ' aberto' : ''}">
+        <button type="button" class="pl-card pl-card-min ${nivel}" data-pl-grupo="${escapeHtml(chave)}">
+          <div class="pl-card-topo">
+            <div style="flex:1;min-width:0;text-align:left;">
+              <div class="pl-card-nome">${escapeHtml(lst[0].project)} · ${rot} ${faixa}</div>
+              <div class="pl-card-sub">${lst.length} ${rot === 'Aula' ? 'aulas' : 'episódios'}${feitos ? ` · ${feitos} concluído${feitos===1?'':'s'}` : ''}${avisos ? ` <span class="pl-card-aviso">⚠ material faltando</span>` : ''}</div>
+            </div>
+            <span class="pl-card-pct">${pct}%</span>
+            <span class="pl-grupo-seta">${aberto ? '▴' : '▾'}</span>
+          </div>
+          <div class="pl-barra"><i style="width:${pct}%"></i></div>
+        </button>
+        ${aberto ? `<div class="pl-grupo-itens">${lst.map(pipeCardHtml).join('')}</div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
   function pipeCardHtml(p){
     const r = pipeResumo(p);
     const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
@@ -15297,7 +15337,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)}</div>
             <div class="notif-sub">${escapeHtml(partesTxt)}</div>
           </div>
-          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-prazo="${t.id}|${t.due_date}" style="padding:5px 11px;font-size:12px;">Conferir</button>
         </div>`);
     });
     naoLidasTask.forEach(n => {
@@ -15358,8 +15398,11 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     drop.style.right = (window.innerWidth - r.right) + 'px';
 
     // Handlers dos botões "Conferir"
+    // clicar em qualquer parte da notificação = Conferir
+    drop.querySelectorAll('.notif-item').forEach(it => { it.style.cursor = 'pointer'; it.addEventListener('click', (e) => { if (e.target.closest('button')) return; const b = it.querySelector('.notif-conf'); if (b) b.click(); }); });
     drop.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
       const destino = btn.dataset.conf;
+      if (btn.dataset.prazo) marcarPrazoVisto(btn.dataset.prazo);
       if (btn.dataset.lidaTask){
         try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
       }
@@ -16353,7 +16396,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         return Object.keys(grupos).map(Number).sort((x,y) => (x||99) - (y||99)).map(n => `
           <div class="ps-semana">
             <div class="ps-semana-tit">${n === 0 ? 'Fora do cronograma deste mês' : n === 6 ? 'Extra Points' : `Semana ${n}${sextas[n-1] ? ` · sexta ${sextas[n-1].toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}` : ''}`}<span>${grupos[n].length}</span></div>
-            <div class="pl-cards">${grupos[n].map(pipeCardHtml).join('')}</div>
+            <div class="pl-cards">${pipeCardsAgrupados(grupos[n], n)}</div>
           </div>`).join('');
       };
       const listaPipes = prodPipeAba === 'concluidos'
@@ -16390,6 +16433,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
     const ligarTopo = () => {
       box.querySelectorAll('[data-pl-abrir]').forEach(c => c.addEventListener('click', () => abrirPipeline(c.dataset.plAbrir)));
+      box.querySelectorAll('[data-pl-grupo]').forEach(c => c.addEventListener('click', () => { const k = c.dataset.plGrupo; prodGruposAbertos.has(k) ? prodGruposAbertos.delete(k) : prodGruposAbertos.add(k); renderProducaoLista(); }));
       box.querySelectorAll('[data-ps-aba]').forEach(b => b.onclick = () => { prodPipeAba = b.dataset.psAba; renderProducaoLista(); });
       box.querySelectorAll('[data-ps-mes]').forEach(b => b.onclick = () => { prodMes = mesSomar(prodMes, Number(b.dataset.psMes)); renderProducaoLista(); });
       box.querySelectorAll('[data-av-aba]').forEach(b => b.onclick = () => { prodAvAba = b.dataset.avAba; renderProducaoLista(); });
@@ -16847,12 +16891,16 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   // Painel de notificações de tarefa — mostra as tarefas atribuídas ao user.
   // Calcula notificações de "prazo terminando" — tarefas suas com prazo
   // hoje ou amanhã, ainda não concluídas.
+  // prazos já conferidos (some do sino até a data mudar)
+  function prazosVistos(){ try { return new Set(JSON.parse(localStorage.getItem('ninjas-prazos-vistos') || '[]')); } catch(e){ return new Set(); } }
+  function marcarPrazoVisto(chave){ try { const s = prazosVistos(); s.add(chave); localStorage.setItem('ninjas-prazos-vistos', JSON.stringify([...s].slice(-300))); } catch(e){} }
   function prazosTerminando(){
     const hoje = new Date(); hoje.setHours(0,0,0,0);
     const amanha = new Date(hoje.getTime() + 24*60*60*1000);
     const depoisAmanha = new Date(hoje.getTime() + 2*24*60*60*1000);
     return (producaoTasks||[]).filter(t => {
       if (t.assignee_user_id !== myUserId || t.done || !t.due_date) return false;
+      if (prazosVistos().has(t.id + '|' + t.due_date)) return false;
       const d = new Date(t.due_date+'T00:00:00');
       return d < depoisAmanha; // hoje, amanhã, ou já passou
     }).map(t => {
@@ -16887,7 +16935,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="notif-txt"><b>Prazo ${t._quando}:</b> ${escapeHtml(t.stage)} — ${escapeHtml(partesTxt)}</div>
             <div class="notif-sub">Prazo: ${new Date(t.due_date+'T00:00:00').toLocaleDateString('pt-BR')}</div>
           </div>
-          <button class="btn-ghost notif-conf" data-conf="producao" style="padding:5px 11px;font-size:12px;">Conferir</button>
+          <button class="btn-ghost notif-conf" data-conf="producao" data-prazo="${t.id}|${t.due_date}" style="padding:5px 11px;font-size:12px;">Conferir</button>
         </div>`);
     });
 
@@ -16936,6 +16984,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // Botão "Conferir" — marca como lida e leva ao lugar certo
     painelContent.querySelectorAll('.notif-conf').forEach(btn => btn.addEventListener('click', async () => {
       const destino = btn.dataset.conf;
+      if (btn.dataset.prazo) marcarPrazoVisto(btn.dataset.prazo);
+      const item = btn.closest('.notif-item'); if (item) item.remove();
       // marca a notificação de tarefa como lida
       if (btn.dataset.lidaTask){
         try { await sb.from('task_notifications').update({ read:true }).eq('id', btn.dataset.lidaTask); const n = taskNotifs.find(x=>x.id===btn.dataset.lidaTask); if(n) n.read=true; } catch(e){}
