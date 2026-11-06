@@ -848,6 +848,13 @@
   .agenda-note-item{ display:flex; align-items:flex-start; gap:8px; padding:7px 9px; background:var(--surface-soft); border-radius:8px; }
   .agenda-note-cb{ width:16px; height:16px; accent-color:var(--blue); cursor:pointer; flex:0 0 auto; margin-top:2px; }
   .agenda-note-body{ flex:1; font-size:13px; line-height:1.45; word-break:break-word; }
+  .ag-tag{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; color:var(--blue-deep); margin-bottom:1px; }
+  .ag-atrasada{ border-left:3px solid #EF4444; }
+  .ag-atrasada .ag-tag{ color:#F87171; }
+  .ag-abrir{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:2px 10px; font:inherit; font-size:11.5px; cursor:pointer; flex:0 0 auto; align-self:center; }
+  .ag-abrir:hover{ color:var(--ink); border-color:var(--blue); }
+  .agenda-day-btn{ position:relative; }
+  .ag-ponto{ position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:#fff; }
   .agenda-note-body.done{ text-decoration:line-through; color:var(--muted); }
   .agenda-note-del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0; flex:0 0 auto; }
   .agenda-note-del:hover{ color:#DC2626; }
@@ -7785,7 +7792,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       requestAnimationFrame(() => posicionarAzRail());
     }
     if (home) renderProjetos(); // Home unificada com Projetos
-    if (painel) renderPainel();
+    if (painel){ renderPainel(); Promise.all([loadAgenda(), loadProducaoTasks()]).then(() => { if (currentView === 'painel') renderPainel(); }).catch(()=>{}); }
     if (producao) renderProducao();
     if (cronograma) renderCronograma();
     if (audiobooks) renderAudiobooks();
@@ -15571,6 +15578,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // dias com nota neste mês
     const mesStr = `${ano}-${String(mes+1).padStart(2,'0')}`;
     const diasComNota = new Set(agendaNotes.filter(n=>n.note_date.startsWith(mesStr)).map(n=>n.note_date));
+    const diasComTarefa = new Set(agendaNotes.filter(n=>n.from_task_id && !n.done && n.note_date.startsWith(mesStr)).map(n=>n.note_date));
 
     const dowHeaders = DIAS_SEMANA.map(d=>`<div class="agenda-cal-dow">${d}</div>`).join('');
 
@@ -15591,7 +15599,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const style = bg ? `style="background:${bg};opacity:${opacity};"` : '';
       cells += `<div class="agenda-cal-day">
         <button class="agenda-day-btn${isHoje?' today':''}${isSel?' selected':''}${hasNote?' has-note':''}"
-          data-pick-day="${dateStr}" ${style}>${d}</button>
+          data-pick-day="${dateStr}" ${style}>${d}${diasComTarefa.has(dateStr) ? '<i class="ag-ponto"></i>' : ''}</button>
       </div>`;
     }
     // dias do próximo mês
@@ -15602,16 +15610,26 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     }
 
     // notas do dia selecionado
-    const notasDia = agendaNotes.filter(n=>n.note_date===agendaSelectedDay);
+    let notasDia = agendaNotes.filter(n=>n.note_date===agendaSelectedDay);
+    // hoje: tarefas atrasadas (ainda não feitas) aparecem no topo
+    const atrasadas = agendaSelectedDay === hoje ? agendaNotes.filter(n => n.from_task_id && !n.done && n.note_date < hoje) : [];
+    notasDia = [...atrasadas, ...notasDia];
     const [selYear,selMon,selDay] = agendaSelectedDay.split('-');
     const labelDia = agendaSelectedDay===hoje ? 'Hoje' : `${parseInt(selDay)} de ${MESES[parseInt(selMon)-1]}`;
 
-    const noteItems = notasDia.map(n=>`
-      <div class="agenda-note-item" data-note-id="${n.id}">
-        <input type="checkbox" class="agenda-note-cb" data-toggle-note="${n.id}" ${n.done?'checked':''}>
-        <div class="agenda-note-body${n.done?' done':''}">${escapeHtml(n.body)}</div>
-        <button class="agenda-note-del" data-del-note="${n.id}">✕</button>
-      </div>`).join('') || `<div style="font-size:12.5px;color:var(--muted);padding:6px 0;">Nenhuma anotação neste dia.</div>`;
+    const noteItems = notasDia.map(n => {
+      const ehTarefa = !!n.from_task_id;
+      const atrasada = ehTarefa && !n.done && n.note_date < hoje;
+      const texto = ehTarefa ? String(n.body||'').replace(/^🎬\s*/, '') : n.body;
+      return `
+      <div class="agenda-note-item${ehTarefa ? ' ag-tarefa' : ''}${atrasada ? ' ag-atrasada' : ''}" data-note-id="${n.id}">
+        <input type="checkbox" class="agenda-note-cb" data-toggle-note="${n.id}" ${n.done?'checked':''} title="${ehTarefa ? 'Concluir a tarefa (marca também na Produção)' : 'Concluir'}">
+        <div class="agenda-note-body${n.done?' done':''}">
+          ${ehTarefa ? `<span class="ag-tag">🎬 Tarefa${atrasada ? ' · atrasada desde ' + new Date(n.note_date + 'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) : ''}</span>` : ''}
+          <span>${escapeHtml(texto)}</span>
+        </div>
+        ${ehTarefa ? `<button class="ag-abrir" data-ag-abrir="${n.from_task_id}" title="Abrir na linha de produção">Abrir</button>` : `<button class="agenda-note-del" data-del-note="${n.id}">✕</button>`}
+      </div>`; }).join('') || `<div style="font-size:12.5px;color:var(--muted);padding:6px 0;">Nenhuma anotação neste dia.</div>`;
 
     return `
       <div class="painel-card" style="grid-column:1/-1;">
@@ -15664,6 +15682,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           await sb.from('production_tasks').update({ done:novoDone, done_at: novoDone?new Date().toISOString():null }).eq('id', n.from_task_id);
           const t = producaoTasks.find(x=>x.id===n.from_task_id);
           if (t){ t.done = novoDone; t.done_at = novoDone?new Date().toISOString():null; }
+          // o painel "Minhas tarefas" e o sino usam as tarefas — atualiza
+          setTimeout(() => { try { if (currentView === 'painel') renderPainel(); renderBellBadge(); } catch(e){} }, 50);
         } catch(e){ console.warn('Erro sincronizando tarefa:', e); }
       }
     }
@@ -17435,6 +17455,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         rerenderAgenda(); return;
       }
       // calendário: selecionar dia
+      const agAbrir = e.target.closest('[data-ag-abrir]');
+      if (agAbrir){
+        const tid = agAbrir.dataset.agAbrir;
+        const pp = pipelines.find(x => (x.steps||[]).some(st => st.taskId === tid || Object.values(st.atrib||{}).includes(tid)));
+        if (pp){ abrirPipeline(pp.id); }
+        else { switchView('producao'); }
+        return;
+      }
       const day = e.target.closest('[data-pick-day]');
       if (day){ agendaSelectedDay = day.dataset.pickDay; rerenderAgenda(); return; }
       // apagar nota
