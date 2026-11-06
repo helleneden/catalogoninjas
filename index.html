@@ -2788,6 +2788,25 @@
   .pl-seg button{ border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-seg button.on.ok{ border-color:rgba(52,195,143,.5); color:var(--ok-ink); background:rgba(52,195,143,.14); }
   .pl-seg button.on.falt{ border-color:rgba(226,177,79,.55); color:var(--warn-ink); background:rgba(226,177,79,.16); }
+  .mc-wrap{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
+  .mc-item{ display:flex; gap:8px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
+  .mc-item.resolvido{ opacity:.6; }
+  .mc-item.resolvido .mc-texto{ text-decoration:line-through; }
+  .mc-ninja{ width:26px; height:26px; border-radius:50%; object-fit:cover; flex:0 0 auto; }
+  .mc-corpo{ flex:1; min-width:0; }
+  .mc-topo{ display:flex; gap:8px; align-items:baseline; font-size:12.5px; }
+  .mc-topo span{ font-size:11px; color:var(--muted); }
+  .mc-texto{ font-size:13px; line-height:1.45; color:var(--ink); word-break:break-word; margin-top:2px; }
+  .mc-acoes{ display:flex; gap:8px; align-items:center; margin-top:5px; font-size:11.5px; }
+  .mc-btn{ background:none; border:1px solid var(--line-strong); color:var(--ink); border-radius:999px; padding:3px 10px; font:inherit; font-size:11.5px; cursor:pointer; }
+  .mc-btn:hover{ border-color:var(--green); color:var(--ok-ink); }
+  .mc-ok{ color:var(--ok-ink); font-weight:600; }
+  .mc-pend{ color:var(--warn-ink); }
+  .mc-link{ background:none; border:none; color:var(--muted); font:inherit; font-size:11.5px; cursor:pointer; padding:0; }
+  .mc-link:hover{ color:var(--ink); text-decoration:underline; }
+  .mc-novo{ display:flex; gap:6px; align-items:flex-end; }
+  .mc-editor{ min-height:38px !important; padding:8px 10px !important; font-size:13px !important; }
+  .mc-enviar{ padding:8px 12px; font-size:12.5px; white-space:nowrap; }
   .pl-obs{ width:100%; margin-top:6px; padding:7px 10px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; }
   .pl-add{ display:flex; gap:6px; margin-top:6px; }
   .pl-add input{ flex:1; min-width:0; padding:8px 10px; border:1px solid var(--line); border-radius:9px; font-size:13px; }
@@ -10267,6 +10286,40 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   function pipeNivel(p){ const pct = pipeResumo(p).pct; return pct >= 100 ? 'n100' : pct >= 70 ? 'n70' : 'n0'; }
   function matCurto(n){ return (n||'').replace(/\s*\([^)]*\)\s*/g, ' ').trim(); }
+  // comentários de um item de material (o antigo campo "obs" vira o primeiro comentário)
+  function matComentarios(it){
+    const lst = Array.isArray(it.comentarios) ? it.comentarios : [];
+    if (it.obs && !lst.length) return [{ id:'obs', autor:'', texto: escapeHtml(it.obs), data:'' }];
+    return lst;
+  }
+  function matComentariosHtml(it, i){
+    const lst = matComentarios(it);
+    const quando = d => d ? new Date(d).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '';
+    return `<div class="mc-wrap">
+      ${lst.map(c => {
+        const pf = (c.autor_id && profilesByUser && profilesByUser[c.autor_id]) || {};
+        const ninja = NINJAS[pf.ninja_color || c.cor] || NINJAS.azul;
+        return `<div class="mc-item${c.resolvido ? ' resolvido' : ''}">
+          <img class="mc-ninja" src="${ninja}" alt="">
+          <div class="mc-corpo">
+            <div class="mc-topo"><b>${escapeHtml(c.autor || 'Observação')}</b>${c.data ? `<span>${quando(c.data)}</span>` : ''}</div>
+            <div class="mc-texto">${c.texto || ''}</div>
+            <div class="mc-acoes">
+              ${c.resolvido
+                ? `<span class="mc-ok">✓ Resolvido${c.resolvido_por ? ' por ' + escapeHtml(c.resolvido_por) : ''}${c.resolvido_em ? ' · ' + quando(c.resolvido_em) : ''}</span>${pipeAdm() ? ` <button type="button" class="mc-link" data-mc-res="${i}|${c.id}">desfazer</button>` : ''}`
+                : (pipeAdm() ? `<button type="button" class="mc-btn" data-mc-res="${i}|${c.id}">Foi resolvido?</button>` : '<span class="mc-pend">Pendente</span>')}
+              ${pipeAdm() && c.id !== 'obs' && (c.autor_id === myUserId || isAdmin) ? `<button type="button" class="mc-link" data-mc-del="${i}|${c.id}">apagar</button>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+      ${pipeAdm() ? `<div class="mc-novo">
+        <div class="notes-editor mc-editor" contenteditable="true" data-mc-editor="${i}" data-placeholder="Comentar o motivo… use @ para marcar alguém"></div>
+        <button type="button" class="btn-primary mc-enviar" data-mc-enviar="${i}">Comentar</button>
+      </div>` : ''}
+    </div>`;
+  }
+
   function pipeResumo(p){
     const steps = pipeEtapasVis(p);
     const feitas = steps.filter(s => pipeEtapaOk(p, s)).length;
@@ -10281,7 +10334,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     return [...new Set(ids.map(pipeTask).filter(Boolean).map(t => t.assignee_name).filter(Boolean))];
   }
   function avisoMaterialHtml(project){
-    const falt = pipelines.filter(p => p.project === project).flatMap(p => (p.steps||[]).filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => 'sem ' + matCurto(i.nome) + (p.episode ? ` (${rotuloEp(p)} ${p.episode})` : '') + (i.obs ? ` — ${i.obs}` : ''))));
+    const falt = pipelines.filter(p => p.project === project).flatMap(p => (p.steps||[]).filter(s => s.tipo === 'material').flatMap(s => (s.itens||[]).filter(i => i.status === 'faltando').map(i => 'sem ' + matCurto(i.nome) + (p.episode ? ` (${rotuloEp(p)} ${p.episode})` : '') + (() => { const pend = matComentarios(i).filter(c => !c.resolvido); const u = pend[pend.length - 1]; return u ? ` — ${textoPuroNota(u.texto)}` : ''; })())));
     if (!falt.length) return '';
     return `<div class="pl-aviso">⚠️ <b>Material incompleto:</b> ${falt.map(escapeHtml).join(' · ')}</div>`;
   }
@@ -10404,7 +10457,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${pipeAdm()?'':'disabled'}>⚠ Faltando</button>
             </div>
           </div>
-          ${it.status === 'faltando' ? `<input type="text" class="pl-obs" data-pl-obs="${i}" placeholder="O que aconteceu? (fica registrado no projeto)" value="${escapeHtml(it.obs||'')}" ${pipeAdm()?'':'disabled'}>` : ''}
+          ${it.status === 'faltando' || matComentarios(it).length ? matComentariosHtml(it, i) : ''}
         </div>`).join('')}
         ${pipeAdm() ? `<div class="pl-add"><input type="text" id="plMatNovo" placeholder="Outro arquivo (ex.: roteiro, música)…"><button type="button" id="plMatAdd">+</button></div>` : ''}
       </div>`;
@@ -10576,7 +10629,40 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
       reabrir();
     });
-    ov.querySelectorAll('[data-pl-obs]').forEach(inp => inp.onchange = async () => { aberta.itens[Number(inp.dataset.plObs)].obs = inp.value.trim(); await pipeSalvar(p); });
+    // comentários do material faltando
+    ov.querySelectorAll('[data-mc-editor]').forEach(ed => { try { iniciarMencoesEditor(ed); } catch(e){} });
+    ov.querySelectorAll('[data-mc-enviar]').forEach(b => b.onclick = async () => {
+      const i = Number(b.dataset.mcEnviar); const it = aberta.itens[i];
+      const ed = ov.querySelector(`[data-mc-editor="${i}"]`); if (!ed) return;
+      const html = limparHtmlNota(ed.innerHTML);
+      if (!textoPuroNota(html)){ showToast('Escreva o motivo antes de comentar.'); return; }
+      const marcados = [...new Set([...ed.querySelectorAll('.mention-tag')].map(t => t.dataset.userId).filter(Boolean))];
+      it.comentarios = matComentarios(it).map(c => c.id === 'obs' ? { ...c, id: crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback() } : c);
+      delete it.obs;
+      it.comentarios.push({ id: crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback(), autor: myProfile.display_name || myEmail || 'Alguém', autor_id: myUserId || null, cor: myProfile.ninja_color || 'azul', texto: html, data: new Date().toISOString(), resolvido: false });
+      b.disabled = true;
+      await pipeSalvar(p);
+      if (marcados.length){ try { await notificarMencoesNota(p.project, marcados, myProfile.display_name || myEmail || 'Alguém'); renderBellBadge(); } catch(e){} }
+      showToast(marcados.length ? `💬 Comentado e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.` : '💬 Comentário salvo.');
+      reabrir();
+    });
+    ov.querySelectorAll('[data-mc-res]').forEach(b => b.onclick = async () => {
+      const [i, id] = b.dataset.mcRes.split('|'); const it = aberta.itens[Number(i)];
+      it.comentarios = matComentarios(it).map(c => c.id === 'obs' ? { ...c, id: 'obs1' } : c); delete it.obs;
+      const c = it.comentarios.find(x => x.id === id || (id === 'obs' && x.id === 'obs1')); if (!c) return;
+      c.resolvido = !c.resolvido;
+      if (c.resolvido){ c.resolvido_por = myProfile.display_name || myEmail || ''; c.resolvido_em = new Date().toISOString(); } else { delete c.resolvido_por; delete c.resolvido_em; }
+      // tudo resolvido → pergunta se o material já chegou
+      if (c.resolvido && it.status === 'faltando' && it.comentarios.every(x => x.resolvido)){
+        const ok = await confirmarBonito({ titulo: 'Marcar como recebido?', mensagem: `<b style="color:var(--ink);">${escapeHtml(matCurto(it.nome))}</b> — todos os comentários foram resolvidos.`, textoBotao: '✓ Sim, recebido', icone: '📦' });
+        if (ok) it.status = 'ok';
+      }
+      await pipeSalvar(p); reabrir();
+    });
+    ov.querySelectorAll('[data-mc-del]').forEach(b => b.onclick = async () => {
+      const [i, id] = b.dataset.mcDel.split('|'); const it = aberta.itens[Number(i)];
+      it.comentarios = matComentarios(it).filter(c => c.id !== id); await pipeSalvar(p); reabrir();
+    });
     const ma = ov.querySelector('#plMatAdd');
     if (ma) ma.onclick = async () => { const v = ov.querySelector('#plMatNovo').value.trim(); if (!v) return; aberta.itens.push({ nome:v, status:'pendente', obs:'' }); await pipeSalvar(p); reabrir(); };
     // partes subidas no Eleven
