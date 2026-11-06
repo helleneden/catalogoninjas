@@ -569,15 +569,19 @@
   .dub-coadj-btn:hover{ background:rgba(124,58,237,.12); }
   .dub-copy-wrap{ position:relative; flex:0 0 auto; }
   .coadj-copy{ margin-left:auto; align-self:flex-start; }
+  .dub-voice .vn, .dub-voice .pn, .coadj-card .card-name, .coadj-card .vc-voz{ user-select:text; -webkit-user-select:text; cursor:text; }
+  .copiado-flash{ animation:copiadoFlash .6s ease; }
+  @keyframes copiadoFlash{ 0%{ background:rgba(74,155,224,.35); } 100%{ background:transparent; } }
   .coadj-card .card-top{ position:relative; }
   .voice-card.coadj-card{ overflow:visible !important; cursor:pointer; }
   .coadj-card:has(.dub-copy-menu.open){ position:relative; z-index:30; }
   .dub-copy{
-    background:none; border:none; cursor:pointer; font-size:15px;
-    width:32px; height:32px; line-height:1; display:flex;
-    align-items:center; justify-content:center; border-radius:8px;
-    color:var(--muted); padding:0;
+    background:none; border:1px solid transparent; cursor:pointer;
+    width:30px; height:30px; display:flex; align-items:center; justify-content:center;
+    border-radius:8px; color:var(--muted); padding:0; opacity:.55; transition:opacity .15s, background .15s, color .15s, border-color .15s;
   }
+  .dub-item:hover .dub-copy, .coadj-card:hover .dub-copy, .dub-copy:focus-visible{ opacity:1; }
+  .dub-copy:hover{ background:var(--surface-soft); border-color:var(--line); color:var(--ink); }
   .dub-copy-menu{
     display:none; position:absolute; top:100%; right:0; margin-top:4px;
     background:var(--surface); border:1px solid var(--line); border-radius:10px;
@@ -6573,6 +6577,23 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   // Lista de fotos navegáveis no lightbox atual (preenchida ao abrir)
   let _lightboxItens = [];
   let _lightboxIdx = 0;
+
+  const SEL_COPIAVEL = '.dub-voice .vn, .dub-voice .pn, .coadj-card .card-name, .coadj-card .vc-voz';
+  document.addEventListener('contextmenu', async (e) => {
+    const el = e.target.closest(SEL_COPIAVEL); if (!el) return;
+    const sel = String(getSelection() || '').trim();
+    const texto = sel && el.contains(getSelection().anchorNode) ? sel : el.textContent.trim();
+    if (!texto) return;
+    e.preventDefault();
+    try { await navigator.clipboard.writeText(texto); showToast(`📋 Copiado: ${texto}`); el.classList.remove('copiado-flash'); void el.offsetWidth; el.classList.add('copiado-flash'); }
+    catch(err){ showToast('Não consegui copiar — use Ctrl+C.'); }
+  });
+  // se a pessoa arrastou para selecionar o texto, o clique não abre edição
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest(SEL_COPIAVEL); if (!el) return;
+    const sl = getSelection();
+    if (sl && String(sl).trim() && el.contains(sl.anchorNode)) e.stopPropagation();
+  }, true);
 
   function abrirLightbox(url, legenda, legendaSub){
     if (!url) return;
@@ -13250,7 +13271,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               ${c.voice ? `<div class="vc-voz">${escapeHtml(c.voice)}</div>` : ''}
             </div>
             <div class="dub-copy-wrap coadj-copy">
-              <button type="button" class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
+              <button type="button" class="dub-copy" title="Copiar (ou clique com o botão direito no nome/voz)" data-copy-toggle="1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button>
               <div class="dub-copy-menu" data-copy-nome="${escapeHtml(c.person)}" data-copy-voz="${escapeHtml(c.voice||'')}">
                 <button type="button" data-copy-acao="nome">Copiar nome do personagem</button>
                 <button type="button" data-copy-acao="voz">Copiar nome da voz</button>
@@ -14457,7 +14478,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
                 ${isAdmin && pr.entryId?`<button class="dub-coadj-btn" title="Mover para Coadjuvantes (mantém nome e voz)" data-to-coadj="${pr.entryId}" data-to-coadj-nome="${escapeHtml(pr.person)}">👥</button>`:''}
                 ${isAdmin?`<button class="dub-edit-btn" title="Editar nome e voz" data-edit-voz-btn="${pr.entryId||''}" data-entry-idx="${i}" data-person-id="${pr.personId}">✎</button>`:''}
                 <div class="dub-copy-wrap">
-                  <button class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
+                  <button class="dub-copy" title="Copiar (ou clique com o botão direito no nome/voz)" data-copy-toggle="1"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button>
                   <div class="dub-copy-menu" data-copy-nome="${escapeHtml(pr.person)}" data-copy-voz="${escapeHtml(pr.voice)}">
                     <button data-copy-acao="nome">Copiar nome do personagem</button>
                     <button data-copy-acao="voz">Copiar nome da voz</button>
