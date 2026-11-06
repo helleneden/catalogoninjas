@@ -3474,6 +3474,9 @@
     opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 200;
   }
+  #faixaAvisos{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:10040; background:#0F1726; color:#F8FAFC; border:1px solid rgba(74,155,224,.6); border-radius:12px; padding:9px 12px; font-size:13px; box-shadow:0 12px 30px rgba(0,0,0,.5); display:flex; gap:8px; align-items:center; flex-wrap:wrap; max-width:calc(100vw - 24px); }
+  #faixaAvisos button{ background:var(--blue); color:#fff; border:none; border-radius:8px; padding:6px 12px; font:inherit; font-weight:700; cursor:pointer; }
+  #faixaAvisos button.sec{ background:none; color:#CBD5E1; border:1px solid #334155; font-weight:600; }
   #faixaVersao{ position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:10050; background:#0F1726; color:#F8FAFC; border:1px solid rgba(74,155,224,.6); border-radius:12px; padding:9px 14px; font-size:13.5px; box-shadow:0 12px 30px rgba(0,0,0,.5); display:flex; gap:10px; align-items:center; }
   #faixaVersao button{ background:var(--blue); color:#fff; border:none; border-radius:8px; padding:6px 12px; font:inherit; font-weight:700; cursor:pointer; }
   .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -9518,17 +9521,43 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   // Carrega as observações de projeto onde EU (usuário logado) fui marcado
+  // ---- Avisos fora da aba: notificação do computador + contador no título da aba ----
+  const _tituloBase = document.title; let _naoVistosAba = 0;
+  function avisoComputador(titulo, corpo, aoClicar){
+    if (!document.hidden) return;
+    _naoVistosAba++; document.title = `(${_naoVistosAba}) ${_tituloBase}`;
+    try {
+      if ('Notification' in window && Notification.permission === 'granted'){
+        const n = new Notification(titulo, { body: corpo || '', tag: 'ninjas-' + Date.now(), icon: (document.querySelector('link[rel="icon"][type="image/png"]') || {}).href });
+        n.onclick = () => { window.focus(); n.close(); if (typeof aoClicar === 'function') aoClicar(); };
+      }
+    } catch(e){}
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden){ _naoVistosAba = 0; document.title = _tituloBase; } });
+  function oferecerAvisosComputador(){
+    try {
+      if (!('Notification' in window) || Notification.permission !== 'default' || localStorage.getItem('ninjas-avisos-pc') === 'nao') return;
+    } catch(e){ return; }
+    if (document.getElementById('faixaAvisos')) return;
+    const d = document.createElement('div'); d.id = 'faixaAvisos';
+    d.innerHTML = '🔔 Quer ouvir e ver os avisos do app mesmo usando outra aba? <button type="button" data-a="sim">Ativar avisos</button> <button type="button" data-a="nao" class="sec">Agora não</button>';
+    d.querySelector('[data-a="sim"]').onclick = async () => { try { await Notification.requestPermission(); } catch(e){} d.remove(); };
+    d.querySelector('[data-a="nao"]').onclick = () => { try { localStorage.setItem('ninjas-avisos-pc', 'nao'); } catch(e){} d.remove(); };
+    document.body.appendChild(d);
+  }
+  setTimeout(oferecerAvisosComputador, 8000);
+
   let _mencoesConhecidas = null;
   const _muralConhecidos = new Set(); let _muralPronto = false;
   async function conferirNotificacoesNovas(){
-    if (!myUserId || document.hidden) return;
+    if (!myUserId) return; // continua conferindo mesmo com a pessoa em outra aba
     try {
       await Promise.all([loadMinhasMencoes(), typeof loadTaskNotifs === 'function' ? loadTaskNotifs() : null]);
       try {
         const { data: ult } = await sb.from('mural_files').select('id,uploaded_by_name,uploaded_by_id').order('created_at', { ascending:false }).limit(10);
         const novos = (ult||[]).filter(f => !_muralConhecidos.has(f.id));
         (ult||[]).forEach(f => _muralConhecidos.add(f.id));
-        if (_muralPronto && novos.length){ playMuralSound(); const f = novos[0]; if (f.uploaded_by_id !== myUserId) showToast(`📌 ${f.uploaded_by_name || 'Alguém'} colou algo no mural`); try { await loadMuralFiles(); } catch(e){} }
+        if (_muralPronto && novos.length){ playMuralSound(); const f = novos[0]; if (f.uploaded_by_id !== myUserId){ showToast(`📌 ${f.uploaded_by_name || 'Alguém'} colou algo no mural`); avisoComputador('📌 Mural da equipe', `${f.uploaded_by_name || 'Alguém'} colou algo no mural`, () => openMural()); } try { await loadMuralFiles(); } catch(e){} }
         _muralPronto = true;
       } catch(e){}
       const ids = new Set((minhasMencoes||[]).filter(m => !m.read).map(m => m.id));
@@ -9538,6 +9567,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           const m = novas[0];
           showToast(`🔔 ${m.author_name || 'Alguém'} te marcou ${m.project === '__mural__' ? 'no 📌 Mural' : 'em "' + m.project + '"'}`);
           try { playNotifSound(); } catch(e){}
+          avisoComputador('🔔 Você foi marcado', `${m.author_name || 'Alguém'} te marcou ${m.project === '__mural__' ? 'no Mural' : 'em "' + m.project + '"'}`, () => { if (m.project === '__mural__') openMural(); else openProjetoModal(m.project); });
         }
       }
       _mencoesConhecidas = ids;
@@ -9546,7 +9576,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06f';
+  const APP_VERSAO = '2026-11-06g';
   async function conferirVersaoNova(){
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
@@ -18095,6 +18125,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         if (payload.new && payload.new.user_id !== myUserId && payload.new.id !== ultimaMinha){
           playNotifSound();
           cwMostrarPrevia(payload.new);
+          avisoComputador('💬 ' + (payload.new.author_name || 'Chat da equipe'), String(payload.new.body || '').slice(0, 120), () => abrirChatWidget());
         }
         reloadChatFromDB();
       })
@@ -18240,7 +18271,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       .on('postgres_changes', { event:'*', schema:'public', table:'mural_files' }, async (payload)=>{
         const novo = payload && payload.eventType === 'INSERT' && payload.new && !(muralFiles||[]).some(f => f.id === payload.new.id);
         await loadMuralFiles(); agendarRerender();
-        if (novo){ _muralConhecidos.add(payload.new.id); playMuralSound(); if (payload.new.uploaded_by_id !== myUserId) showToast(`📌 ${payload.new.uploaded_by_name || 'Alguém'} colou algo no mural`); }
+        if (novo){ _muralConhecidos.add(payload.new.id); playMuralSound(); if (payload.new.uploaded_by_id !== myUserId){ showToast(`📌 ${payload.new.uploaded_by_name || 'Alguém'} colou algo no mural`); avisoComputador('📌 Mural da equipe', `${payload.new.uploaded_by_name || 'Alguém'} colou algo no mural`, () => openMural()); } }
       })
       .on('postgres_changes', { event:'*', schema:'public', table:'task_notifications' }, async ()=>{ await loadTaskNotifs(); renderBellBadge(); agendarRerender(); })
       .on('postgres_changes', { event:'*', schema:'public', table:'agenda_notes' }, async ()=>{ await loadAgenda(); agendarRerender(); })
