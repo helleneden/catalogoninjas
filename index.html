@@ -8381,6 +8381,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     });
   }
 
+  // coloca um painel acima de qualquer outro que esteja aberto
+  function porNaFrente(ov){
+    if (!ov) return;
+    let max = 0;
+    document.querySelectorAll('.modal-overlay.open, .modal-overlay[style*="z-index"]').forEach(o => { if (o !== ov && o.classList.contains('open')){ const z = parseInt(getComputedStyle(o).zIndex, 10); if (!isNaN(z)) max = Math.max(max, z); } });
+    if (max) ov.style.zIndex = String(max + 10);
+  }
   function ensureColOverlay(){
     let ov = $('#colOverlay');
     if (!ov){
@@ -10147,7 +10154,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let pipeAberto = null;      // id do pipeline aberto na janela
   let pipeSoLeitura = false;  // aberta só para ver (botão "Editar linha" libera)
   let pipeOrigemItem = null;  // {tabela,id} quando aberta a partir do cronograma
-  function pipeAdm(){ return isAdmin && !pipeSoLeitura; }
+  function pipeAdm(){ return isAdmin; }
   const pipeEtapaAberta = {}; // pipeId -> key da etapa expandida
 
   async function loadPipelines(){
@@ -10388,7 +10395,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if ((s.tipo === 'partes' || s.tipo === 'checkpartes') && !pipePartesOk(p))
       return `<p class="pl-nota">⚠ Defina primeiro em quantas partes este ${p.episode ? 'episódio' : 'projeto'} foi dividido (no topo desta janela).</p>`;
     if (s.tipo === 'material'){
-      return `<div class="pl-mat">${s.concluido ? `<p class="pl-nota">📦 Produção já feita (histórico). Itens sem marcar não foram recebidos.</p>` : ''}${(s.itens||[]).map((it, i) => `
+      return `<div class="pl-mat">${s.historico ? `<p class="pl-nota">📦 Produção já feita (histórico). Itens sem marcar não foram recebidos.</p>` : ''}${(s.itens||[]).map((it, i) => `
         <div class="pl-mat-item st-${it.status}">
           <div class="pl-mat-linha">
             <span class="pl-row-nome">${escapeHtml(matCurto(it.nome))}</span>
@@ -10483,7 +10490,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <div class="pl-pct"><b>${r.pct}%</b><span>${r.feitas}/${r.total} etapas</span></div>
         </div>
         <div class="pl-bar"><i style="width:${r.pct}%"></i></div>
-        ${pipeSoLeitura && isAdmin ? `<div class="pl-leitura" style="justify-content:flex-end;background:none;border:none;padding:0;"><button type="button" id="plEditar">✎ Editar linha de produção</button></div>` : ''}
+
         ${pipeLote && pipeLote.ids.includes(p.id) ? `<div class="pl-lote"><span>Criando a linha do <b>${rotuloEp(p, true)} ${escapeHtml(p.episode || String(pipeLote.ids.indexOf(p.id)+1))}</b> (${pipeLote.ids.indexOf(p.id)+1} de ${pipeLote.ids.length}):</span>
           ${pipeLote.ids.map(id => { const q = pipelines.find(x => x.id === id); const rot = q && q.episode ? q.episode : '?'; return `<span class="pl-lote-chip ${id === p.id ? 'atual' : (pipeLote.feitos.has(id) ? 'feito' : '')}">${pipeLote.feitos.has(id) && id !== p.id ? '✓ ' : ''}${rotuloEp(p)} ${escapeHtml(rot)}</span>`; }).join('')}
           <span style="flex-basis:100%;opacity:.8;">Ao fechar, você escolhe se repete as informações nos próximos.</span></div>` : ''}
@@ -10517,6 +10524,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           <button class="btn-primary pl-rod" id="plFechar">Fechar</button>
         </div>
       </div>`;
+    ov.style.zIndex = '300'; porNaFrente(ov);
     ov.classList.add('open');
     const leituraAgora = pipeSoLeitura;
     const fechar = () => { ov.classList.remove('open'); pipeAberto = null; pipeSoLeitura = false; pipeOrigemItem = null; if (p.kind === 'audiobook') sincronizarAudiobooks(); if (pipeLoteProximo(p)) return; if (currentView === 'producao') renderProducao(); if (currentView === 'cronograma') renderCronograma(); };
@@ -10561,6 +10569,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // material
     ov.querySelectorAll('[data-pl-mat]').forEach(b => b.onclick = async () => {
       const it = aberta.itens[Number(b.dataset.plMat)]; it.status = it.status === b.dataset.st ? 'pendente' : b.dataset.st;
+      if (!aberta.historico) delete aberta.concluido; // a etapa volta a depender dos itens marcados
       await pipeSalvar(p);
       if (/srt|legenda/i.test(it.nome) && it.status === 'faltando' && (p.steps||[]).some(st => st.condicional === 'srt')){
         showToast('🤖 Etapa "Criar o SRT com o Claude" adicionada');
@@ -10664,7 +10673,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   function abrirFichaProducao(project){
     const lista = pipelines.filter(p => p.project === project).sort((a,b) => epNum(a) - epNum(b));
     const ov = document.createElement('div');
-    ov.className = 'modal-overlay open'; ov.style.zIndex = '310';
+    ov.className = 'modal-overlay'; ov.style.zIndex = '310'; porNaFrente(ov); ov.classList.add('open');
     const total = lista.reduce((m, p) => Math.max(m, Number(p.serie_total)||0), 0);
     const rot = lista[0] ? rotuloEp(lista[0], true) : 'Episódio';
     const frId = projectFranchise[project]; const fr = frId ? (franchises||[]).find(f => f.id === frId) : null;
@@ -13071,6 +13080,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           <button class="btn-ghost" id="coadjClose">Fechar</button>
         </div>
       </div>`;
+    porNaFrente(ov);
     ov.classList.add('open');
     hydratePhotos();
     $('#coadjClose').addEventListener('click', ()=>ov.classList.remove('open'));
@@ -14340,6 +14350,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           ${isAdmin?`<button class="btn-primary" id="projSaveOrder">Salvar ordem</button>`:''}
         </div>
       </div>`;
+    porNaFrente(ov);
     ov.classList.add('open');
     navRegistrar('proj:' + project, ov, () => openProjetoModal(project), () => ov.classList.remove('open'));
     hydratePhotos();
