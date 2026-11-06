@@ -18,9 +18,9 @@
     --bg: #0A0E15;
     --surface: #111722;
     --surface-soft: #161E2C;
-    --ink: #E9EEF6;
-    --muted: #8A96AB;
-    --line: #222C3D;
+    --ink: #F3F6FB;
+    --muted: #AEB9CB;
+    --line: #26314A;
     --blue: #4A9BE0;          /* azul Éden (acento principal) */
     --blue-deep: #7DB8EC;     /* azul claro para textos/destaques no escuro */
     --blue-ink: #B9D9F5;
@@ -40,7 +40,7 @@
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
     --warn-ink: #F3CD7A; --ok-ink: #4ADE9B; --violet-ink: #C4B5FD; --danger-ink: #FCA5A5;
     --header-bg: rgba(10,14,21,.86); --glass: rgba(17,23,34,.92); --overlay: rgba(3,6,10,.72);
-    --line-strong: #33425A; --surface-hover: #131A26; --scroll: #2A3548; --placeholder: #5F6B80;
+    --line-strong: #33425A; --surface-hover: #131A26; --scroll: #2A3548; --placeholder: #7D8AA0;
     --greet-bg: linear-gradient(135deg,#132538 0%,#111A28 60%,#1A1714 100%);
     --glow-a: rgba(74,155,224,0.10); --glow-b: rgba(232,135,90,0.07);
   }
@@ -420,6 +420,16 @@
   .pnote-body{ font-size:13.5px; line-height:1.5; margin-top:3px; word-wrap:break-word; color:var(--ink); }
   .pnote-body ol{ margin:4px 0 4px 20px; padding:0; }
   .pnote-body [style*="background-color"]{ border-radius:3px; padding:1px 3px; }
+  .pnote-body [style*="background-color"], .notes-editor [style*="background-color"], .pnote-body mark, .notes-editor mark{ color:#111827 !important; }
+  .pnote-body [style*="background-color"] *, .notes-editor [style*="background-color"] *{ color:#111827 !important; }
+  .pnote-body b, .pnote-body strong{ font-weight:700; }
+  .notes-tb-sep{ width:1px; align-self:stretch; background:var(--line); margin:0 2px; }
+  .notes-tb-cor{ width:22px; height:22px; border-radius:6px; border:1px solid var(--line); cursor:pointer; padding:0; }
+  .notes-tb-cor:hover{ outline:2px solid var(--blue); outline-offset:1px; }
+  .notes-emoji-pop{ position:absolute; z-index:60; display:grid; grid-template-columns:repeat(8, 30px); gap:2px; padding:8px; background:var(--surface); border:1px solid var(--line-strong); border-radius:12px; box-shadow:var(--shadow); }
+  .notes-emoji-pop button{ background:none; border:none; font-size:18px; cursor:pointer; border-radius:6px; padding:2px; }
+  .notes-emoji-pop button:hover{ background:var(--surface-soft); }
+  .notes-toolbar{ position:relative; align-items:center; }
   .pnote-editor{ min-height:50px; }
 
   /* ---- Marcação @menção dentro do texto ---- */
@@ -726,10 +736,10 @@
   .mural-btn.mural-del:hover{ background:rgba(220,38,38,.1); }
 
   /* Layout de 2 colunas: tarefas (larga) + chat (mais confortável) */
-  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:16px; align-items:start; }
+  .prod-layout{ display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
   .prod-chat-col{ position:relative; min-width:0; }
   /* Modo kanban: mantém o chat na lateral, mas o quadro fica mais alto */
-  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr) 420px; }
+  .prod-layout.kanban-mode{ grid-template-columns:minmax(0,1fr); }
   .prod-layout.kanban-mode .prod-chat-col .chat-msgs{ max-height:calc(100vh - 300px) !important; min-height:490px !important; }
   @media (max-width:1000px){
     .prod-layout{ grid-template-columns:minmax(0,1fr); }
@@ -2782,16 +2792,6 @@
   .rp-passo.feito{ color:var(--n100-tx); border-color:var(--n100-bd); background:var(--n100-bg); }
   .rp-pag-topo{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; color:var(--ink); margin-bottom:8px; }
   .rp-todos{ background:none; border:none; color:var(--blue); font:inherit; font-size:12px; cursor:pointer; padding:0; }
-  .rp-matriz-wrap{ max-height:300px; overflow:auto; border:1px solid var(--line); border-radius:10px; }
-  .rp-matriz{ width:100%; border-collapse:collapse; font-size:13px; }
-  .rp-matriz th{ position:sticky; top:0; background:var(--surface); font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); padding:8px; text-align:center; border-bottom:1px solid var(--line); }
-  .rp-matriz th:first-child, .rp-matriz td:first-child{ text-align:left; }
-  .rp-matriz td{ padding:7px 8px; border-bottom:1px solid var(--line); text-align:center; color:var(--ink); }
-  .rp-matriz tr:last-child td{ border-bottom:none; }
-  .rp-matriz td small{ display:block; font-size:10.5px; color:var(--muted); font-weight:500; }
-  .rp-cel{ display:inline-flex !important; flex-direction:column; align-items:center; gap:2px; margin:0 !important; cursor:pointer; text-transform:none !important; letter-spacing:0 !important; }
-  .rp-cel-toda{ flex-direction:row; gap:6px; }
-  .rp-cel input{ width:16px; height:16px; accent-color:var(--blue); }
   .ab-filtros{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 14px; }
   .ab-filtros select{ padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:var(--surface-soft); color:var(--ink); font:inherit; font-size:13px; max-width:240px; }
   .ab-limpar{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:6px 12px; font:inherit; font-size:12.5px; cursor:pointer; }
@@ -3299,13 +3299,50 @@
 
   .toast{
     position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(12px);
-    background: var(--ink); color: #fff;
-    padding: 11px 20px; border-radius: 12px; font-size: 13px; font-weight: 500;
+    background: #0F1726; color: #F8FAFC; border: 1px solid rgba(255,255,255,.14);
+    padding: 11px 20px; border-radius: 12px; font-size: 13.5px; font-weight: 600;
     box-shadow: 0 10px 26px rgba(15,23,42,0.3);
     opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
     z-index: 200;
   }
   .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---- Chat flutuante (estilo JivoChat) ---- */
+  .cw{ position:fixed; right:22px; bottom:22px; z-index:180; display:flex; flex-direction:column; align-items:flex-end; gap:12px; }
+  .cw[hidden]{ display:none !important; }
+  .cw-fab{ position:relative; width:60px; height:60px; border-radius:50%; border:none; cursor:pointer; color:#fff; font-size:26px;
+    background:linear-gradient(135deg, var(--blue) 0%, #2F6FB5 100%); box-shadow:0 10px 28px rgba(0,0,0,.45), 0 0 0 4px rgba(74,155,224,.18);
+    display:flex; align-items:center; justify-content:center; transition:transform .15s; }
+  .cw-fab:hover{ transform:scale(1.06); }
+  .cw-fab .cw-ic-fechar{ display:none; font-size:20px; font-weight:700; }
+  .cw.aberto .cw-fab .cw-ic-abrir{ display:none; }
+  .cw.aberto .cw-fab .cw-ic-fechar{ display:inline; }
+  .cw-badge{ position:absolute; top:-3px; right:-3px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:#EF4444; color:#fff; font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid var(--bg); }
+  .cw-badge[hidden]{ display:none; }
+  .cw-panel{ width:370px; max-width:calc(100vw - 32px); height:520px; max-height:calc(100vh - 120px); background:var(--surface); border:1px solid var(--line-strong); border-radius:18px;
+    box-shadow:0 24px 60px rgba(0,0,0,.55); display:flex; flex-direction:column; overflow:hidden; animation:cwSobe .18s ease-out; }
+  .cw-panel[hidden]{ display:none; }
+  @keyframes cwSobe{ from{ opacity:0; transform:translateY(12px) scale(.98); } to{ opacity:1; transform:none; } }
+  .cw-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; background:linear-gradient(135deg, rgba(74,155,224,.22), rgba(232,135,90,.10)); border-bottom:1px solid var(--line); }
+  .cw-head b{ display:block; font-size:15px; color:var(--ink); }
+  .cw-head small{ font-size:11px; color:var(--muted); }
+  .cw-min{ background:none; border:1px solid var(--line); color:var(--muted); width:30px; height:30px; border-radius:8px; cursor:pointer; font-weight:800; }
+  .cw-min:hover{ color:var(--ink); border-color:var(--blue); }
+  .cw-msgs{ flex:1; max-height:none !important; overflow-y:auto; padding:10px 10px 6px; }
+  .cw-input{ padding:10px; border-top:1px solid var(--line); background:var(--surface); }
+  .cw-input .btn-primary{ padding:8px 14px; font-size:15px; }
+  .cw-preview{ max-width:300px; background:var(--surface); color:var(--ink); border:1px solid var(--line-strong); border-radius:16px 16px 4px 16px; padding:10px 12px; box-shadow:0 14px 34px rgba(0,0,0,.45); cursor:pointer; display:flex; gap:10px; align-items:flex-start; animation:cwSobe .2s ease-out; }
+  .cw-preview[hidden]{ display:none; }
+  .cw-preview img{ width:34px; height:34px; border-radius:50%; object-fit:cover; flex:0 0 auto; }
+  .cw-preview b{ font-size:13px; display:block; }
+  .cw-preview p{ margin:2px 0 0; font-size:13px; color:var(--muted); line-height:1.4; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .cw-preview .cw-prev-x{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:13px; padding:0 0 0 4px; }
+  @media (max-width:640px){
+    .cw{ right:14px; bottom:88px; }
+    .cw.aberto{ right:8px; left:8px; bottom:8px; align-items:stretch; }
+    .cw.aberto .cw-panel{ width:auto; height:calc(100vh - 90px); }
+    .cw.aberto .cw-fab{ align-self:flex-end; width:48px; height:48px; }
+  }
 
   footer.note{
     text-align:center;
@@ -3667,6 +3704,25 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="chatWidget" class="cw" hidden>
+  <div class="cw-preview" id="cwPreview" hidden></div>
+  <div class="cw-panel" id="cwPanel" hidden role="dialog" aria-label="Chat da equipe">
+    <div class="cw-head">
+      <div><b>💬 Chat da equipe</b><small>Mensagens somem depois de alguns dias</small></div>
+      <button type="button" class="cw-min" id="cwMin" title="Minimizar">—</button>
+    </div>
+    <div class="chat-msgs cw-msgs" id="chatMsgs"></div>
+    <div class="chat-input-row cw-input" style="position:relative;">
+      <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
+      <button class="btn-primary" id="chatSend" title="Enviar (Enter)">➤</button>
+      <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
+    </div>
+  </div>
+  <button type="button" class="cw-fab" id="cwFab" title="Chat da equipe">
+    <span class="cw-ic-abrir">💬</span><span class="cw-ic-fechar">✕</span>
+    <span class="cw-badge" id="cwBadge" hidden></span>
+  </button>
+</div>
 
 <footer class="note"></footer>
 
@@ -4079,6 +4135,51 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let notasProjetoAberto = null;
 
   // Remove scripts/eventos do HTML colado no editor (o resto da formatação fica)
+  const NOTA_CORES = [['#FEF08A','amarelo'],['#BBF7D0','verde'],['#BFDBFE','azul'],['#FBCFE8','rosa'],['#FED7AA','laranja'],['#DDD6FE','lilás']];
+  const NOTA_EMOJIS = ['✅','⚠️','❗','❓','🔥','⭐','👍','👏','🙏','🎬','🎙️','🎧','📌','📅','⏰','💡','📝','🔁','🚀','✂️','🎨','😀','😅','😉','🙌','❤️','👀','📎','🟢','🟡','🔴','➡️'];
+  function notasToolbarHtml(){
+    return `<div class="notes-toolbar">
+      <button type="button" class="notes-tb-btn" data-cmd="bold" title="Negrito (Ctrl+B)"><b>N</b> Negrito</button>
+      <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
+      <button type="button" class="notes-tb-btn" data-nota-arroba="1" title="Marcar alguém da equipe">@ Marcar</button>
+      <button type="button" class="notes-tb-btn" data-nota-emoji="1" title="Emojis">😀 Emoji</button>
+      <span class="notes-tb-sep"></span>
+      <span style="font-size:11.5px;color:var(--muted);">🖍️ Grifar:</span>
+      ${NOTA_CORES.map(([c, n]) => `<button type="button" class="notes-tb-cor" data-cmd="backColor" data-value="${c}" style="background:${c};" title="Grifar em ${n}"></button>`).join('')}
+      <button type="button" class="notes-tb-btn" data-nota-limpar="1" title="Tirar grifo/negrito do trecho selecionado" style="padding:4px 8px;">✕</button>
+    </div>`;
+  }
+  // liga uma barra a um editor (getEditor devolve o editor que deve receber a formatação)
+  function ligarNotasToolbar(tb, getEditor){
+    if (!tb) return;
+    const alvo = () => { const a = document.activeElement; return (a && a.isContentEditable) ? a : getEditor(); };
+    let ultimaSel = null;
+    const guardarSel = () => { const s = getSelection(); if (s && s.rangeCount && getEditor() && getEditor().contains(s.anchorNode)) ultimaSel = s.getRangeAt(0).cloneRange(); };
+    document.addEventListener('selectionchange', guardarSel);
+    const restaurar = (ed) => { ed.focus(); if (ultimaSel){ const s = getSelection(); s.removeAllRanges(); s.addRange(ultimaSel); } };
+    tb.querySelectorAll('button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault())); // não perde a seleção
+    tb.querySelectorAll('[data-cmd]').forEach(b => b.addEventListener('click', () => {
+      const ed = alvo(); if (!ed) return; ed.focus();
+      try { document.execCommand('styleWithCSS', false, b.dataset.cmd === 'backColor'); document.execCommand(b.dataset.cmd, false, b.dataset.value || null); } catch(e){}
+    }));
+    const lp = tb.querySelector('[data-nota-limpar]');
+    if (lp) lp.addEventListener('click', () => { const ed = alvo(); if (!ed) return; ed.focus(); try { document.execCommand('styleWithCSS', false, true); document.execCommand('backColor', false, 'transparent'); document.execCommand('removeFormat'); } catch(e){} });
+    const ar = tb.querySelector('[data-nota-arroba]');
+    if (ar) ar.addEventListener('click', () => { const ed = alvo(); if (!ed) return; ed.focus(); try { document.execCommand('insertText', false, ' @'); } catch(e){} });
+    const em = tb.querySelector('[data-nota-emoji]');
+    if (em) em.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const velho = tb.querySelector('.notes-emoji-pop'); if (velho){ velho.remove(); return; }
+      const ed = getEditor();
+      const pop = document.createElement('div'); pop.className = 'notes-emoji-pop';
+      pop.innerHTML = NOTA_EMOJIS.map(x => `<button type="button">${x}</button>`).join('');
+      pop.style.top = (em.offsetTop + em.offsetHeight + 4) + 'px'; pop.style.left = em.offsetLeft + 'px';
+      tb.appendChild(pop);
+      pop.querySelectorAll('button').forEach(x => { x.addEventListener('mousedown', e => e.preventDefault()); x.addEventListener('click', () => { restaurar(ed); try { document.execCommand('insertText', false, x.textContent); } catch(e){} pop.remove(); }); });
+      setTimeout(() => document.addEventListener('click', function f(e){ if (!pop.contains(e.target)){ pop.remove(); document.removeEventListener('click', f); } }), 0);
+    });
+  }
+
   function limparHtmlNota(html){
     const tpl = document.createElement('template');
     tpl.innerHTML = html || '';
@@ -4201,6 +4302,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const antes = [...new Set([...corpo.querySelectorAll('.mention-tag')].map(t => t.dataset.userId))];
       const htmlOriginal = corpo.innerHTML;
       corpo.innerHTML = `
+        ${notasToolbarHtml()}
         <div class="notes-editor pnote-editor" contenteditable="true">${htmlOriginal}</div>
         <div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;">
           <button type="button" class="btn-ghost pnote-cancel" style="padding:6px 12px;font-size:12.5px;">Cancelar</button>
@@ -4209,6 +4311,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       const ed = corpo.querySelector('.pnote-editor');
       ed.querySelectorAll('.mention-tag').forEach(t => t.setAttribute('contenteditable','false'));
       iniciarMencoesEditor(ed);
+      ligarNotasToolbar(corpo.querySelector('.notes-toolbar'), () => ed);
       ed.focus();
       try { const r = document.createRange(); r.selectNodeContents(ed); r.collapse(false); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } catch(_){}
       corpo.querySelector('.pnote-cancel').addEventListener('click', () => carregarNotasProjeto(project));
@@ -8573,7 +8676,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       if (error) throw error;
       chatCache = data || [];
       chatLastReload = Date.now();
-      if (currentView === 'painel' || currentView === 'producao') rerenderChatMsgs();
+      rerenderChatMsgs();
     }catch(e){
       // silencioso — mantém o cache anterior
     }finally{
@@ -10621,13 +10724,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     let pag = 0;
     const btnSim = ov.querySelector('#rpSim');
     const textoFinal = btnSim.textContent;
+    const atualizarBotao = () => { btnSim.textContent = (modo === 'parte' && pag < pags.length - 1) ? `Próximo: ${ov.querySelectorAll('[data-rp-ir]')[pag + 1].textContent.replace(/^\d+\.\s*/, '')} →` : textoFinal; };
     const irPag = k => {
       pag = Math.max(0, Math.min(pags.length - 1, k));
       pags.forEach((el, i) => el.hidden = i !== pag);
       ov.querySelectorAll('[data-rp-ir]').forEach((b, i) => { b.classList.toggle('on', i === pag); b.classList.toggle('feito', i < pag); });
       atualizarBotao();
     };
-    const atualizarBotao = () => { btnSim.textContent = (modo === 'parte' && pag < pags.length - 1) ? `Próximo: ${ov.querySelectorAll('[data-rp-ir]')[pag + 1].textContent.replace(/^\d+\.\s*/, '')} →` : textoFinal; };
     ov.querySelectorAll('[data-rp-ir]').forEach(b => b.onclick = () => irPag(Number(b.dataset.rpIr)));
     ov.querySelectorAll('[data-rp-todos]').forEach(b => b.onclick = () => { b.closest('.rp-pagina').querySelectorAll('input[type=checkbox]').forEach(i => i.checked = b.dataset.rpTodos === '1'); });
     ov.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => { modo = b.dataset.rp; ov.querySelectorAll('[data-rp]').forEach(x => x.classList.toggle('on', x === b)); ov.querySelector('#rpEtapas').hidden = modo !== 'parte'; irPag(0); });
@@ -14012,10 +14115,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="field">
           <label>📝 Observações da equipe</label>
           <div id="projNotesList" class="pnotes-list"><div class="pnotes-vazio">Carregando…</div></div>
-          <div class="notes-toolbar" style="margin-top:10px;">
-            <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
-            <button type="button" class="notes-tb-btn notes-tb-highlight" data-cmd="backColor" data-value="#FEF08A" title="Grifar em amarelo">🖍️ Grifar</button>
-          </div>
+          <div id="projNotesTb" style="margin-top:10px;">${notasToolbarHtml()}</div>
           <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Digite <b>@</b> seguido do nome pra marcar alguém da equipe — a pessoa recebe notificação quando você publicar.</p>
           <div id="projNotesInput" class="notes-editor" contenteditable="true"
             data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências... use @ pra marcar alguém"></div>
@@ -14183,14 +14283,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // com autor + data. Autor (ou admin) pode editar — inclusive marcar
     // gente com @ depois — e excluir.
     const notesEditor = $('#projNotesInput');
-    ov.querySelectorAll('.notes-tb-btn').forEach(btn => {
-      btn.addEventListener('mousedown', (e) => e.preventDefault()); // não tira o foco/seleção da caixa
-      btn.addEventListener('click', () => {
-        const alvo = (document.activeElement && document.activeElement.isContentEditable) ? document.activeElement : notesEditor;
-        if (alvo) alvo.focus();
-        try { document.execCommand(btn.dataset.cmd, false, btn.dataset.value || null); } catch(e){ console.warn('Formatação não suportada:', e); }
-      });
-    });
+    ligarNotasToolbar(ov.querySelector('#projNotesTb'), () => notesEditor);
     if (notesEditor) iniciarMencoesEditor(notesEditor);
 
     const btnClearNotes = $('#projClearNotes');
@@ -15035,7 +15128,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
             <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
           </div>
-          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+          <button class="btn-ghost notif-conf" data-conf="${ehChat ? 'chat' : 'producao'}" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
         </div>`);
     });
     mencoes.forEach(m => {
@@ -15094,7 +15187,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
       renderBellBadge();
       fecharNotifDropdown();
-      if (destino === 'producao'){ switchView('producao'); }
+      if (destino === 'chat'){ abrirChatWidget(); }
+      else if (destino === 'producao'){ switchView('producao'); }
       else if (destino === 'mencao'){
         const proj = btn.dataset.mencaoProj;
         switchView('home');
@@ -15944,19 +16038,6 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       </div>
       <div class="prod-layout">
         <div id="prodListaTarefas"></div>
-        <div class="prod-chat-col">
-          <div class="painel-card" style="position:sticky;top:16px;">
-            <div class="painel-title">💬 Chat do dia</div>
-            <div class="chat-wrap">
-              <div class="chat-msgs" id="chatMsgs" style="max-height:540px;min-height:340px;">${renderChatMsgs()}</div>
-              <div class="chat-input-row" style="position:relative;">
-                <textarea class="chat-input" id="chatInput" placeholder="Mensagem… use @nome para mencionar" rows="1"></textarea>
-                <button class="btn-primary" id="chatSend" style="padding:8px 14px;font-size:13px;white-space:nowrap;">Enviar</button>
-                <div id="chatMentionDrop" class="chat-mention-drop" style="display:none;bottom:calc(100% + 4px);left:0;"></div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>`;
 
     const btnGestao = $('#abrirGestaoBtn');
@@ -15967,7 +16048,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (btnMural) btnMural.addEventListener('click', openMural);
     wireVistaEfiltros();
     wireBacklog(cont);
-    wireChatProducao(); // liga o chat que está agora dentro da produção
+    // o chat agora é a bolinha flutuante (chatWidget), disponível em todas as abas
     renderProducaoLista(); // começa em Todos + Pendentes — cada um vê o que os outros fazem
   }
 
@@ -16630,7 +16711,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
             <div class="notif-txt">${escapeHtml(n.message||'Nova tarefa')}</div>
             <div class="notif-sub">${new Date(n.created_at).toLocaleString('pt-BR')}</div>
           </div>
-          <button class="btn-ghost notif-conf" data-conf="producao" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
+          <button class="btn-ghost notif-conf" data-conf="${ehChat ? 'chat' : 'producao'}" data-lida-task="${n.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
         </div>`);
     });
 
@@ -16675,7 +16756,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       }
       renderBellBadge();
       // vai pro destino
-      if (destino === 'producao'){ switchView('producao'); }
+      if (destino === 'chat'){ abrirChatWidget(); }
+      else if (destino === 'producao'){ switchView('producao'); }
       else if (destino === 'mencao'){
         const proj = btn.dataset.mencaoProj;
         switchView('home');
@@ -17173,6 +17255,54 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     else renderPainel();
   }
 
+  // ===== Chat flutuante =====
+  let cwAberto = false, cwNaoLidas = 0, cwPrevTimer = null, cwPronto = false;
+  function cwAtualizarBadge(){
+    const b = $('#cwBadge'); if (!b) return;
+    b.hidden = !cwNaoLidas; b.textContent = cwNaoLidas > 9 ? '9+' : String(cwNaoLidas);
+  }
+  function abrirChatWidget(){
+    const w = $('#chatWidget'); if (!w) return;
+    cwAberto = true; cwNaoLidas = 0; cwAtualizarBadge();
+    w.classList.add('aberto'); $('#cwPanel').hidden = false; $('#cwPreview').hidden = true;
+    rerenderChatMsgs();
+    setTimeout(() => { const i = $('#chatInput'); if (i) i.focus(); }, 50);
+  }
+  function fecharChatWidget(){
+    const w = $('#chatWidget'); if (!w) return;
+    cwAberto = false; w.classList.remove('aberto'); $('#cwPanel').hidden = true;
+  }
+  function cwMostrarPrevia(msg){
+    if (cwAberto || !msg) return;
+    cwNaoLidas++; cwAtualizarBadge();
+    const pv = $('#cwPreview'); if (!pv) return;
+    const ninja = NINJAS[msg.author_color] || NINJAS.azul;
+    pv.innerHTML = `<img src="${ninja}" alt=""><div style="flex:1;min-width:0;"><b>${escapeHtml(msg.author_name || 'Ninja')}</b><p>${escapeHtml(String(msg.body || '').slice(0, 160))}</p></div><button type="button" class="cw-prev-x" title="Fechar">✕</button>`;
+    pv.hidden = false;
+    pv.querySelector('.cw-prev-x').onclick = (e) => { e.stopPropagation(); pv.hidden = true; };
+    clearTimeout(cwPrevTimer);
+    cwPrevTimer = setTimeout(() => { pv.hidden = true; }, 7000);
+  }
+  function iniciarChatWidget(){
+    const w = $('#chatWidget'); if (!w) return;
+    w.hidden = false;
+    if (cwPronto) return;
+    cwPronto = true;
+    $('#cwFab').addEventListener('click', () => cwAberto ? fecharChatWidget() : abrirChatWidget());
+    $('#cwMin').addEventListener('click', fecharChatWidget);
+    $('#cwPreview').addEventListener('click', abrirChatWidget);
+    $('#chatSend').addEventListener('click', () => sendChatMsg());
+    const input = $('#chatInput');
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChatMsg(); } });
+    input.addEventListener('input', (e) => { try { handleChatMention(e); } catch(err){} });
+    $('#cwPanel').addEventListener('click', (e) => {
+      const react = e.target.closest('[data-react]');
+      if (react){ toggleReaction(react.dataset.react, react.dataset.emoji); }
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && cwAberto && !document.querySelector('.modal-overlay.open')) fecharChatWidget(); });
+    rerenderChatMsgs();
+  }
+
   function rerenderChatMsgs(){
     const box = $('#chatMsgs'); if (!box) return;
     box.innerHTML = renderChatMsgs();
@@ -17324,6 +17454,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         // toca som se for de outra pessoa e não for eco da minha própria msg
         if (payload.new && payload.new.user_id !== myUserId && payload.new.id !== ultimaMinha){
           playNotifSound();
+          cwMostrarPrevia(payload.new);
         }
         reloadChatFromDB();
       })
@@ -17345,6 +17476,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (ag) ag.style.display = 'none';
   }
   function showLogin(){
+    try { const w = document.getElementById('chatWidget'); if (w){ w.hidden = true; } } catch(e){}
     const ag = document.getElementById('authGate');
     if (ag) ag.style.display = 'flex';
     hideLoading();
@@ -17388,6 +17520,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         await loadMyProfile();
         subscribeRealtime();
         subscribeChat();
+        iniciarChatWidget();
         switchView('home');
         maybePromptProfile();
       } catch(e){ switchView('home'); }
@@ -17554,6 +17687,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           await loadPeople();
           await loadMyProfile();
           subscribeChat();
+          iniciarChatWidget();
           switchView('home');
           maybePromptProfile();
         } catch(e){ switchView('home'); }
