@@ -2874,6 +2874,8 @@
   .np-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
   .np-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .pl-rod{ white-space:nowrap; }
+  .pl-voz-ok{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--n100-bg); border:1px solid var(--n100-bd); color:var(--n100-tx); border-radius:10px; padding:9px 12px; font-size:13.5px; }
+  .pl-voz-ok b{ color:var(--ink); }
   .rp-passos{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
   .rp-passo{ border:1px solid var(--line); background:var(--surface-soft); color:var(--muted); border-radius:999px; padding:5px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .rp-passo.on{ background:var(--blue); border-color:var(--blue); color:#fff; }
@@ -10210,6 +10212,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   let pipelines = [];
   let pipelinesOk = true;
   let pipeAberto = null;      // id do pipeline aberto na janela
+  let pipeVozEditando = null; // linha de audiobook com a voz em edição
   let pipeSoLeitura = false;  // aberta só para ver (botão "Editar linha" libera)
   let pipeOrigemItem = null;  // {tabela,id} quando aberta a partir do cronograma
   function pipeAdm(){ return isAdmin; }
@@ -10525,16 +10528,20 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     }
     if (s.tipo === 'voz_livro'){
       const autor = (p.autor||'').trim().toLowerCase();
-      const sug = autor ? audiobooks.filter(a => (a.author||'').trim().toLowerCase() === autor && (a.voices||[]).some(v => v.voice)) : [];
+      const esteLivro = chaveNome(tituloDoAudiobook(p).titulo);
+      const sug = autor ? audiobooks.filter(a => (a.author||'').trim().toLowerCase() === autor && chaveNome(a.title) !== esteLivro && (a.voices||[]).some(v => v.voice)) : [];
       const vozSug = sug.length ? ((sug[0].voices.find(v => v.is_main && v.voice) || sug[0].voices.find(v => v.voice)) || {}).voice : '';
       return `<div class="pl-vozes">
         ${vozSug ? `<p class="pl-nota">💡 Outros livros de <b>${escapeHtml(p.autor)}</b> usaram a voz <b>${escapeHtml(vozSug)}</b> (${escapeHtml(sug[0].title)}). Use a mesma para manter o padrão.</p>`
           : p.autor ? `<p class="pl-nota">Nenhum outro livro de ${escapeHtml(p.autor)} no app ainda.</p>` : `<p class="pl-nota">Informe o autor para o app sugerir a mesma voz dos outros livros dele.</p>`}
-        <div class="pl-add">
+        ${s.done && s.voz && pipeVozEditando !== p.id ? `<div class="pl-voz-ok">
+          <span>✓ Voz definida: <b>${escapeHtml(s.voz)}</b></span>
+          ${pipeAdm() ? `<button type="button" class="pl-btn-sec" id="plVozAlterar">Alterar</button>` : ''}
+        </div>` : `<div class="pl-add">
           <input type="text" id="plVozLivro" placeholder="Voz escolhida…" value="${escapeHtml(s.voz||'')}" ${pipeAdm()?'':'disabled'}>
-          ${vozSug && pipeAdm() ? `<button type="button" id="plVozUsar" data-voz="${escapeHtml(vozSug)}" class="pl-btn-sec">Usar ${escapeHtml(vozSug)}</button>` : ''}
-          ${pipeAdm() ? `<button type="button" id="plVozSalvar">${s.done?'Salvar':'✓ Definir'}</button>` : ''}
-        </div>
+          ${vozSug && pipeAdm() && chaveNome(vozSug) !== chaveNome(s.voz||'') ? `<button type="button" id="plVozUsar" data-voz="${escapeHtml(vozSug)}" class="pl-btn-sec">Usar ${escapeHtml(vozSug)}</button>` : ''}
+          ${pipeAdm() ? `<button type="button" id="plVozSalvar">✓ Salvar</button>` : ''}
+        </div>`}
       </div>`;
     }
     if (s.tipo === 'partes') return `<div class="pl-rows">${Array.from({length:N}, (_, i) => pipeLinhaPessoa(p, s, i+1)).join('')}</div>`;
@@ -10725,7 +10732,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     // vozes
     const vo = ov.querySelector('#plVozesOk'); if (vo) vo.onclick = async () => { aberta.done = !aberta.done; await pipeSalvar(p); reabrir(); };
     const vu = ov.querySelector('#plVozUsar'); if (vu) vu.onclick = () => { ov.querySelector('#plVozLivro').value = vu.dataset.voz; };
-    const vs = ov.querySelector('#plVozSalvar'); if (vs) vs.onclick = async () => { aberta.voz = ov.querySelector('#plVozLivro').value.trim(); aberta.done = !!aberta.voz; await pipeSalvar(p); reabrir(); };
+    const vs = ov.querySelector('#plVozSalvar'); if (vs) vs.onclick = async () => { aberta.voz = vozCanonica(ov.querySelector('#plVozLivro').value.trim()); aberta.done = !!aberta.voz; pipeVozEditando = null; await pipeSalvar(p); if (aberta.voz) showToast(`✓ Voz definida: ${aberta.voz}`); reabrir(); };
+    const va = ov.querySelector('#plVozAlterar'); if (va) va.onclick = () => { pipeVozEditando = p.id; reabrir(); };
     // responsável
     ov.querySelectorAll('[data-pl-atrib]').forEach(sel => sel.onchange = async () => {
       sel.disabled = true;
