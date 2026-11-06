@@ -2708,6 +2708,16 @@
   .pl-dot{ flex:1; height:6px; border-radius:6px; background:var(--line); }
   .pl-dot.ok{ background:var(--green); }
   .pl-dot.atual{ background:var(--blue); box-shadow:0 0 0 2px rgba(74,155,224,.25); }
+  .pl-card-min{ padding:12px 14px !important; gap:8px !important; background:var(--surface) !important; }
+  .pl-card-min .pl-card-nome{ font-size:14px; font-weight:600; }
+  .pl-card-min .pl-card-sub{ font-size:12px; color:var(--muted); }
+  .pl-card-min .pl-card-pct{ font-family:var(--font-body); font-size:14px; font-weight:700; }
+  .pl-card-aviso{ color:var(--warn-ink); opacity:.85; margin-left:4px; white-space:nowrap; }
+  .pl-barra{ height:3px; border-radius:3px; background:var(--line); overflow:hidden; }
+  .pl-barra i{ display:block; height:100%; background:var(--blue); border-radius:3px; }
+  .pl-card-min.n100 .pl-barra i{ background:var(--green); }
+  .pl-card-min.n100{ border-color:var(--n100-bd) !important; }
+  .pl-card-min.n70{ border-color:var(--line) !important; }
   .pl-card-falt{ font-size:11.5px; color:var(--warn-ink); background:rgba(226,177,79,.12); border-radius:8px; padding:5px 8px; }
   .pl-sep{ font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:6px 0 10px; }
   .pl-modal{ max-width:720px; }
@@ -3708,7 +3718,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   <div class="cw-preview" id="cwPreview" hidden></div>
   <div class="cw-panel" id="cwPanel" hidden role="dialog" aria-label="Chat da equipe">
     <div class="cw-head">
-      <div><b>💬 Chat da equipe</b><small>Mensagens somem depois de alguns dias</small></div>
+      <div><b>💬 Chat da equipe</b></div>
       <button type="button" class="cw-min" id="cwMin" title="Minimizar">—</button>
     </div>
     <div class="chat-msgs cw-msgs" id="chatMsgs"></div>
@@ -11045,18 +11055,16 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const kind = PIPE_KINDS[p.kind] || PIPE_KINDS.video;
     const quem = pipeQuemNaEtapa(p, r.atual);
     const dots = pipeEtapasVis(p).map(s => `<span class="pl-dot${pipeEtapaOk(p, s)?' ok':''}${r.atual && r.atual.key === s.key ? ' atual' : ''}" title="${escapeHtml(s.nome)}"></span>`).join('');
-    return `<button type="button" class="pl-card ${pipeNivel(p)}" data-pl-abrir="${p.id}">
+    const avisos = [...r.faltando.map(n => 'sem ' + n), ...((p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? ['partes a definir'] : [])];
+    return `<button type="button" class="pl-card pl-card-min ${pipeNivel(p)}" data-pl-abrir="${p.id}">
       <div class="pl-card-topo">
-        <span class="pl-card-kind">${kind.ic}</span>
         <div style="flex:1;min-width:0;text-align:left;">
           <div class="pl-card-nome">${escapeHtml(pipeNome(p))}</div>
-          <div class="pl-card-sub">${r.atual ? `Agora: <b>${escapeHtml(r.atual.nome)}</b>${quem.length ? ' · ' + escapeHtml(quem.join(', ')) : ''}` : '<b style="color:var(--ok-ink)">✓ Concluído</b>'}</div>
+          <div class="pl-card-sub">${r.atual ? `${escapeHtml(r.atual.nome)}${quem.length ? ' · ' + escapeHtml(quem.join(', ')) : ''}` : '✓ Concluído'}${avisos.length ? ` <span class="pl-card-aviso" title="${escapeHtml(avisos.join(', '))}">⚠ ${escapeHtml(avisos.join(', '))}</span>` : ''}</div>
         </div>
         <span class="pl-card-pct">${r.pct}%</span>
       </div>
-      <div class="pl-dots">${dots}</div>
-      ${r.faltando.length ? `<div class="pl-card-falt">⚠ ${r.faltando.map(n => 'Sem ' + escapeHtml(n)).join(', ')}</div>` : ''}
-      ${(p.steps||[]).some(st => st.tipo === 'partes' || st.tipo === 'checkpartes') && !pipePartesOk(p) ? `<div class="pl-card-falt">⚠ Partes a definir</div>` : ''}
+      <div class="pl-barra"><i style="width:${r.pct}%"></i></div>
     </button>`;
   }
 
@@ -16157,7 +16165,16 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const concluidos = pipesVis.filter(pp => !pipeResumo(pp).atual && mesDe(conclusao(pp)) === mes);
       // semana de cada linha em andamento = semana do item da Renderização ligado a ela neste mês
       const semanaDoPipe = {};
-      metaCardsTodos.filter(it => it.mes === mes).forEach(it => { const pp = pipelineDoItem(it); if (pp && !(pp.id in semanaDoPipe)) semanaDoPipe[pp.id] = Number(it.semana); });
+      metaCardsTodos.filter(it => it.mes === mes).forEach(it => {
+        // um item pode ter vários episódios ("Ep. 1 a 4") — todos entram na semana dele
+        const pp0 = pipelineDoItem(it);
+        const proj = (pp0 && pp0.project) || it.project;
+        const eps = epsDoTitulo(it.titulo);
+        const lista = proj && eps ? pipelines.filter(x => x.project === proj && x.kind !== 'legenda' && eps.nums.includes(epNum(x))) : (pp0 ? [pp0] : []);
+        lista.forEach(pp => { if (!(pp.id in semanaDoPipe)) semanaDoPipe[pp.id] = Number(it.semana); });
+      });
+      // em andamento: só as linhas que estão no cronograma deste mês
+      andamento.splice(0, andamento.length, ...andamento.filter(pp => pp.id in semanaDoPipe));
       const blocoSemanas = (lista, semanaDe) => {
         const grupos = {}; lista.forEach(pp => { const n = semanaDe(pp) || 0; (grupos[n] = grupos[n] || []).push(pp); });
         return Object.keys(grupos).map(Number).sort((x,y) => (x||99) - (y||99)).map(n => `
@@ -16168,7 +16185,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       };
       const listaPipes = prodPipeAba === 'concluidos'
         ? (concluidos.length ? blocoSemanas(concluidos, pp => semanaDaData(conclusao(pp))) : `<div class="cr-vazio">Nenhum projeto concluído em ${mesNome(mes)}.</div>`)
-        : (andamento.length ? blocoSemanas(andamento, pp => semanaDoPipe[pp.id] || 0) : `<div class="cr-vazio">Nenhuma linha em andamento.</div>`);
+        : (andamento.length ? blocoSemanas(andamento, pp => semanaDoPipe[pp.id] || 0) : `<div class="cr-vazio">Nada do cronograma de ${mesNome(mes)} em andamento.</div>`);
 
       // ---- tarefas avulsas: pendentes ou concluídas do período ----
       const ref = new Date(prodAvRef);
