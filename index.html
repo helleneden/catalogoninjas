@@ -9638,7 +9638,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06t';
+  const APP_VERSAO = '2026-11-06u';
   async function conferirVersaoNova(){
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
@@ -10309,7 +10309,6 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
               ${faixaFaltando && pipesDoItem.length ? `<div class="cr-ligado-sub">Faltando: ${rotEpItem} ${escapeHtml(faixaFaltando)}</div>` : ''}
               ${faixaFaltando && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar a linha ${rotEpItem === 'Aula' ? 'da Aula' : 'do Ep'} ${escapeHtml(faixaFaltando)} em ${escapeHtml(projLig)}</button>` : ''}
               ${!epsItem.length && isAdmin && tabela === 'meta_cards' ? `<button type="button" class="btn-primary" id="crModalCriarEp" style="width:100%;justify-content:center;">🏭 Criar nova linha em ${escapeHtml(projLig)}</button>` : ''}
-              <button type="button" class="cr-ligado-editar" id="crModalFicha">📚 Painel de produção de ${escapeHtml(projLig)} (todos os episódios)</button>
             </div>`
           : `<div class="cr-vazio" style="margin-bottom:8px;">Este item ainda não tem uma linha de produção.</div>
              ${isAdmin ? `<button type="button" class="btn-primary" id="crModalCriarPipe" style="width:100%;justify-content:center;">🏭 Criar linha de produção para este item</button>` : ''}`}
