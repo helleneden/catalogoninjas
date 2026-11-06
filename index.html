@@ -1381,6 +1381,14 @@
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
     cursor: default;
   }
+  .lightbox-caption .lb-nome{ font-weight:800; font-size:clamp(20px,2.4vw,26px); color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6); display:inline-flex; align-items:center; gap:8px; padding:2px 10px; border-radius:10px; }
+  .lightbox-caption .lb-voz{ display:inline-flex; align-items:center; gap:10px; margin-top:10px; padding:10px 22px; border-radius:999px; background:rgba(74,155,224,.24); border:1px solid rgba(142,197,242,.6); font-size:clamp(24px,3vw,34px); font-weight:800; letter-spacing:.2px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6); }
+  .lightbox-caption .lb-editavel{ cursor:pointer; transition:background .15s; }
+  .lightbox-caption .lb-nome.lb-editavel:hover{ background:rgba(255,255,255,.08); }
+  .lightbox-caption .lb-voz.lb-editavel:hover{ background:rgba(74,155,224,.38); }
+  .lightbox-caption .lb-lapis{ font-size:.55em; opacity:.6; }
+  .lightbox-caption .lb-input{ font:inherit; font-size:inherit; font-weight:700; color:#111827; background:#fff; border:none; border-radius:10px; padding:4px 12px; min-width:260px; max-width:70vw; text-align:center; }
+  #lbCap.lightbox-caption{ display:flex; flex-direction:column; align-items:center; }
   .lightbox-caption{
     color: #fff;
     font-weight: 600;
@@ -6528,7 +6536,50 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           semFoto.textContent = it.iniciais || (it.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
         }
       }
-      cap.innerHTML = `<div style="font-weight:700;font-size:15px;opacity:.8;">${escapeHtml(it.nome||'')}</div><div style="display:inline-block;margin-top:8px;padding:8px 18px;border-radius:999px;background:rgba(74,155,224,.22);border:1px solid rgba(142,197,242,.55);font-size:clamp(20px,2.6vw,28px);font-weight:800;letter-spacing:.2px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);">🎙️ ${escapeHtml(it.voz||'(voz não definida)')}</div>${_lightboxItens.length>1?`<div style="font-size:11px;opacity:.6;margin-top:6px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+      const podeEditar = isAdmin && it.pid;
+      cap.innerHTML = `<div class="lb-nome${podeEditar ? ' lb-editavel' : ''}" ${podeEditar ? 'data-lb-edit="nome" title="Clique para editar o nome"' : ''}>${escapeHtml(it.nome||'')}${podeEditar ? ' <span class="lb-lapis">✎</span>' : ''}</div>
+        <div class="lb-voz${podeEditar && it.eid ? ' lb-editavel' : ''}" ${podeEditar && it.eid ? 'data-lb-edit="voz" title="Clique para editar a voz"' : ''}>🎙️ ${escapeHtml(it.voz||'(voz não definida)')}${podeEditar && it.eid ? ' <span class="lb-lapis">✎</span>' : ''}</div>
+        ${_lightboxItens.length>1?`<div style="font-size:12px;opacity:.6;margin-top:8px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+      cap.querySelectorAll('[data-lb-edit]').forEach(el => el.addEventListener('click', (ev) => { ev.stopPropagation(); editarNoLightbox(it, el.dataset.lbEdit, el); }));
+    }
+    // edição direto na foto ampliada (nome da ficha ou voz desta entrada)
+    function editarNoLightbox(it, campo, el){
+      if (el.querySelector('input')) return;
+      const atual = campo === 'nome' ? (it.nome === SEM_NOME ? '' : it.nome) : it.voz;
+      el.classList.add('editando');
+      el.innerHTML = `<input type="text" class="lb-input" value="${escapeHtml(atual||'')}" placeholder="${campo === 'nome' ? 'Nome do personagem' : 'Nome da voz'}" ${campo === 'voz' ? 'list="lbVozesDl"' : ''}><datalist id="lbVozesDl">${campo === 'voz' ? todasAsVozes().sort((a,b)=>a.localeCompare(b,'pt-BR')).map(v => `<option value="${escapeHtml(v)}">`).join('') : ''}</datalist>`;
+      const inp = el.querySelector('input');
+      inp.focus(); inp.select();
+      let feito = false;
+      const salvar = async (gravar) => {
+        if (feito) return; feito = true;
+        let novo = inp.value.trim();
+        if (!gravar || novo === (atual||'')){ mostrar(_lightboxIdx); return; }
+        try {
+          if (campo === 'nome'){
+            if (!novo) novo = SEM_NOME;
+            const { error } = await sb.from('people').update({ name: novo }).eq('id', it.pid);
+            if (error) throw error;
+            it.nome = novo;
+            const pp = people.find(x => x.id === it.pid); if (pp) pp.name = novo;
+            if (it.el && it.selNome){ const t = it.el.querySelector(it.selNome); if (t) t.textContent = novo; }
+          } else {
+            if (!novo){ showToast('A voz não pode ficar vazia.'); feito = false; inp.focus(); return; }
+            novo = vozCanonica(novo);
+            const { error } = await sb.from('entries').update({ voice: novo }).eq('id', it.eid);
+            if (error) throw error;
+            it.voz = novo;
+            people.forEach(pp => (pp.entries||[]).forEach(e => { if (e.id === it.eid) e.voice = novo; }));
+            if (it.el && it.selVoz){ const t = it.el.querySelector(it.selVoz); if (t) t.textContent = novo; }
+          }
+          showToast(campo === 'nome' ? `✅ Nome alterado para "${novo}".` : `✅ Voz alterada para "${novo}".`);
+          invalidarCacheSimilares && invalidarCacheSimilares();
+        } catch(err){ showToast('❌ ' + (err.message || err)); }
+        mostrar(_lightboxIdx);
+      };
+      inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') salvar(true); else if (e.key === 'Escape') salvar(false); });
+      inp.addEventListener('blur', () => salvar(true));
+      inp.addEventListener('click', e => e.stopPropagation());
     }
     mostrar(_lightboxIdx);
 
@@ -6539,6 +6590,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       _lightboxItens = [];
     };
     const keyHandler = (e) => {
+      if (e.target && e.target.tagName === 'INPUT') return;
       if (e.key === 'Escape') cleanup();
       else if (e.key === 'ArrowRight') mostrar(_lightboxIdx + 1);
       else if (e.key === 'ArrowLeft') mostrar(_lightboxIdx - 1);
@@ -7364,7 +7416,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         // se ainda não hidratou (é div com data-photo-for), busca a foto
         if (!url && av && av.dataset.photoFor){ url = await fetchPhoto(av.dataset.photoFor) || ''; }
         if (av === photoEl || (av && photoEl.closest('.dub-item') === li)) idxClicado = itens.length;
-        itens.push({ url, nome, voz, iniciais: !url ? (av?av.textContent.trim():'') : '' });
+        itens.push({ url, nome, voz, iniciais: !url ? (av?av.textContent.trim():'') : '', pid: li.dataset.personId || '', eid: li.dataset.entryId || '', el: li, selNome: '.dub-voice .vn', selVoz: '.dub-voice .pn' });
       }
       if (itens.length){
         _lightboxItens = itens;
@@ -7383,12 +7435,13 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       for (const card of coadjGrid.querySelectorAll('.coadj-card')){
         const av = card.querySelector('img.photo, [data-abre-foto], [data-photo-for]');
         const nome = card.querySelector('.card-name')?.textContent || (av && av.dataset.name) || '';
-        const voz = card.querySelector('.voice-summary')?.textContent.trim() || (av && av.dataset.voz) || '';
+        const voz = (card.querySelector('.vc-voz') || card.querySelector('.voice-summary'))?.textContent.trim() || (av && av.dataset.voz) || '';
         let url = (av && av.tagName === 'IMG') ? av.src : '';
         const pidCard = card.dataset.id;
         if (!url && av && (av.dataset.photoFor || (people.find(p=>p.id===pidCard)||{}).hasPhoto)){ url = await fetchPhoto(av.dataset.photoFor || pidCard) || ''; }
         if (card === coadjCard) idxClicado = itens.length;
-        itens.push({ url, nome, voz, iniciais: !url ? (av ? av.textContent.trim() : '') : '' });
+        const eidCard = (card.querySelector('[data-editar-coadj]') || {}).dataset?.editarCoadj || '';
+        itens.push({ url, nome, voz, iniciais: !url ? (av ? av.textContent.trim() : '') : '', pid: pidCard || '', eid: eidCard, el: card, selNome: '.card-name', selVoz: '.vc-voz' });
       }
       if (itens.length){
         _lightboxItens = itens;
