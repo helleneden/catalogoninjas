@@ -264,6 +264,26 @@
   }
   .home-greeting h1{ font-family:var(--font-head); font-size:24px; font-weight:800; position:relative; z-index:1; }
   .home-greet-tasks{ position:relative; z-index:1; }
+  .home-verso{ position:relative; z-index:1; margin-top:18px; padding-top:16px; border-top:1px solid rgba(255,255,255,.12); }
+  .home-verso-txt{ margin:0; font-family:var(--font-brand); font-size:clamp(19px,2.2vw,24px); font-weight:500; font-style:italic; line-height:1.4; color:#fff; }
+  .home-verso-ref{ margin:6px 0 0; font-size:12.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--blue-ink); opacity:.9; }
+  :root[data-theme="light"] .home-verso-txt{ color:var(--ink); }
+  :root[data-theme="light"] .home-verso{ border-top-color:var(--line); }
+  :root[data-theme="light"] .home-verso-ref{ color:var(--blue); }
+  /* Meu Painel: tarefas e agenda em destaque, pódio pequeno ao lado */
+  .painel-layout{ display:grid; grid-template-columns:minmax(0,1fr) 230px; gap:20px; align-items:start; }
+  .painel-principal > *:first-child{ margin-top:0 !important; }
+  .painel-lado{ position:sticky; top:150px; }
+  .painel-lado .painel-card{ padding:14px; }
+  .painel-lado .painel-title{ font-size:13px; margin-bottom:4px; }
+  .painel-lado .podio-img{ width:96px !important; height:96px !important; }
+  .painel-lado .podio-nome{ font-size:14px; }
+  .painel-lado .podio-base{ padding:8px 18px; }
+  .painel-lado .podio-num{ font-size:22px; }
+  .painel-lado .podio-label{ font-size:10.5px; }
+  @media (max-width:860px){ .painel-layout{ grid-template-columns:1fr; } .painel-lado{ position:static; order:2; }
+    .painel-lado .podio-wrap{ flex-direction:row; justify-content:center; gap:16px; padding:0; }
+    .painel-lado .podio-img{ width:72px !important; height:72px !important; } }
   .home-task-chips{ display:flex; flex-wrap:wrap; gap:8px; }
   .home-task-chip{
     display:inline-flex; align-items:center; gap:5px;
@@ -3076,6 +3096,9 @@
   @media (min-width: 760px){
     .view-tabs{ flex-wrap: nowrap; justify-content: space-between; overflow-x: auto; gap: 2px; }
     .view-tabs .tab{ flex: 1 0 auto; padding: 8px 9px; font-size: 13px; text-align: center; }
+  }
+  @media (min-width: 760px) and (max-width: 920px){
+    .view-tabs .tab{ padding: 7px 3px !important; font-size: 11.5px !important; }
   }
   @media (min-width: 760px) and (max-width: 1150px){
     .view-tabs .tab{ padding: 7px 5px; font-size: 12px; }
@@ -11804,6 +11827,8 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               : `<p style="margin:6px 0 0;font-size:13.5px;opacity:.92;">🎉 Você está em dia — nenhuma tarefa pendente!</p>`}
           </div>
         </div>
+        ${(() => { const hoje = new Date(); const dia = Math.floor((hoje - new Date(hoje.getFullYear(), 0, 0)) / 86400000); const v = VERSICULOS_CITACOES[dia % VERSICULOS_CITACOES.length];
+          return `<div class="home-verso"><p class="home-verso-txt">“${escapeHtml(v.texto)}”</p><p class="home-verso-ref">${escapeHtml(v.ref)}</p></div>`; })()}
       </div>
       <div class="home-section-title" id="homeProjetosTitulo" style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;scroll-margin-top:170px;">
         <span>🎬 Projetos</span>
@@ -16801,14 +16826,14 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const adminPanel = isSuperAdmin() ? renderAdminPanel() : '';
     const backupPanel = isAdmin ? renderBackupPanel() : '';
     const minhasTarefasPanel = renderMinhasTarefasPanel();
-    const versiculoPanel = renderVersiculoDia();
     painelContent.innerHTML = `
-      ${versiculoPanel}
-      <div class="painel-grid">
-        ${renderPodio()}
+      <div class="painel-layout">
+        <div class="painel-principal">
+          ${minhasTarefasPanel}
+          ${renderAgenda()}
+        </div>
+        <aside class="painel-lado">${renderPodio()}</aside>
       </div>
-      ${minhasTarefasPanel}
-      ${renderAgenda()}
       ${renderSegurancaPanel()}
       ${backupPanel}
       ${adminPanel}`;
