@@ -10462,6 +10462,8 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', task.id);
     task.done = feita;
     if (task.agenda_note_id){ try { await sb.from('agenda_notes').update({ done: feita }).eq('id', task.agenda_note_id); } catch(e){} }
+    const nAg = (agendaNotes||[]).find(n => n.id === task.agenda_note_id || n.from_task_id === task.id); if (nAg) nAg.done = feita;
+    try { renderBellBadge(); } catch(e){}
   }
 
   // ---------- janela da linha de produção ----------
@@ -16966,7 +16968,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const depoisAmanha = new Date(hoje.getTime() + 2*24*60*60*1000);
     return (producaoTasks||[]).filter(t => {
       if (t.assignee_user_id !== myUserId || t.done || !t.due_date) return false;
-      if (prazosVistos().has(t.id + '|' + t.due_date)) return false;
+      // atrasada: o aviso fica até a tarefa ser concluída (não dá para dispensar)
+      const atrasada = new Date(t.due_date+'T00:00:00') < hoje;
+      if (!atrasada && prazosVistos().has(t.id + '|' + t.due_date)) return false;
       const d = new Date(t.due_date+'T00:00:00');
       return d < depoisAmanha; // hoje, amanhã, ou já passou
     }).map(t => {
