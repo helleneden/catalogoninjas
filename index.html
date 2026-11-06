@@ -430,6 +430,21 @@
   .notes-emoji-pop button{ background:none; border:none; font-size:18px; cursor:pointer; border-radius:6px; padding:2px; }
   .notes-emoji-pop button:hover{ background:var(--surface-soft); }
   .notes-toolbar{ position:relative; align-items:center; }
+  .notes-tb-min{ gap:2px; margin:0; }
+  .notes-ic{ width:28px; height:28px; border-radius:7px; border:none; background:none; color:var(--muted); font:inherit; font-size:13.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+  .notes-ic:hover{ background:var(--surface-soft); color:var(--ink); }
+  .notes-tb-min .notes-tb-cor{ width:14px; height:14px; border-radius:50%; border:none; margin:0 2px; }
+  .notes-tb-min .notes-tb-sep{ height:16px; align-self:center; margin:0 4px; }
+  .notes-abrir{ width:100%; text-align:left; background:none; border:1px dashed var(--line-strong); color:var(--muted); border-radius:10px; padding:10px 14px; font:inherit; font-size:13.5px; cursor:pointer; margin-top:10px; }
+  .notes-abrir:hover{ color:var(--ink); border-color:var(--blue); }
+  .notes-compose{ margin-top:10px; }
+  .notes-compose-box{ border:1px solid var(--line-strong); border-radius:12px; background:var(--surface); overflow:visible; }
+  .notes-compose-box:focus-within{ border-color:var(--blue); }
+  .notes-editor-min{ border:none !important; background:none !important; min-height:64px; }
+  .notes-compose-pe{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:6px 8px; border-top:1px solid var(--line); }
+  .notes-compose-acoes{ display:flex; gap:6px; }
+  .notes-compose-acoes button{ padding:6px 14px; font-size:12.5px; }
+  .pnote .notes-tb-min{ margin-bottom:6px; }
   .pnote-editor{ min-height:50px; }
 
   /* ---- Marcação @menção dentro do texto ---- */
@@ -4156,15 +4171,14 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   const NOTA_CORES = [['#FEF08A','amarelo'],['#BBF7D0','verde'],['#BFDBFE','azul'],['#FBCFE8','rosa'],['#FED7AA','laranja'],['#DDD6FE','lilás']];
   const NOTA_EMOJIS = ['✅','⚠️','❗','❓','🔥','⭐','👍','👏','🙏','🎬','🎙️','🎧','📌','📅','⏰','💡','📝','🔁','🚀','✂️','🎨','😀','😅','😉','🙌','❤️','👀','📎','🟢','🟡','🔴','➡️'];
   function notasToolbarHtml(){
-    return `<div class="notes-toolbar">
-      <button type="button" class="notes-tb-btn" data-cmd="bold" title="Negrito (Ctrl+B)"><b>N</b> Negrito</button>
-      <button type="button" class="notes-tb-btn" data-cmd="insertOrderedList" title="Lista numerada">🔢 Numerar</button>
-      <button type="button" class="notes-tb-btn" data-nota-arroba="1" title="Marcar alguém da equipe">@ Marcar</button>
-      <button type="button" class="notes-tb-btn" data-nota-emoji="1" title="Emojis">😀 Emoji</button>
+    return `<div class="notes-toolbar notes-tb-min">
+      <button type="button" class="notes-ic" data-cmd="bold" title="Negrito (Ctrl+B)"><b>B</b></button>
+      <button type="button" class="notes-ic" data-cmd="insertOrderedList" title="Lista numerada">1.</button>
+      <button type="button" class="notes-ic" data-nota-arroba="1" title="Marcar alguém da equipe">@</button>
+      <button type="button" class="notes-ic" data-nota-emoji="1" title="Emojis">☺</button>
       <span class="notes-tb-sep"></span>
-      <span style="font-size:11.5px;color:var(--muted);">🖍️ Grifar:</span>
       ${NOTA_CORES.map(([c, n]) => `<button type="button" class="notes-tb-cor" data-cmd="backColor" data-value="${c}" style="background:${c};" title="Grifar em ${n}"></button>`).join('')}
-      <button type="button" class="notes-tb-btn" data-nota-limpar="1" title="Tirar grifo/negrito do trecho selecionado" style="padding:4px 8px;">✕</button>
+      <button type="button" class="notes-ic" data-nota-limpar="1" title="Tirar grifo/negrito do trecho selecionado">⌫</button>
     </div>`;
   }
   // liga uma barra a um editor (getEditor devolve o editor que deve receber a formatação)
@@ -14176,13 +14190,19 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="field">
           <label>📝 Observações da equipe</label>
           <div id="projNotesList" class="pnotes-list"><div class="pnotes-vazio">Carregando…</div></div>
-          <div id="projNotesTb" style="margin-top:10px;">${notasToolbarHtml()}</div>
-          <p style="font-size:11px;color:var(--muted);margin:0 0 6px;">Digite <b>@</b> seguido do nome pra marcar alguém da equipe — a pessoa recebe notificação quando você publicar.</p>
-          <div id="projNotesInput" class="notes-editor" contenteditable="true"
-            data-placeholder="Escreva algo pra equipe ver — instruções, avisos, pendências... use @ pra marcar alguém"></div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button type="button" class="btn-primary" id="projSaveNotes" style="flex:1;justify-content:center;">Publicar observação</button>
-            <button type="button" class="btn-danger-ghost" id="projClearNotes" title="Limpar a caixa de texto">🗑️</button>
+          <button type="button" class="notes-abrir" id="projNotesAbrir">✎ Escrever observação</button>
+          <div id="projNotesCompose" class="notes-compose" hidden>
+            <div class="notes-compose-box">
+              <div id="projNotesInput" class="notes-editor notes-editor-min" contenteditable="true"
+                data-placeholder="Escreva para a equipe… use @ para marcar alguém"></div>
+              <div class="notes-compose-pe">
+                <div id="projNotesTb">${notasToolbarHtml()}</div>
+                <div class="notes-compose-acoes">
+                  <button type="button" class="btn-ghost" id="projClearNotes">Cancelar</button>
+                  <button type="button" class="btn-primary" id="projSaveNotes">Publicar</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -14347,10 +14367,12 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     ligarNotasToolbar(ov.querySelector('#projNotesTb'), () => notesEditor);
     if (notesEditor) iniciarMencoesEditor(notesEditor);
 
+    const notesCompose = $('#projNotesCompose'), notesAbrir = $('#projNotesAbrir');
+    const abrirCompose = () => { if (!notesCompose) return; notesCompose.hidden = false; if (notesAbrir) notesAbrir.hidden = true; if (notesEditor) notesEditor.focus(); };
+    const fecharCompose = () => { if (!notesCompose) return; notesCompose.hidden = true; if (notesAbrir) notesAbrir.hidden = false; if (notesEditor) notesEditor.innerHTML = ''; };
+    if (notesAbrir) notesAbrir.addEventListener('click', abrirCompose);
     const btnClearNotes = $('#projClearNotes');
-    if (btnClearNotes) btnClearNotes.addEventListener('click', () => {
-      if (notesEditor){ notesEditor.innerHTML = ''; notesEditor.focus(); }
-    });
+    if (btnClearNotes) btnClearNotes.addEventListener('click', fecharCompose);
 
     notasProjetoAberto = project;
     carregarNotasProjeto(project);
@@ -14377,7 +14399,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         const { error } = await sb.from('project_notes').insert(nova);
         if (error) throw error;
         await notificarMencoesNota(project, marcados, autorNome);
-        if (notesEditor) notesEditor.innerHTML = '';
+        fecharCompose();
         showToast(marcados.length > 0
           ? `✅ Observação publicada e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.`
           : '✅ Observação publicada.');
@@ -14391,7 +14413,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
           : '❌ Erro ao publicar: '+(msg||'erro desconhecido'));
       } finally {
         btnSaveNotes.disabled = false;
-        btnSaveNotes.textContent = 'Publicar observação';
+        btnSaveNotes.textContent = 'Publicar';
       }
     });
 
