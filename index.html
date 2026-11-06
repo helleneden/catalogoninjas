@@ -568,6 +568,10 @@
   }
   .dub-coadj-btn:hover{ background:rgba(124,58,237,.12); }
   .dub-copy-wrap{ position:relative; flex:0 0 auto; }
+  .coadj-copy{ margin-left:auto; align-self:flex-start; }
+  .coadj-card .card-top{ position:relative; }
+  .voice-card.coadj-card{ overflow:visible !important; cursor:pointer; }
+  .coadj-card:has(.dub-copy-menu.open){ position:relative; z-index:30; }
   .dub-copy{
     background:none; border:none; cursor:pointer; font-size:15px;
     width:32px; height:32px; line-height:1; display:flex;
@@ -13245,10 +13249,18 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
               <h3 class="card-name">${escapeHtml(c.person)}</h3>
               ${c.voice ? `<div class="vc-voz">${escapeHtml(c.voice)}</div>` : ''}
             </div>
+            <div class="dub-copy-wrap coadj-copy">
+              <button type="button" class="dub-copy" title="Copiar" data-copy-toggle="1">📋</button>
+              <div class="dub-copy-menu" data-copy-nome="${escapeHtml(c.person)}" data-copy-voz="${escapeHtml(c.voice||'')}">
+                <button type="button" data-copy-acao="nome">Copiar nome do personagem</button>
+                <button type="button" data-copy-acao="voz">Copiar nome da voz</button>
+                <button type="button" data-copy-acao="ambos">Copiar os dois (nome — voz)</button>
+              </div>
+            </div>
           </div>
           ${isAdmin?`
           <div class="card-actions" data-role="actions">
-            <button type="button" data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">Editar</button>
+            <button type="button" hidden data-editar-coadj="${c.entryId||''}" data-editar-pid="${c.personId}" data-editar-nome="${escapeHtml(c.person)}" data-editar-voz="${escapeHtml(c.voice)}">Editar</button>
             <button type="button" data-remover-coadj="${c.entryId||''}" data-remover-nome="${escapeHtml(c.person)}" title="Volta para a lista principal de dublagem">Tirar de coadjuvante</button>
           </div>`:''}
         </div>`;
@@ -13325,10 +13337,28 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       card.addEventListener('click', (e)=>{
         if (e.target.closest('img.photo, [data-photo-for], [data-abre-foto]')) return; // foto amplia
         if (e.target.closest('[data-remover-coadj]')) return; // botão de tirar
+        if (e.target.closest('.dub-copy-wrap')) return; // menu de copiar
         if (e.target.closest('[data-editar-coadj]')) return; // botão de editar
-        openModal(card.dataset.id);
+        // clicar em qualquer lugar do card = editar nome e voz (mesma janela do antigo botão "Editar")
+        const ed = card.querySelector('[data-editar-coadj]');
+        if (ed && isAdmin) ed.click(); else openModal(card.dataset.id);
       });
     });
+    // copiar nome / voz / os dois
+    const fecharCopiarCoadj = () => ov.querySelectorAll('.dub-copy-menu.open').forEach(m => m.classList.remove('open'));
+    ov.querySelectorAll('[data-copy-toggle]').forEach(btn => btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = btn.nextElementSibling; const aberto = menu.classList.contains('open');
+      fecharCopiarCoadj(); if (!aberto) menu.classList.add('open');
+    }));
+    ov.querySelectorAll('.dub-copy-menu [data-copy-acao]').forEach(btn => btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const menu = btn.closest('.dub-copy-menu'); const nome = menu.dataset.copyNome, voz = menu.dataset.copyVoz, acao = btn.dataset.copyAcao;
+      fecharCopiarCoadj();
+      const texto = acao === 'nome' ? nome : acao === 'voz' ? (voz || '(voz não definida)') : (voz ? `${nome} — ${voz}` : nome);
+      try { await navigator.clipboard.writeText(texto); showToast(`📋 Copiado: ${texto}`); } catch(err){ showToast('Não consegui copiar automaticamente.'); }
+    }));
+    ov.addEventListener('click', (e) => { if (!e.target.closest('.dub-copy-wrap')) fecharCopiarCoadj(); });
     const addBtn = $('#coadjAdd');
     if (addBtn) addBtn.addEventListener('click', ()=>{
       ov.classList.remove('open');
