@@ -764,6 +764,58 @@
   .prod-vista-btn.on{ background:var(--surface) !important; color:var(--blue-deep) !important; box-shadow:0 1px 3px rgba(0,0,0,.1); }
 
   /* ===== Mural de arquivos ===== */
+
+  /* ---- Mural: quadro de cortiça com moldura de madeira ---- */
+  .mural-ov{ padding:18px; }
+  .mural-moldura{ width:min(1240px, 100%); margin:0 auto; background:linear-gradient(135deg,#6B4423,#4A2E17 45%,#7A4E28); border-radius:18px; padding:14px; box-shadow:0 30px 80px rgba(0,0,0,.6), inset 0 0 0 2px rgba(255,255,255,.06); }
+  .mural-topo{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; color:#FFF3DF; padding:2px 4px 12px; }
+  .mural-topo b{ display:block; font-size:17px; font-family:var(--font-brand); letter-spacing:.2px; }
+  .mural-topo small{ font-size:12px; opacity:.75; }
+  .mural-topo-acoes{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .mural-topo .btn-ghost{ color:#FFF3DF; border-color:rgba(255,243,223,.35); background:rgba(0,0,0,.15); padding:7px 12px; font-size:12.5px; }
+  .mural-prazo{ font-size:11.5px; color:#FFE7C2; background:rgba(0,0,0,.2); padding:5px 10px; border-radius:999px; }
+  .mural-quadro{ position:relative; height:min(74vh, 760px); min-height:520px; overflow:auto; border-radius:10px; cursor:copy;
+    background-color:#B98552;
+    background-image:
+      radial-gradient(rgba(90,55,25,.35) 1px, transparent 1.6px),
+      radial-gradient(rgba(255,230,190,.18) 1px, transparent 1.4px),
+      radial-gradient(ellipse at 30% 20%, rgba(255,220,170,.25), transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(70,40,15,.25), transparent 60%);
+    background-size:7px 7px, 11px 11px, 100% 100%, 100% 100%;
+    box-shadow:inset 0 0 40px rgba(60,30,10,.55), inset 0 0 0 3px rgba(60,30,10,.35); }
+  .mural-quadro > *{ cursor:default; }
+  .mural-vazio{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(60,30,10,.75); font-weight:700; font-size:16px; cursor:copy !important; text-align:center; padding:20px; }
+  .mu-item{ position:absolute; width:190px; padding:16px 12px 8px; border-radius:3px; color:#1F2937; transform:rotate(var(--rot)); box-shadow:0 6px 14px rgba(40,20,5,.45), 0 1px 0 rgba(255,255,255,.4) inset; transition:box-shadow .15s, transform .15s; font-size:13px; line-height:1.4; z-index:1; }
+  .mu-item:hover{ transform:rotate(0deg) scale(1.03); z-index:5; box-shadow:0 14px 28px rgba(40,20,5,.55); }
+  .mu-item.arrastando{ z-index:10; cursor:grabbing; transform:rotate(0) scale(1.05); }
+  .mu-pino{ position:absolute; top:-7px; left:50%; transform:translateX(-50%); width:16px; height:16px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8 0 2px, transparent 3px), var(--pino); box-shadow:0 3px 4px rgba(0,0,0,.45); }
+  .mu-k-imagem{ padding:10px 10px 8px; width:200px; }
+  .mu-foto img{ display:block; width:100%; max-height:200px; object-fit:cover; border-radius:2px; }
+  .mu-texto{ font-family:'Fraunces', Georgia, serif; font-size:14.5px; white-space:pre-wrap; word-break:break-word; min-height:60px; }
+  .mu-link, .mu-arq{ display:flex; flex-direction:column; gap:3px; color:#1F2937; text-decoration:none; word-break:break-word; }
+  .mu-link b, .mu-arq b{ font-size:13.5px; color:#1E3A8A; }
+  .mu-link small, .mu-arq small{ font-size:11.5px; color:#6B7280; }
+  .mu-arq-ic{ font-size:34px; line-height:1; }
+  .mu-recado{ margin-top:6px; font-size:12.5px; color:#374151; border-top:1px dashed rgba(0,0,0,.15); padding-top:5px; word-break:break-word; }
+  .mu-item .mention-tag{ background:rgba(37,99,235,.12); color:#1D4ED8; border-radius:4px; padding:0 3px; font-weight:700; }
+  .mu-rodape{ display:flex; justify-content:space-between; align-items:center; gap:6px; margin-top:8px; font-size:10.5px; color:#6B7280; font-style:italic; }
+  .mu-del{ background:none; border:none; color:#9CA3AF; cursor:pointer; font-size:12px; opacity:0; transition:opacity .15s; }
+  .mu-item:hover .mu-del{ opacity:1; }
+  .mu-del:hover{ color:#DC2626; }
+  .mural-bloqueio{ position:absolute; inset:0; background:rgba(40,20,5,.55); display:flex; align-items:center; justify-content:center; z-index:20; cursor:default; }
+  .mural-bloqueio > div{ background:#FFFDF7; color:#1F2937; padding:22px 24px; border-radius:6px; max-width:360px; text-align:center; transform:rotate(-1deg); box-shadow:0 14px 30px rgba(0,0,0,.4); }
+  .mural-bloqueio b{ font-size:17px; }
+  .mu-menu{ position:fixed; z-index:10000; width:230px; background:#FFFDF7; color:#1F2937; border-radius:10px; padding:6px; box-shadow:0 18px 40px rgba(0,0,0,.45); }
+  .mu-menu-tit{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#78716C; padding:6px 8px; }
+  .mu-menu button{ display:flex; align-items:center; gap:10px; width:100%; background:none; border:none; padding:8px 10px; border-radius:7px; font:inherit; font-size:13.5px; color:#1F2937; cursor:pointer; text-align:left; }
+  .mu-menu button:hover{ background:#F3E8D6; }
+  .mu-menu button span{ width:22px; text-align:center; }
+  .mu-escolher{ display:block; border:1.5px dashed var(--line-strong); border-radius:10px; padding:14px; text-align:center; cursor:pointer; color:var(--muted); margin-bottom:12px; }
+  .mu-escolher:hover{ border-color:var(--blue); color:var(--ink); }
+  .mu-cores{ display:flex; gap:8px; margin-bottom:10px; }
+  .mu-cor{ width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
+  .mu-cor.on{ border-color:var(--blue); }
+  @media (max-width:700px){ .mural-quadro{ min-width:0; } .mu-item{ width:150px; } }
   .mural-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:12px; }
   .mural-card{ background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s; }
   .mural-card:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
@@ -15465,7 +15517,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="notif-item" style="border-left:3px solid #7C3AED;">
           <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
           <div style="flex:1;min-width:0;">
-            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou ${m.project === '__mural__' ? 'no <b>📌 Mural</b>' : `em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"`}</div>
             <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
           </div>
           <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
@@ -15523,8 +15575,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       else if (destino === 'producao'){ switchView('producao'); }
       else if (destino === 'mencao'){
         const proj = btn.dataset.mencaoProj;
-        switchView('home');
-        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+        if (proj === '__mural__'){ loadMuralFiles().then(openMural); }
+        else { switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200); }
       }
     }));
 
@@ -16189,146 +16242,240 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
   }
   function ehImagem(f){ return (f.file_type||'').startsWith('image/'); }
 
+  // ===== MURAL — quadro de cortiça: clique num espaço livre e cole imagem, texto, link ou arquivo =====
+  const MURAL_LIMITE = 500 * 1024 * 1024;           // 500 MB por arquivo
+  const MURAL_DIAS_BACKUP = 90;                      // a cada 3 meses: backup + limpeza
+  const MURAL_TIPOS = [
+    { id:'imagem', ic:'🖼️', nome:'Imagem', accept:'image/*' },
+    { id:'texto',  ic:'📝', nome:'Texto' },
+    { id:'link',   ic:'🔗', nome:'Link' },
+    { id:'srt',    ic:'🎞️', nome:'Legenda (SRT)', accept:'.srt,.vtt' },
+    { id:'word',   ic:'📄', nome:'Word', accept:'.doc,.docx,.odt,.rtf' },
+    { id:'txt',    ic:'🗒️', nome:'TXT', accept:'.txt' },
+    { id:'excel',  ic:'📊', nome:'Excel', accept:'.xls,.xlsx,.csv,.ods' },
+    { id:'mp3',    ic:'🎵', nome:'Áudio (MP3)', accept:'.mp3,.wav,.m4a,audio/*' },
+  ];
+  const MURAL_CORES = ['#FEF3A3','#FBCFE8','#BFDBFE','#BBF7D0','#FED7AA','#FFFFFF'];
+  function muralIcone(f){
+    if (f.kind === 'texto') return '📝';
+    if (f.kind === 'link') return '🔗';
+    const ext = (f.file_name||'').split('.').pop().toLowerCase();
+    if (['srt','vtt'].includes(ext)) return '🎞️';
+    if (ext === 'txt') return '🗒️';
+    return iconeArquivo(f.file_type, f.file_name);
+  }
+  function muralPrecisaBackup(){
+    if (!muralFiles.length) return false;
+    const maisAntigo = Math.min(...muralFiles.map(f => new Date(f.created_at).getTime()));
+    return Date.now() - maisAntigo > MURAL_DIAS_BACKUP * 864e5;
+  }
+  function muralDiasRestantes(){
+    if (!muralFiles.length) return MURAL_DIAS_BACKUP;
+    const maisAntigo = Math.min(...muralFiles.map(f => new Date(f.created_at).getTime()));
+    return Math.max(0, Math.ceil(MURAL_DIAS_BACKUP - (Date.now() - maisAntigo) / 864e5));
+  }
+
   function openMural(){
     const ov = document.createElement('div');
-    ov.className = 'modal-overlay open';
+    ov.className = 'modal-overlay open mural-ov';
     ov.style.zIndex = '9998';
     document.body.appendChild(ov);
+    const fechar = () => { ov.classList.remove('open'); setTimeout(() => ov.remove(), 200); if (currentView === 'producao') renderProducao(); };
+    const quando = d => d ? new Date(d).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) : '';
+    const podeApagar = f => isAdmin || (myUserId && f.uploaded_by_id === myUserId);
+
+    function itemHtml(f){
+      const x = f.pos_x != null ? f.pos_x : 5 + Math.random() * 80, y = f.pos_y != null ? f.pos_y : 5 + Math.random() * 75;
+      const rot = f.rot != null ? f.rot : 0;
+      const kind = f.kind || ((f.file_type||'').startsWith('image/') ? 'imagem' : 'arquivo');
+      const recado = f.body ? `<div class="mu-recado">${f.body}</div>` : '';
+      let corpo = '';
+      if (kind === 'imagem') corpo = `<a href="${escapeHtml(f.url)}" target="_blank" class="mu-foto"><img src="${escapeHtml(f.url)}" alt="" loading="lazy"></a>${recado}`;
+      else if (kind === 'texto') corpo = `<div class="mu-texto">${f.body || ''}</div>`;
+      else if (kind === 'link') corpo = `<a href="${escapeHtml(f.link_url)}" target="_blank" rel="noopener" class="mu-link"><b>🔗 ${escapeHtml(f.file_name || f.link_url)}</b><small>${escapeHtml((() => { try { return new URL(f.link_url).hostname; } catch(e){ return f.link_url || ''; } })())}</small></a>${recado}`;
+      else corpo = `<a href="${escapeHtml(f.url)}" target="_blank" download="${escapeHtml(f.file_name||'')}" class="mu-arq"><span class="mu-arq-ic">${muralIcone(f)}</span><b>${escapeHtml(f.file_name||'arquivo')}</b><small>${formatarTamanho(f.file_size)} · baixar</small></a>${recado}`;
+      const fundo = kind === 'texto' ? (f.cor || MURAL_CORES[0]) : (kind === 'imagem' ? '#fff' : (f.cor || '#FFFDF7'));
+      return `<div class="mu-item mu-k-${kind}" data-mu="${f.id}" style="left:${x}%;top:${y}%;--rot:${rot}deg;background:${fundo};">
+        <span class="mu-pino" style="--pino:${['#E11D48','#2563EB','#16A34A','#F59E0B','#7C3AED'][Math.abs((f.id||'').charCodeAt(0)||0) % 5]}"></span>
+        ${corpo}
+        <div class="mu-rodape"><span>— ${escapeHtml(f.uploaded_by_name || 'Alguém')} · ${quando(f.created_at)}</span>
+          ${podeApagar(f) ? `<button type="button" class="mu-del" data-mu-del="${f.id}" title="Tirar do mural">✕</button>` : ''}</div>
+      </div>`;
+    }
 
     function render(){
-      const trintaDias = Date.now() - 30*24*60*60*1000;
-      const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
-
-      const cards = muralFiles.map(f => {
-        const antigo = new Date(f.created_at).getTime() < trintaDias;
-        const preview = ehImagem(f)
-          ? `<div class="mural-thumb" style="background-image:url('${escapeHtml(f.url)}');"></div>`
-          : `<div class="mural-thumb mural-thumb-ic">${iconeArquivo(f.file_type, f.file_name)}</div>`;
-        return `
-          <div class="mural-card ${antigo?'antigo':''}">
-            ${preview}
-            <div class="mural-info">
-              <div class="mural-nome" title="${escapeHtml(f.file_name)}">${escapeHtml(f.file_name)}</div>
-              <div class="mural-meta">${formatarTamanho(f.file_size)} · ${escapeHtml(f.uploaded_by_name||'—')} · ${new Date(f.created_at).toLocaleDateString('pt-BR')}${antigo?' · <span style="color:#DC2626;">+30 dias</span>':''}</div>
-            </div>
-            <div class="mural-acoes">
-              <a href="${escapeHtml(f.url)}" download="${escapeHtml(f.file_name)}" target="_blank" class="mural-btn" title="Baixar">⬇️</a>
-              <button class="mural-btn mural-del" data-id="${f.id}" data-path="${escapeHtml(f.storage_path)}" title="Excluir">🗑️</button>
-            </div>
-          </div>`;
-      }).join('') || `<div style="text-align:center;padding:40px 20px;color:var(--muted);"><div style="font-size:44px;">📭</div><p>Nenhum arquivo no mural ainda. Envie o primeiro!</p></div>`;
-
+      const bloqueado = muralPrecisaBackup();
+      const dias = muralDiasRestantes();
       ov.innerHTML = `
-        <div class="modal" style="max-width:820px;width:94vw;max-height:90vh;overflow:auto;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-            <h2 style="margin:0;">📎 Mural de arquivos</h2>
-            <button class="btn-ghost" id="muralFechar" style="padding:6px 12px;font-size:12.5px;">✕ Fechar</button>
+        <div class="mural-moldura">
+          <div class="mural-topo">
+            <div><b>📌 Mural da equipe</b><small>Clique num espaço vazio do quadro para colar algo · arraste os seus papéis para mudar de lugar</small></div>
+            <div class="mural-topo-acoes">
+              ${muralFiles.length && !bloqueado ? `<span class="mural-prazo" title="A cada 3 meses o mural pede um backup e é limpo">🗓️ backup em ${dias} dia${dias===1?'':'s'}</span>` : ''}
+              ${muralFiles.length && isAdmin ? `<button type="button" class="btn-ghost" id="muBackup">📦 Fazer backup</button>` : ''}
+              <button type="button" class="btn-ghost" id="muFechar">✕ Fechar</button>
+            </div>
           </div>
-          <p style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;">Compartilhe fotos, vídeos, áudios, planilhas e documentos em qualidade original. Todos podem baixar.</p>
-
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
-            <label class="btn-primary" style="cursor:pointer;padding:9px 16px;font-size:13px;">
-              ⬆️ Enviar arquivo(s)
-              <input type="file" id="muralUploadInput" multiple style="display:none;">
-            </label>
-            <span style="font-size:11px;color:var(--muted);">até 50MB por arquivo</span>
-            ${antigos.length ? `<button class="btn-ghost" id="muralLimparAntigos" style="padding:9px 14px;font-size:12.5px;color:#DC2626;border:1.5px solid rgba(248,113,113,.4);">🧹 Limpar ${antigos.length} arquivo(s) com +30 dias</button>` : ''}
-            <span id="muralUploadStatus" style="font-size:12px;color:var(--muted);"></span>
+          <div class="mural-quadro" id="muQuadro">
+            ${muralFiles.map(itemHtml).join('')}
+            ${!muralFiles.length ? `<div class="mural-vazio">Clique em qualquer lugar do quadro para colar a primeira coisa 📌</div>` : ''}
+            ${bloqueado ? `<div class="mural-bloqueio"><div><b>📦 Já se passaram 3 meses</b><p>Faça o backup do mural para continuar colando coisas. Depois do backup o quadro é limpo.</p>
+              ${isAdmin ? `<button type="button" class="btn-primary" id="muBackup2">Fazer backup e limpar</button>` : `<p style="opacity:.8;">Peça para um admin fazer o backup.</p>`}</div></div>` : ''}
           </div>
-
-          <div class="mural-grid">${cards}</div>
         </div>`;
-      wire();
-    }
-
-    async function wire(){
-      ov.querySelector('#muralFechar').addEventListener('click', fechar);
-      fecharAoClicarFora(ov, fechar);
-
-      // Upload
-      const inp = ov.querySelector('#muralUploadInput');
-      const status = ov.querySelector('#muralUploadStatus');
-      if (inp) inp.addEventListener('change', async () => {
-        const arquivos = [...inp.files];
-        if (!arquivos.length) return;
-        const LIMITE = 50 * 1024 * 1024; // 50 MB
-        // Separa os que passam do limite pra avisar
-        const grandes = arquivos.filter(f => f.size > LIMITE);
-        const validos = arquivos.filter(f => f.size <= LIMITE);
-        if (grandes.length){
-          showToast(`⚠️ ${grandes.length} arquivo(s) acima de 50MB não enviado(s): ${grandes.map(f=>f.name).join(', ')}`);
-        }
-        if (!validos.length){ inp.value=''; return; }
-        let enviados = 0;
-        for (const file of validos){
-          status.textContent = `Enviando ${file.name}… (${enviados+1}/${validos.length})`;
-          try {
-            const ts = Date.now();
-            const nomeSeguro = file.name.replace(/[^\w.\-]/g, '_');
-            const path = `${ts}_${nomeSeguro}`;
-            // Upload em qualidade ORIGINAL (sem compressão)
-            const { error: upErr } = await sb.storage.from(MURAL_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
-            if (upErr) throw upErr;
-            const { data: pub } = sb.storage.from(MURAL_BUCKET).getPublicUrl(path);
-            const url = pub.publicUrl;
-            const registro = {
-              id:(crypto&&crypto.randomUUID)?crypto.randomUUID():gerarUuidFallback(),
-              storage_path: path, file_name: file.name, file_type: file.type, file_size: file.size,
-              url, uploaded_by_id: myUserId||null, uploaded_by_name: myProfile.display_name||myEmail||'Alguém'
-            };
-            const { error: dbErr } = await sb.from('mural_files').insert(registro);
-            if (dbErr) throw dbErr;
-            muralFiles.unshift(registro);
-            enviados++;
-          } catch(err){
-            console.error('Erro no upload:', err);
-            showToast('Erro ao enviar '+file.name+': '+(err.message||''));
-          }
-        }
-        status.textContent = '';
-        if (enviados) showToast(`✅ ${enviados} arquivo(s) enviado(s).`);
-        render();
+      ov.querySelector('#muFechar').onclick = fechar;
+      const bk = ov.querySelector('#muBackup'), bk2 = ov.querySelector('#muBackup2');
+      if (bk) bk.onclick = fazerBackup; if (bk2) bk2.onclick = fazerBackup;
+      const quadro = ov.querySelector('#muQuadro');
+      // clicar num espaço vazio → escolher o tipo
+      quadro.addEventListener('click', (e) => {
+        if (e.target !== quadro && !e.target.classList.contains('mural-vazio')) return;
+        if (muralPrecisaBackup()){ showToast('Faça o backup do mural para continuar.'); return; }
+        const r = quadro.getBoundingClientRect();
+        const px = ((e.clientX - r.left + quadro.scrollLeft) / quadro.scrollWidth) * 100;
+        const py = ((e.clientY - r.top + quadro.scrollTop) / quadro.scrollHeight) * 100;
+        abrirMenuTipo(e.clientX, e.clientY, Math.min(86, Math.max(1, px - 6)), Math.min(88, Math.max(1, py - 4)));
       });
-
-      // Limpar antigos
-      const btnLimpar = ov.querySelector('#muralLimparAntigos');
-      if (btnLimpar) btnLimpar.addEventListener('click', async () => {
-        const trintaDias = Date.now() - 30*24*60*60*1000;
-        const antigos = muralFiles.filter(f => new Date(f.created_at).getTime() < trintaDias);
-        const ok = await confirmarBonito({
-          titulo: `Limpar ${antigos.length} arquivo(s)?`,
-          mensagem: 'Isso apaga permanentemente todos os arquivos com mais de 30 dias.',
-          textoBotao: '🧹 Limpar', corBotao:'#DC2626', icone:'🧹'
+      // apagar
+      ov.querySelectorAll('[data-mu-del]').forEach(b => b.onclick = async (e) => {
+        e.stopPropagation(); e.preventDefault();
+        const f = muralFiles.find(x => x.id === b.dataset.muDel); if (!f) return;
+        const ok = await confirmarBonito({ titulo:'Tirar do mural?', mensagem:`<b style="color:var(--ink);">${escapeHtml(f.file_name || 'este papel')}</b> sai do quadro para todos.`, textoBotao:'✕ Tirar', corBotao:'#DC2626', icone:'📌' });
+        if (!ok) return;
+        try { if (f.storage_path) await sb.storage.from(MURAL_BUCKET).remove([f.storage_path]); } catch(err){}
+        await sb.from('mural_files').delete().eq('id', f.id);
+        muralFiles = muralFiles.filter(x => x.id !== f.id); render();
+      });
+      // arrastar os próprios papéis
+      ov.querySelectorAll('.mu-item').forEach(el => {
+        const f = muralFiles.find(x => x.id === el.dataset.mu);
+        if (!f || !podeApagar(f)) return;
+        el.addEventListener('pointerdown', (e) => {
+          if (e.target.closest('a, button')) return;
+          e.preventDefault();
+          const r = quadro.getBoundingClientRect();
+          const ini = { x: e.clientX, y: e.clientY, l: parseFloat(el.style.left), t: parseFloat(el.style.top) };
+          let moveu = false;
+          el.classList.add('arrastando'); el.setPointerCapture(e.pointerId);
+          const mover = (ev) => {
+            const dx = (ev.clientX - ini.x) / quadro.scrollWidth * 100, dy = (ev.clientY - ini.y) / quadro.scrollHeight * 100;
+            if (Math.abs(dx) + Math.abs(dy) > .3) moveu = true;
+            el.style.left = Math.min(92, Math.max(0, ini.l + dx)) + '%'; el.style.top = Math.min(94, Math.max(0, ini.t + dy)) + '%';
+          };
+          const soltar = async () => {
+            el.classList.remove('arrastando'); el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar);
+            if (!moveu) return;
+            f.pos_x = parseFloat(el.style.left); f.pos_y = parseFloat(el.style.top);
+            try { await sb.from('mural_files').update({ pos_x: f.pos_x, pos_y: f.pos_y }).eq('id', f.id); } catch(err){}
+          };
+          el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar);
         });
-        if (!ok) return;
-        for (const f of antigos){
-          try {
-            await sb.storage.from(MURAL_BUCKET).remove([f.storage_path]);
-            await sb.from('mural_files').delete().eq('id', f.id);
-            muralFiles = muralFiles.filter(x => x.id !== f.id);
-          } catch(e){ console.error(e); }
-        }
-        showToast(`✅ ${antigos.length} arquivo(s) removido(s).`);
-        render();
       });
-
-      // Excluir individual
-      ov.querySelectorAll('.mural-del').forEach(btn => btn.addEventListener('click', async () => {
-        const ok = await confirmarBonito({ titulo:'Excluir arquivo?', mensagem:'Isso remove o arquivo do mural permanentemente.', textoBotao:'🗑️ Excluir', corBotao:'#DC2626', icone:'🗑️' });
-        if (!ok) return;
-        const id = btn.dataset.id, path = btn.dataset.path;
-        try {
-          await sb.storage.from(MURAL_BUCKET).remove([path]);
-          await sb.from('mural_files').delete().eq('id', id);
-          muralFiles = muralFiles.filter(x => x.id !== id);
-          render();
-        } catch(err){ showToast('Erro: '+(err.message||'')); }
-      }));
     }
 
-    function fechar(){ ov.classList.remove('open'); setTimeout(()=>ov.remove(),200); renderProducao(); }
+    function abrirMenuTipo(cx, cy, px, py){
+      document.querySelectorAll('.mu-menu').forEach(m => m.remove());
+      const m = document.createElement('div'); m.className = 'mu-menu';
+      m.innerHTML = `<div class="mu-menu-tit">O que você quer colar aqui?</div>` + MURAL_TIPOS.map(t => `<button type="button" data-mu-tipo="${t.id}"><span>${t.ic}</span>${t.nome}</button>`).join('');
+      ov.appendChild(m);
+      const w = 230, h = 340;
+      m.style.left = Math.min(window.innerWidth - w - 10, cx) + 'px'; m.style.top = Math.min(window.innerHeight - h - 10, cy) + 'px';
+      m.querySelectorAll('[data-mu-tipo]').forEach(b => b.onclick = () => { m.remove(); abrirCompor(MURAL_TIPOS.find(t => t.id === b.dataset.muTipo), px, py); });
+      setTimeout(() => document.addEventListener('mousedown', function f(e){ if (!m.contains(e.target)){ m.remove(); document.removeEventListener('mousedown', f); } }), 0);
+    }
+
+    function abrirCompor(tipo, px, py){
+      const pop = document.createElement('div');
+      pop.className = 'modal-overlay open'; pop.style.zIndex = '9999';
+      const ehArquivo = !!tipo.accept;
+      pop.innerHTML = `<div class="modal" style="max-width:460px;">
+        <h2 style="margin:0 0 12px;">${tipo.ic} ${tipo.nome}</h2>
+        ${ehArquivo ? `<label class="mu-escolher"><input type="file" id="muArq" accept="${tipo.accept}" hidden><span id="muArqNome">Escolher arquivo… (até 500 MB)</span></label>` : ''}
+        ${tipo.id === 'link' ? `<div class="field"><label>Endereço (URL)</label><input type="url" id="muUrl" placeholder="https://…"></div><div class="field"><label>Título (opcional)</label><input type="text" id="muTitulo" placeholder="Ex.: Pasta do Dropbox do Sheffey"></div>` : ''}
+        ${tipo.id === 'texto' ? `<div class="mu-cores">${MURAL_CORES.map((c, i) => `<button type="button" class="mu-cor${i===0?' on':''}" data-cor="${c}" style="background:${c};"></button>`).join('')}</div>` : ''}
+        <div class="field"><label>${tipo.id === 'texto' ? 'Texto' : 'Recado (opcional)'}</label>
+          <div class="notes-editor" id="muTexto" contenteditable="true" data-placeholder="${tipo.id === 'texto' ? 'Escreva… use @ para marcar alguém' : 'Use @ para marcar alguém da equipe'}" style="min-height:${tipo.id === 'texto' ? 110 : 60}px;"></div></div>
+        <div class="modal-actions"><span id="muStatus" style="margin-right:auto;font-size:12px;color:var(--muted);"></span>
+          <button class="btn-ghost" id="muCancelar">Cancelar</button><button class="btn-primary" id="muColar">📌 Colar no mural</button></div>
+      </div>`;
+      document.body.appendChild(pop);
+      const ed = pop.querySelector('#muTexto'); try { iniciarMencoesEditor(ed); } catch(e){}
+      let cor = MURAL_CORES[0];
+      pop.querySelectorAll('.mu-cor').forEach(b => b.onclick = () => { cor = b.dataset.cor; pop.querySelectorAll('.mu-cor').forEach(x => x.classList.toggle('on', x === b)); });
+      const arq = pop.querySelector('#muArq');
+      if (arq){ arq.onchange = () => { const f = arq.files[0]; pop.querySelector('#muArqNome').textContent = f ? `${f.name} · ${formatarTamanho(f.size)}` : 'Escolher arquivo…'; }; setTimeout(() => arq.click(), 50); }
+      const fecharPop = () => pop.remove();
+      pop.querySelector('#muCancelar').onclick = fecharPop;
+      pop.querySelector('#muColar').onclick = async () => {
+        const btn = pop.querySelector('#muColar'), st = pop.querySelector('#muStatus');
+        const corpo = limparHtmlNota(ed.innerHTML);
+        const temTexto = !!textoPuroNota(corpo);
+        const marcados = [...new Set([...ed.querySelectorAll('.mention-tag')].map(t => t.dataset.userId).filter(Boolean))];
+        const reg = { id: crypto.randomUUID ? crypto.randomUUID() : gerarUuidFallback(), uploaded_by_id: myUserId || null, uploaded_by_name: myProfile.display_name || myEmail || 'Alguém',
+          kind: tipo.id === 'texto' ? 'texto' : tipo.id === 'link' ? 'link' : tipo.id === 'imagem' ? 'imagem' : 'arquivo',
+          body: temTexto ? corpo : null, pos_x: px, pos_y: py, rot: Math.round((Math.random() * 6 - 3) * 10) / 10, cor: tipo.id === 'texto' ? cor : null };
+        if (tipo.id === 'texto' && !temTexto){ showToast('Escreva alguma coisa.'); return; }
+        if (tipo.id === 'link'){
+          let u = (pop.querySelector('#muUrl').value || '').trim(); if (!u){ showToast('Cole o endereço do link.'); return; }
+          if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+          reg.link_url = u; reg.file_name = (pop.querySelector('#muTitulo').value || '').trim() || null;
+        }
+        if (ehArquivo){
+          const f = arq.files[0]; if (!f){ showToast('Escolha o arquivo.'); return; }
+          if (f.size > MURAL_LIMITE){ showToast('⚠️ O arquivo passa de 500 MB.'); return; }
+          btn.disabled = true; st.textContent = 'Enviando…';
+          const path = `${Date.now()}_${f.name.replace(/[^\w.\-]/g, '_')}`;
+          const { error: upErr } = await sb.storage.from(MURAL_BUCKET).upload(path, f, { contentType: f.type || undefined, upsert: false });
+          if (upErr){
+            btn.disabled = false; st.textContent = '';
+            showToast(/bucket not found/i.test(upErr.message) ? '❌ Falta rodar o SQL-mural.sql no Supabase.' : /exceeded|too large|maximum/i.test(upErr.message) ? '❌ O Supabase recusou pelo tamanho — aumente o limite de upload no painel (Storage → Settings).' : '❌ ' + upErr.message);
+            return;
+          }
+          reg.storage_path = path; reg.file_name = f.name; reg.file_type = f.type; reg.file_size = f.size;
+          reg.url = sb.storage.from(MURAL_BUCKET).getPublicUrl(path).data.publicUrl;
+        }
+        btn.disabled = true; st.textContent = 'Colando…';
+        let { data, error } = await sb.from('mural_files').insert(reg).select().single();
+        if (error){ btn.disabled = false; st.textContent = ''; showToast(/column|schema/i.test(error.message) ? '❌ Falta rodar o SQL-mural.sql no Supabase.' : '❌ ' + error.message); return; }
+        muralFiles.unshift(data || { ...reg, created_at: new Date().toISOString() });
+        if (marcados.length){ try { await notificarMencoesNota('__mural__', marcados, reg.uploaded_by_name); } catch(e){} }
+        fecharPop(); render();
+        showToast(marcados.length ? `📌 Colado no mural e ${marcados.length} pessoa${marcados.length===1?'':'s'} notificada${marcados.length===1?'':'s'}.` : '📌 Colado no mural.');
+      };
+    }
+
+    async function fazerBackup(){
+      if (!muralFiles.length) return;
+      if (typeof JSZip === 'undefined'){ showToast('Não consegui carregar o compactador. Recarregue a página.'); return; }
+      showToast('📦 Preparando o backup do mural…');
+      const zip = new JSZip();
+      const linhas = [];
+      for (const f of muralFiles){
+        const autor = `${f.uploaded_by_name || ''} · ${new Date(f.created_at).toLocaleString('pt-BR')}`;
+        const recado = f.body ? textoPuroNota(f.body) : '';
+        if (f.kind === 'texto') linhas.push(`📝 ${autor}\n${recado}\n`);
+        else if (f.kind === 'link') linhas.push(`🔗 ${autor}\n${f.file_name || ''} ${f.link_url}\n${recado}\n`);
+        else {
+          linhas.push(`📎 ${autor}\n${f.file_name}${recado ? '\n' + recado : ''}\n`);
+          try { const r = await fetch(f.url); if (r.ok) zip.file('arquivos/' + (f.storage_path || f.file_name), await r.blob()); } catch(e){}
+        }
+      }
+      zip.file('mural.txt', linhas.join('\n'));
+      const blob = await zip.generateAsync({ type:'blob' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mural-backup-${new Date().toISOString().slice(0,10)}.zip`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      const ok = await confirmarBonito({ titulo:'Backup baixado?', mensagem:'Confira se o arquivo .zip foi salvo no seu computador. Depois disso o mural é limpo para os próximos 3 meses.', textoBotao:'🧹 Sim, limpar o mural', corBotao:'#DC2626', icone:'📦' });
+      if (!ok) return;
+      const paths = muralFiles.map(f => f.storage_path).filter(Boolean);
+      try { for (let i = 0; i < paths.length; i += 100) await sb.storage.from(MURAL_BUCKET).remove(paths.slice(i, i + 100)); } catch(e){}
+      await sb.from('mural_files').delete().in('id', muralFiles.map(f => f.id));
+      muralFiles = []; render(); showToast('✅ Backup feito e mural limpo.');
+    }
+
+    ov.addEventListener('click', e => { if (e.target === ov) fechar(); });
     render();
   }
+
 
   function renderProducao(){
     const cont = $('#producaoContent');
@@ -17088,7 +17235,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
         <div class="notif-item" style="border-left:3px solid #7C3AED;">
           <div class="notif-ic" style="background:rgba(124,58,237,.12);">💬</div>
           <div style="flex:1;min-width:0;">
-            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"</div>
+            <div class="notif-txt"><b>${escapeHtml(m.author_name||'Alguém')}</b> te marcou ${m.project === '__mural__' ? 'no <b>📌 Mural</b>' : `em "${escapeHtml(nomeProjetoExibicao(m.project||''))}"`}</div>
             <div class="notif-sub">${new Date(m.created_at).toLocaleString('pt-BR')}</div>
           </div>
           <button class="btn-ghost notif-conf" data-conf="mencao" data-mencao-proj="${escapeHtml(m.project||'')}" data-lida-mencao="${m.id}" style="padding:5px 11px;font-size:12px;">Conferir</button>
@@ -17129,8 +17276,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       else if (destino === 'producao'){ switchView('producao'); }
       else if (destino === 'mencao'){
         const proj = btn.dataset.mencaoProj;
-        switchView('home');
-        if (proj) setTimeout(()=>openProjetoModal(proj), 200);
+        if (proj === '__mural__'){ loadMuralFiles().then(openMural); }
+        else { switchView('home');
+        if (proj) setTimeout(()=>openProjetoModal(proj), 200); }
       }
     }));
 
