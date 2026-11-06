@@ -2960,6 +2960,10 @@
   .hg-btn:hover{ filter:brightness(1.08); }
   @media (max-width:640px){ .hg-dir{ width:100%; justify-content:space-between; } }
   .pl-rod{ white-space:nowrap; }
+  .pl-leg-opc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 4px; font-size:12.5px; color:var(--muted); }
+  .pl-leg-opc button{ background:none; border:1px dashed var(--line-strong); color:var(--ink); border-radius:10px; padding:7px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .pl-leg-opc button:hover{ border-color:var(--blue); color:var(--blue-deep); }
+  .pl-leg-opc #plLegTirar{ border:none; padding:0; color:var(--muted); text-decoration:underline; font-weight:500; }
   .prod-topo{ margin:4px 0 18px; }
   .prod-topo-linha{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .prod-topo h1{ margin:0; font-family:var(--font-head); font-size:24px; font-weight:800; letter-spacing:-.3px; }
@@ -9604,7 +9608,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06k';
+  const APP_VERSAO = '2026-11-06l';
   async function conferirVersaoNova(){
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
@@ -10177,13 +10181,15 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const toks = x => norm(x).split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
     const ti = new Set(toks(limparTituloCrono(titulo)));
     let best = null, bs = 0;
-    allProjectsList().forEach(pr => { const tp = toks(pr); if (!tp.length) return; const hit = tp.filter(w => ti.has(w)).length; const sc = hit / Math.max(tp.length, ti.size || 1); if (hit && sc > bs){ bs = sc; best = pr; } });
+    allProjectsList().forEach(pr => { if (/^\s*legend/i.test(pr)) return; const tp = toks(pr); if (!tp.length) return; const hit = tp.filter(w => ti.has(w)).length; const sc = hit / Math.max(tp.length, ti.size || 1); if (hit && sc > bs){ bs = sc; best = pr; } });
     return bs >= 0.5 ? best : null;
   }
   function pipelineDoItem(it){
     if (ehItemLegenda(it)){
       const proj = it.project || projetoParecido(it.titulo);
-      return proj ? (pipelines.find(p => p.kind === 'legenda' && p.project === proj) || null) : null;
+      if (!proj) return null;
+      return pipelines.find(p => p.project === proj && p.kind === 'video' && pipeLegendaAtiva(p))
+        || pipelines.find(p => p.kind === 'legenda' && p.project === proj) || null;
     }
     let proj = it.project;
     if (!proj){
@@ -10263,7 +10269,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           : ehItemLegenda(it) ? (isAdmin ? `<div class="cr-leg">
               <p>🔤 Legenda é uma <b>extensão</b> da linha de um projeto. Qual projeto vai ser legendado?</p>
               <select id="crLegProj"><option value="">— Escolha o projeto —</option>${allProjectsList().map(pr => `<option value="${escapeHtml(pr)}" ${pr === (it.project || projetoParecido(it.titulo)) ? 'selected' : ''}>${escapeHtml(pr)}</option>`).join('')}</select>
-              <button type="button" class="btn-primary" id="crLegEstender" style="width:100%;justify-content:center;">🔤 Estender a linha com a legenda</button>
+              <button type="button" class="btn-primary" id="crLegEstender" style="width:100%;justify-content:center;">🔤 Continuar a linha do projeto com a legenda</button>
               <button type="button" class="cr-ligado-editar" id="crLegAvulsa">ou criar uma linha de legenda avulsa e associar depois</button>
             </div>` : `<div class="cr-vazio">Ainda sem linha de legenda.</div>`)
           : projPipes.length ? `<div class="cr-ligado">
@@ -10322,6 +10328,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     if (le) le.addEventListener('click', async () => {
       const proj = ov.querySelector('#crLegProj').value;
       if (!proj){ showToast('Escolha o projeto que vai ser legendado.'); return; }
+      // o projeto já tem linha de produção → a legenda entra como etapa final dela
+      const doProj = pipelines.filter(pp => pp.project === proj && pp.kind === 'video').sort((a,b) => epNum(a) - epNum(b));
+      if (doProj.length){
+        const epItem = episodioDoTitulo(it.titulo);
+        const alvo = (epItem && doProj.find(pp => String(pp.episode||'') === String(epItem))) || doProj[doProj.length - 1];
+        await pipeAtivarLegenda(alvo, true);
+        try { await sb.from(tabela).update({ project: proj }).eq('id', it.id); it.project = proj; } catch(e){}
+        fechar(); renderCronograma();
+        showToast(`🔤 Legenda incluída na linha de ${pipeNome(alvo)}`);
+        pipeOrigemItem = { tabela, id }; abrirPipeline(alvo.id);
+        return;
+      }
       fechar();
       abrirNovoPipeline({ nome: proj, kind:'legenda', categoria:'Legenda', episode: episodioDoTitulo(it.titulo),
         aoCriar: async (novo) => { try { await sb.from(tabela).update({ project: novo.project }).eq('id', it.id); it.project = novo.project; } catch(e){} renderCronograma(); } });
@@ -10472,6 +10490,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       { key:'cq',        nome:'Controle de qualidade', tipo:'unica', stage:'Controle de qualidade' },
       { key:'correcao',  nome:'Correção de erros', tipo:'unica', stage:'Correção de qualidade' },
       { key:'dropbox',   nome:'Versão final no Dropbox', tipo:'unica', stage:'Dropbox' },
+      // opcional: só entra na conta quando alguém "inclui a legenda" (o projeto pode ser concluído sem ela)
+      { key:'leg_srt',   nome:'Legenda · SRT', tipo:'unica', stage:'Legenda SRT', opcional:'legenda' },
+      { key:'leg_final', nome:'Legenda · aplicar, renderizar e Dropbox', tipo:'unica', stage:'Legendar', opcional:'legenda' },
     ];
   }
 
@@ -10490,7 +10511,18 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const it = mat && (mat.itens||[]).find(i => /srt|legenda/i.test(i.nome));
     return !!(it && it.status === 'faltando');
   }
-  function pipeEtapasVis(p){ return (p.steps||[]).filter(s => s.condicional !== 'srt' || pipeSrtFaltando(p)); }
+  function pipeEtapasVis(p){ return (p.steps||[]).filter(s => (s.condicional !== 'srt' || pipeSrtFaltando(p)) && (!s.opcional || s.ativa)); }
+  function pipeLegendaAtiva(p){ return (p.steps||[]).some(s => s.opcional === 'legenda' && s.ativa); }
+  // inclui (ou tira) as etapas de legenda numa linha de vídeo — linhas antigas ganham as etapas na hora
+  async function pipeAtivarLegenda(p, ligar){
+    p.steps = p.steps || [];
+    if (ligar !== false && !p.steps.some(s => s.opcional === 'legenda')){
+      p.steps.push({ key:'leg_srt', nome:'Legenda · SRT', tipo:'unica', stage:'Legenda SRT', opcional:'legenda' },
+                   { key:'leg_final', nome:'Legenda · aplicar, renderizar e Dropbox', tipo:'unica', stage:'Legendar', opcional:'legenda' });
+    }
+    p.steps.forEach(s => { if (s.opcional === 'legenda') s.ativa = ligar !== false; });
+    await pipeSalvar(p);
+  }
   function pipeSrtRecebido(p){
     const mat = (p.steps||[]).find(s => s.tipo === 'material');
     const it = mat && (mat.itens||[]).find(i => /srt|legenda/i.test(i.nome));
@@ -10817,6 +10849,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
           ? `<div class="pl-partes-ctrl">Dividido em <button type="button" data-pl-partes="-1">−</button><b>${pipePartes(p)}</b><button type="button" data-pl-partes="1">+</button> parte${pipePartes(p)===1?'':'s'}</div>`
           : `<div class="pl-partes-ctrl pl-partes-def">⚠ Partes a definir: <input type="number" id="plPartesDef" min="1" max="40" placeholder="Qtd."><button type="button" id="plPartesDefOk" class="ok">Definir</button></div>`) : ''}
         <div class="pl-etapas">${etapas}</div>
+        ${pipeAdm() && p.kind === 'video' ? `<div class="pl-leg-opc">${pipeLegendaAtiva(p)
+          ? `🔤 Legenda incluída nesta linha <button type="button" id="plLegTirar">tirar legenda</button>`
+          : `<button type="button" id="plLegIncluir">🔤 + Incluir legenda (opcional)</button><span>o projeto pode ser concluído sem ela</span>`}</div>` : ''}
         ${pipeAdm() ? `<div class="pl-nova-etapa">
           <button type="button" class="pl-add-etapa-btn" id="plAddEtapaBtn">+ Adicionar etapa</button>
           <div class="pl-add-etapa" id="plAddEtapaForm" hidden>
@@ -10851,6 +10886,12 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const origemAgora = pipeOrigemItem;
     navRegistrar('pipe:' + p.id, ov, () => { pipeOrigemItem = origemAgora; abrirPipeline(p.id, leituraAgora); }, fechar);
     const reabrir = () => abrirPipeline(p.id);
+    const li = ov.querySelector('#plLegIncluir'); if (li) li.onclick = async () => { await pipeAtivarLegenda(p, true); showToast('🔤 Legenda incluída no fim da linha.'); reabrir(); };
+    const lt = ov.querySelector('#plLegTirar'); if (lt) lt.onclick = async () => {
+      const ids = (p.steps||[]).filter(st => st.opcional === 'legenda' && st.taskId).map(st => st.taskId);
+      if (ids.length){ const ok = await confirmarBonito({ titulo:'Tirar a legenda?', mensagem:'As tarefas de legenda já delegadas também saem.', textoBotao:'Tirar', corBotao:'#DC2626', icone:'🔤' }); if (!ok) return; await apagarTarefasDelegadas(ids); (p.steps||[]).forEach(st => { if (st.opcional === 'legenda') delete st.taskId; }); }
+      await pipeAtivarLegenda(p, false); reabrir();
+    };
     const fi = ov.querySelector('#plFichas'); if (fi) fi.onclick = () => openProjetoModal(p.project);
     const lp = ov.querySelector('#plLegProj');
     if (lp) lp.onchange = async () => {
@@ -11842,7 +11883,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     if (!project || !/^\s*legend/i.test(project)) return project;
     if (_capaOrigem[project] !== undefined) return _capaOrigem[project] || project;
     let orig = null;
-    try { if (!allProjectsList().includes(project)) orig = projetoParecido(project); } catch(e){}
+    try { const lp = pipelines.find(pp => pp.project === project && pp.kind === 'legenda'); orig = projetoParecido(project); if (orig === project) orig = null; } catch(e){}
     if (orig) _capaOrigem[project] = orig; // só guarda quando achou (os projetos podem não ter carregado ainda)
     return orig || project;
   }
