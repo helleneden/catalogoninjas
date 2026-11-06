@@ -1396,13 +1396,13 @@
     box-shadow: 0 20px 60px rgba(0,0,0,.5);
     cursor: default;
   }
-  .lightbox-caption .lb-nome{ font-weight:800; font-size:clamp(20px,2.4vw,26px); color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6); display:inline-flex; align-items:center; gap:8px; padding:2px 10px; border-radius:10px; }
-  .lightbox-caption .lb-voz{ display:inline-flex; align-items:center; gap:10px; margin-top:10px; padding:10px 22px; border-radius:999px; background:rgba(74,155,224,.24); border:1px solid rgba(142,197,242,.6); font-size:clamp(24px,3vw,34px); font-weight:800; letter-spacing:.2px; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6); }
-  .lightbox-caption .lb-editavel{ cursor:pointer; transition:background .15s; }
-  .lightbox-caption .lb-nome.lb-editavel:hover{ background:rgba(255,255,255,.08); }
-  .lightbox-caption .lb-voz.lb-editavel:hover{ background:rgba(74,155,224,.38); }
-  .lightbox-caption .lb-lapis{ font-size:.55em; opacity:.6; }
-  .lightbox-caption .lb-input{ font:inherit; font-size:inherit; font-weight:700; color:#111827; background:#fff; border:none; border-radius:10px; padding:4px 12px; min-width:260px; max-width:70vw; text-align:center; }
+  .lightbox-caption .lb-nome{ font-size:18px; font-weight:500; color:rgba(255,255,255,.8); letter-spacing:.2px; padding:2px 8px; border-radius:6px; }
+  .lightbox-caption .lb-voz{ margin-top:2px; font-size:clamp(26px,3.2vw,36px); font-weight:700; color:#fff; letter-spacing:-.3px; line-height:1.15; padding:2px 10px; border-radius:8px; }
+  .lightbox-caption .lb-vazio{ color:rgba(255,255,255,.4); font-weight:500; font-style:italic; }
+  .lightbox-caption .lb-editavel{ cursor:text; border-bottom:1px dashed transparent; transition:border-color .15s, background .15s; }
+  .lightbox-caption .lb-editavel:hover{ background:rgba(255,255,255,.06); border-bottom-color:rgba(255,255,255,.35); }
+  .lightbox-caption .lb-cont{ margin-top:10px; font-size:11px; letter-spacing:1px; color:rgba(255,255,255,.4); }
+  .lightbox-caption .lb-input{ font:inherit; font-size:inherit; font-weight:inherit; color:#fff; background:rgba(255,255,255,.08); border:none; border-bottom:1px solid rgba(255,255,255,.5); border-radius:6px 6px 0 0; padding:2px 10px; min-width:240px; max-width:70vw; text-align:center; outline:none; }
   #lbCap.lightbox-caption{ display:flex; flex-direction:column; align-items:center; }
   .lightbox-caption{
     color: #fff;
@@ -6551,9 +6551,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
         }
       }
       const podeEditar = isAdmin && it.pid;
-      cap.innerHTML = `<div class="lb-nome${podeEditar ? ' lb-editavel' : ''}" ${podeEditar ? 'data-lb-edit="nome" title="Clique para editar o nome"' : ''}>${escapeHtml(it.nome||'')}${podeEditar ? ' <span class="lb-lapis">✎</span>' : ''}</div>
-        <div class="lb-voz${podeEditar && it.eid ? ' lb-editavel' : ''}" ${podeEditar && it.eid ? 'data-lb-edit="voz" title="Clique para editar a voz"' : ''}>🎙️ ${escapeHtml(it.voz||'(voz não definida)')}${podeEditar && it.eid ? ' <span class="lb-lapis">✎</span>' : ''}</div>
-        ${_lightboxItens.length>1?`<div style="font-size:12px;opacity:.6;margin-top:8px;">${_lightboxIdx+1} de ${_lightboxItens.length}</div>`:''}`;
+      const semNome = !it.nome || it.nome === SEM_NOME;
+      cap.innerHTML = `<div class="lb-nome${podeEditar ? ' lb-editavel' : ''}${semNome ? ' lb-vazio' : ''}" ${podeEditar ? 'data-lb-edit="nome" title="Clique para editar o nome"' : ''}>${semNome ? 'Sem nome' : escapeHtml(it.nome)}</div>
+        <div class="lb-voz${podeEditar && it.eid ? ' lb-editavel' : ''}${it.voz ? '' : ' lb-vazio'}" ${podeEditar && it.eid ? 'data-lb-edit="voz" title="Clique para editar a voz"' : ''}>${it.voz ? escapeHtml(it.voz) : 'Voz não definida'}</div>
+        ${_lightboxItens.length>1?`<div class="lb-cont">${_lightboxIdx+1} / ${_lightboxItens.length}</div>`:''}`;
       cap.querySelectorAll('[data-lb-edit]').forEach(el => el.addEventListener('click', (ev) => { ev.stopPropagation(); editarNoLightbox(it, el.dataset.lbEdit, el); }));
     }
     // edição direto na foto ampliada (nome da ficha ou voz desta entrada)
