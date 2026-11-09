@@ -3587,6 +3587,21 @@
     padding: 10px 24px 26px;
   }
   footer.note b{ color: var(--blue-deep); }
+
+  /* ===== DESEMPENHO (leve para a placa de vídeo) =====
+     - sem desfoque por trás (backdrop-filter): era redesenhado a cada rolagem
+     - sem animações infinitas
+     - cards fora da tela não são desenhados (content-visibility) */
+  *, *::before, *::after{ -webkit-backdrop-filter:none !important; backdrop-filter:none !important; }
+  :root{ --header-bg: rgba(10,14,21,.97); --glass: rgba(17,23,34,.98); --overlay: rgba(3,6,10,.8); }
+  :root[data-theme="light"]{ --header-bg: rgba(255,255,255,.97); }
+  #bellBtn.tem-pendente{ animation-iteration-count: 2 !important; }
+  .podio-img{ animation:none !important; }
+  .voice-card, .prod-card{ content-visibility:auto; contain-intrinsic-size:auto 260px; }
+  .pnote, .agenda-note-item{ contain:content; }
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+  }
 </style>
 <script>
   // Aparência escolhida pelo usuário (fica salva neste navegador)
@@ -9638,8 +9653,9 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-06u';
+  const APP_VERSAO = '2026-11-09a';
   async function conferirVersaoNova(){
+    if (document.hidden) return;
     try {
       const r = await fetch(location.pathname + '?v=' + Date.now(), { cache:'no-store' });
       const t = await r.text(); const m = t.match(/APP_VERSAO = '([^']+)'/);
@@ -9651,7 +9667,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
       }
     } catch(e){}
   }
-  setInterval(conferirVersaoNova, 5 * 60000);
+  setInterval(conferirVersaoNova, 10 * 60000);
   setTimeout(conferirNotificacoesNovas, 6000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) conferirNotificacoesNovas(); });
 
