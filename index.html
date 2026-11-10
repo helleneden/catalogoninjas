@@ -2699,8 +2699,9 @@
   .cr-dica{ font-size:12px; color:var(--muted); margin:6px 0 16px; }
   .cr-lista{ display:flex; flex-direction:column; gap:12px; }
   .cr-sem{ display:flex; gap:14px; align-items:flex-start; }
-  .cr-sem.passada{ opacity:.6; }
-  .cr-sem.passada:hover{ opacity:1; }
+  /* semana fica apagada só quando TUDO dela foi concluído (passou da data sem terminar continua normal) */
+  .cr-sem.completa{ opacity:.55; transition:opacity .15s; }
+  .cr-sem.completa:hover{ opacity:1; }
   .cr-data{ flex:0 0 64px; text-align:center; border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:8px 4px; display:flex; flex-direction:column; line-height:1.1; }
   .cr-data b{ font-family:var(--font-brand); font-size:26px; font-weight:600; }
   .cr-data span{ font-size:11px; font-weight:700; letter-spacing:1.2px; color:var(--blue-deep); margin-top:2px; }
@@ -9657,7 +9658,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-10b';
+  const APP_VERSAO = '2026-11-10c';
   async function conferirVersaoNova(){
     if (document.hidden) return;
     try {
