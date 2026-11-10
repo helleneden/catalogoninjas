@@ -2897,10 +2897,13 @@
   .pl-mat-item{ background:var(--surface-soft); border-radius:10px; padding:8px 10px; }
   .pl-mat-item.st-ok{ background:rgba(52,195,143,.10); }
   .pl-mat-item.st-faltando{ background:rgba(226,177,79,.12); }
+  .pl-mat-item.st-descartado{ background:rgba(148,163,184,.08); }
+  .pl-mat-item.st-descartado .pl-row-nome{ color:var(--muted); text-decoration:line-through; }
   .pl-mat-linha{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .pl-seg{ margin-left:auto; display:inline-flex; gap:4px; }
   .pl-seg button{ border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:8px; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
   .pl-seg button.on.ok{ border-color:rgba(52,195,143,.5); color:var(--ok-ink); background:rgba(52,195,143,.14); }
+  .pl-seg button.on.desc{ border-color:rgba(148,163,184,.55); color:#CBD5E1; background:rgba(148,163,184,.14); }
   .pl-seg button.on.falt{ border-color:rgba(226,177,79,.55); color:var(--warn-ink); background:rgba(226,177,79,.16); }
   .mc-wrap{ margin-top:8px; display:flex; flex-direction:column; gap:6px; }
   .mc-item{ display:flex; gap:8px; align-items:flex-start; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:8px 10px; }
@@ -2978,6 +2981,7 @@
   .hg-btn:hover{ filter:brightness(1.08); }
   @media (max-width:640px){ .hg-dir{ width:100%; justify-content:space-between; } }
   .pl-rod{ white-space:nowrap; }
+  .pl-sel.salvando{ opacity:.6; }
   .pl-leg-opc{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 4px; font-size:12.5px; color:var(--muted); }
   .pl-leg-opc button{ background:none; border:1px dashed var(--line-strong); color:var(--ink); border-radius:10px; padding:7px 12px; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; }
   .pl-leg-opc button:hover{ border-color:var(--blue); color:var(--blue-deep); }
@@ -9653,7 +9657,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-09a';
+  const APP_VERSAO = '2026-11-10b';
   async function conferirVersaoNova(){
     if (document.hidden) return;
     try {
@@ -10639,7 +10643,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="mc-acoes">
               ${c.resolvido
                 ? `<span class="mc-ok">✓ Resolvido${c.resolvido_por ? ' por ' + escapeHtml(c.resolvido_por) : ''}${c.resolvido_em ? ' · ' + quando(c.resolvido_em) : ''}</span>${pipeAdm() ? ` <button type="button" class="mc-link" data-mc-res="${i}|${c.id}">desfazer</button>` : ''}`
-                : (pipeAdm() ? `<button type="button" class="mc-btn" data-mc-res="${i}|${c.id}">Foi resolvido?</button>` : '<span class="mc-pend">Pendente</span>')}
+                : it.status === 'descartado' ? '' : (pipeAdm() ? `<button type="button" class="mc-btn" data-mc-res="${i}|${c.id}">Foi resolvido?</button>` : '<span class="mc-pend">Pendente</span>')}
               ${pipeAdm() && c.id !== 'obs' && (c.autor_id === myUserId || isAdmin) ? `<button type="button" class="mc-link" data-mc-del="${i}|${c.id}">apagar</button>` : ''}
             </div>
           </div>
@@ -10689,48 +10693,65 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const taskIdAtual = s.tipo === 'partes' ? campo[parte] : s.taskId;
     const atual = pipeTask(taskIdAtual);
     if (!userId){
-      if (atual){
-        if (atual.agenda_note_id) await apagarItemAgendaDaTarefa(atual.agenda_note_id);
-        try { await sb.from('production_tasks').delete().eq('id', atual.id); } catch(e){}
-      }
       if (s.tipo === 'partes') delete campo[parte]; else delete s.taskId;
-      await pipeSalvar(p); if (!silencioso) await loadProducaoTasks(); return;
+      if (atual){
+        // quem tira a pessoa não perde o "feito" que já estava marcado
+        if (atual.done){ if (s.tipo === 'partes'){ const f = new Set(s.feitosManual||[]); f.add(parte); s.feitosManual = [...f]; } else s.done = true; }
+        producaoTasks = (producaoTasks||[]).filter(t => t.id !== atual.id);
+        await Promise.all([
+          atual.agenda_note_id ? apagarItemAgendaDaTarefa(atual.agenda_note_id) : null,
+          sb.from('production_tasks').delete().eq('id', atual.id).then(()=>{}, ()=>{}),
+          pipeSalvar(p)
+        ]);
+      } else await pipeSalvar(p);
+      return;
     }
     const perfil = profilesByUser[userId] || {};
+    const nomePessoa = perfil.display_name || 'Ninja';
     const desc = [pipeNome(p), parte ? `Parte ${parte}` : '', s.nome].filter(Boolean).join(' · ');
     const data = prazo || (atual && atual.due_date) || hojeISO();
     let taskId;
     if (atual){
       taskId = atual.id;
       if (atual.assignee_user_id === userId && (atual.due_date || '') === data) return; // nada mudou
-      // agenda acompanha a pessoa e a data
-      if (atual.agenda_note_id) await apagarItemAgendaDaTarefa(atual.agenda_note_id);
-      const agendaId = await criarItemAgenda(userId, data, `🎬 ${desc}`, taskId);
-      await sb.from('production_tasks').update({ assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja', due_date: data, agenda_note_id: agendaId }).eq('id', taskId);
-      if (atual.assignee_user_id === userId){ if (!silencioso) await loadProducaoTasks(); return; } // só mudou a data
+      const mesmaPessoa = atual.assignee_user_id === userId;
+      const agendaVelha = atual.agenda_note_id;
+      const agendaId = ((crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback());
+      // atualiza na tela na hora
+      Object.assign(atual, { assignee_user_id: userId, assignee_name: nomePessoa, due_date: data, agenda_note_id: agendaId });
+      await Promise.all([
+        agendaVelha ? apagarItemAgendaDaTarefa(agendaVelha) : null,
+        sb.from('agenda_notes').insert({ id: agendaId, user_id: userId, note_date: data, body: `🎬 ${desc}`, done: !!atual.done, from_task_id: taskId }).then(()=>{}, ()=>{}),
+        sb.from('production_tasks').update({ assignee_user_id: userId, assignee_name: nomePessoa, due_date: data, agenda_note_id: agendaId }).eq('id', taskId).then(()=>{}, ()=>{})
+      ]);
+      if (mesmaPessoa) return; // só mudou a data
     } else {
-      taskId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback();
-      const agendaId = await criarItemAgenda(userId, data, `🎬 ${desc}`, taskId);
-      const { error } = await sb.from('production_tasks').insert({
-        id: taskId, project: p.project, episode: p.episode || 'Filme', part: parte ? String(parte) : null,
-        assignee_user_id: userId, assignee_name: perfil.display_name || 'Ninja',
-        stage: s.stage || s.nome, priority: 1, due_date: data, agenda_note_id: agendaId, created_by: myEmail || null
-      });
-      if (error){ showToast('❌ ' + error.message); return; }
-      if (s.tipo === 'partes') campo[parte] = taskId; else s.taskId = taskId;
-      await pipeSalvar(p);
+      taskId = ((crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback());
+      // se a etapa já tinha sido marcada como feita antes de escolher a pessoa, continua feita
+      const jaFeito = s.tipo === 'partes' ? (s.feitosManual||[]).includes(parte) : !!s.done;
+      const agora = new Date().toISOString();
+      const agendaId = ((crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback());
+      const nova = { id: taskId, project: p.project, episode: p.episode || 'Filme', part: parte ? String(parte) : null,
+        assignee_user_id: userId, assignee_name: nomePessoa, stage: s.stage || s.nome, priority: 1, due_date: data,
+        agenda_note_id: agendaId, created_by: myEmail || null, done: jaFeito, done_at: jaFeito ? agora : null };
+      producaoTasks = [...(producaoTasks||[]), { ...nova, created_at: agora }];
+      if (s.tipo === 'partes'){ campo[parte] = taskId; s.feitosManual = (s.feitosManual||[]).filter(n => n !== parte); } else { s.taskId = taskId; delete s.done; }
+      const [ins] = await Promise.all([
+        sb.from('production_tasks').insert(nova),
+        sb.from('agenda_notes').insert({ id: agendaId, user_id: userId, note_date: data, body: `🎬 ${desc}`, done: jaFeito, from_task_id: taskId }).then(()=>{}, ()=>{}),
+        pipeSalvar(p)
+      ]);
+      if (ins && ins.error){ showToast('❌ ' + ins.error.message); producaoTasks = producaoTasks.filter(t => t.id !== taskId); return; }
     }
-    try {
-      await sb.from('task_notifications').insert({
-        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback(),
-        user_id: userId, task_id: taskId, project: p.project, stage: s.stage || s.nome,
-        message: `${myProfile.display_name || myEmail || 'Um admin'} passou uma etapa pra você: ${desc} (até ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR')})`, read: false
-      });
-    } catch(e){}
+    // aviso para a pessoa (não precisa esperar)
+    sb.from('task_notifications').insert({
+      id: ((crypto && crypto.randomUUID) ? crypto.randomUUID() : gerarUuidFallback()),
+      user_id: userId, task_id: taskId, project: p.project, stage: s.stage || s.nome,
+      message: `${myProfile.display_name || myEmail || 'Um admin'} passou uma etapa pra você: ${desc} (até ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR')})`, read: false
+    }).then(()=>{}, ()=>{});
     if (!silencioso){
-      await loadProducaoTasks();
-      if (userId === myUserId && typeof loadAgenda === 'function') await loadAgenda();
-      showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${perfil.display_name || 'ninja'} · agenda ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`);
+      if (userId === myUserId && typeof loadAgenda === 'function') loadAgenda().catch(()=>{});
+      showToast(`👤 ${s.nome}${parte ? ' · Parte ' + parte : ''} com ${nomePessoa} · agenda ${new Date(data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}`);
     }
   }
   // Apaga tudo que uma tarefa delegada gerou: item da agenda, notificação e a própria tarefa.
@@ -10752,9 +10773,11 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
 
   async function pipeMarcarTarefa(task, feita){
-    await sb.from('production_tasks').update({ done: feita, done_at: feita ? new Date().toISOString() : null }).eq('id', task.id);
-    task.done = feita;
-    if (task.agenda_note_id){ try { await sb.from('agenda_notes').update({ done: feita }).eq('id', task.agenda_note_id); } catch(e){} }
+    task.done = feita; task.done_at = feita ? new Date().toISOString() : null;
+    await Promise.all([
+      sb.from('production_tasks').update({ done: feita, done_at: task.done_at }).eq('id', task.id).then(()=>{}, ()=>{}),
+      task.agenda_note_id ? sb.from('agenda_notes').update({ done: feita }).eq('id', task.agenda_note_id).then(()=>{}, ()=>{}) : null
+    ]);
     const nAg = (agendaNotes||[]).find(n => n.id === task.agenda_note_id || n.from_task_id === task.id); if (nAg) nAg.done = feita;
     try { renderBellBadge(); } catch(e){}
   }
@@ -10793,9 +10816,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
             <div class="pl-seg">
               <button type="button" class="${it.status==='ok'?'on ok':''}" data-pl-mat="${i}" data-st="ok" ${pipeAdm()?'':'disabled'}>✓ Recebido</button>
               <button type="button" class="${it.status==='faltando'?'on falt':''}" data-pl-mat="${i}" data-st="faltando" ${pipeAdm()?'':'disabled'}>⚠ Faltando</button>
+              <button type="button" class="${it.status==='descartado'?'on desc':''}" data-pl-mat="${i}" data-st="descartado" ${pipeAdm()?'':'disabled'} title="Este projeto não precisa desse arquivo">⊘ Descartado</button>
             </div>
           </div>
-          ${it.status === 'faltando' || matComentarios(it).length ? matComentariosHtml(it, i) : ''}
+          ${it.status === 'faltando' || it.status === 'descartado' || matComentarios(it).length ? matComentariosHtml(it, i) : ''}
         </div>`).join('')}
         ${pipeAdm() ? `<div class="pl-add"><input type="text" id="plMatNovo" placeholder="Outro arquivo (ex.: roteiro, música)…"><button type="button" id="plMatAdd">+</button></div>` : ''}
       </div>`;
@@ -11035,10 +11059,10 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     const va = ov.querySelector('#plVozAlterar'); if (va) va.onclick = () => { pipeVozEditando = p.id; reabrir(); };
     // responsável
     ov.querySelectorAll('[data-pl-atrib]').forEach(sel => sel.onchange = async () => {
-      sel.disabled = true;
       const dataInp = sel.parentElement.querySelector('.pl-data');
+      sel.classList.add('salvando');
       await pipeAtribuir(p, step(sel.dataset.plAtrib), sel.dataset.parte ? Number(sel.dataset.parte) : null, sel.value, dataInp && dataInp.value ? dataInp.value : null);
-      reabrir();
+      if (pipeAberto === p.id) reabrir();
     });
     // prazo: muda a data da tarefa e da agenda
     ov.querySelectorAll('[data-pl-prazo]').forEach(inp => inp.onchange = async () => {
@@ -11052,10 +11076,17 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
     ov.querySelectorAll('[data-pl-done]').forEach(b => b.onclick = async () => {
       const s = step(b.dataset.plDone); const parte = b.dataset.parte ? Number(b.dataset.parte) : null;
       const t = pipeTask(parte ? (s.atrib||{})[parte] : s.taskId);
-      if (t) await pipeMarcarTarefa(t, !t.done);
-      else if (parte){ const f = new Set(s.feitosManual||[]); f.has(parte) ? f.delete(parte) : f.add(parte); s.feitosManual = [...f]; await pipeSalvar(p); }
-      else { s.done = !s.done; await pipeSalvar(p); }
-      reabrir();
+      // marca na tela imediatamente
+      const vaiFicar = !b.classList.contains('on');
+      b.classList.toggle('on', vaiFicar); b.textContent = vaiFicar ? '✓' : '';
+      const row = b.closest('.pl-row'); if (row) row.classList.toggle('ok', vaiFicar);
+      if (vaiFicar) try { playCheckSound(); } catch(e){}
+      let salvar;
+      if (t) salvar = pipeMarcarTarefa(t, vaiFicar);
+      else if (parte){ const f = new Set(s.feitosManual||[]); vaiFicar ? f.add(parte) : f.delete(parte); s.feitosManual = [...f]; salvar = pipeSalvar(p); }
+      else { s.done = vaiFicar; salvar = pipeSalvar(p); }
+      await salvar;
+      if (pipeAberto === p.id) reabrir();
     });
     // ---- editar etapas (admin) ----
     const addBtn = ov.querySelector('#plAddEtapaBtn');
