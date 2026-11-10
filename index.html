@@ -929,6 +929,8 @@
   .ag-abrir{ background:none; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:2px 10px; font:inherit; font-size:11.5px; cursor:pointer; flex:0 0 auto; align-self:center; }
   .ag-abrir:hover{ color:var(--ink); border-color:var(--blue); }
   .agenda-day-btn{ position:relative; }
+  .agenda-day-btn.pendente:not(.selected){ box-shadow:0 0 0 2px rgba(255,255,255,.18), 0 0 10px rgba(124,58,237,.45); font-weight:800; }
+  .agenda-day-btn.feito:not(.selected){ text-decoration:line-through; text-decoration-color:rgba(255,255,255,.5); }
   .ag-ponto{ position:absolute; bottom:3px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:#fff; }
   .agenda-note-body.done{ text-decoration:line-through; color:var(--muted); }
   .agenda-note-del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:12px; padding:0; flex:0 0 auto; }
@@ -9658,7 +9660,7 @@ const SUPABASE_KEY = 'sb_publishable_eT6_zb9VLd41kJu_6EN4xA_bf5Auqnd';     // ex
   }
   setInterval(conferirNotificacoesNovas, 30000);
   // versão nova publicada → faixa "Atualizar" (assim todos recebem as correções sem ter que lembrar)
-  const APP_VERSAO = '2026-11-10c';
+  const APP_VERSAO = '2026-11-10d';
   async function conferirVersaoNova(){
     if (document.hidden) return;
     try {
@@ -12047,6 +12049,24 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     return { txt:'Boa noite', ic:'🌙' };
   }
 
+  // Tarefa ligada a um item do cronograma de Renderização que ainda não foi renderizado e
+  // é desta semana ou da próxima sexta (o que "vai lançar" agora)
+  function tarefaDaRenderizacaoProxima(){
+    const hoje0 = new Date(); hoje0.setHours(0,0,0,0);
+    const limite = new Date(hoje0.getTime() + 8 * 864e5);
+    const alvos = [];
+    (metaCardsTodos || []).forEach(it => {
+      if (it.done || !it.mes || Number(it.semana) > 5) return;
+      const sx = (typeof sextasDoMes === 'function' ? sextasDoMes(it.mes) : [])[Number(it.semana) - 1];
+      if (!sx || sx < hoje0 || sx > limite) return;
+      let proj = it.project; try { if (!proj){ const pp = pipelineDoItem(it); proj = pp && pp.project; } } catch(e){}
+      if (!proj) return;
+      const e = epsDoTitulo(it.titulo); const u = episodioDoTitulo(it.titulo);
+      alvos.push({ proj, eps: e ? e.nums : (u && /^\d+$/.test(u) ? [Number(u)] : null) });
+    });
+    return t => alvos.some(a => a.proj === t.project && (!a.eps || !/\d/.test(String(t.episode||'')) || a.eps.includes(parseInt(String(t.episode).match(/\d+/)[0], 10))));
+  }
+
   // Resumo das tarefas do usuário logado: hoje, atrasadas, urgentes, semana
   function meuResumoTarefas(){
     const hojeStr = new Date().toISOString().split('T')[0];
@@ -12054,7 +12074,9 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     const minhas = (producaoTasks||[]).filter(t => t.assignee_user_id === myUserId && !t.done);
     const hoje = minhas.filter(t => t.due_date === hojeStr);
     const atrasadas = minhas.filter(t => t.due_date && new Date(t.due_date+'T23:59:59') < agora);
-    const urgentes = minhas.filter(t => t.priority === 1 && !atrasadas.includes(t));
+    const amanhaStr = (() => { const d = new Date(); d.setDate(d.getDate() + 1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+    const daRenderizacao = tarefaDaRenderizacaoProxima();
+    const urgentes = minhas.filter(t => !atrasadas.includes(t) && (t.due_date === hojeStr || t.due_date === amanhaStr || daRenderizacao(t)));
     // próximos 7 dias
     const em7 = new Date(agora.getTime() + 7*24*60*60*1000).toISOString().split('T')[0];
     const semana = minhas.filter(t => t.due_date && t.due_date > hojeStr && t.due_date <= em7);
@@ -15992,6 +16014,7 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
     // dias com nota neste mês
     const mesStr = `${ano}-${String(mes+1).padStart(2,'0')}`;
     const diasComNota = new Set(agendaNotes.filter(n=>n.note_date.startsWith(mesStr)).map(n=>n.note_date));
+    const diasPendentes = new Set(agendaNotes.filter(n => !n.done && n.note_date.startsWith(mesStr)).map(n => n.note_date));
     const diasComTarefa = new Set(agendaNotes.filter(n=>n.from_task_id && !n.done && n.note_date.startsWith(mesStr)).map(n=>n.note_date));
 
     const dowHeaders = DIAS_SEMANA.map(d=>`<div class="agenda-cal-dow">${d}</div>`).join('');
@@ -16008,11 +16031,13 @@ Para restaurar: importe cada .csv na tabela de mesmo nome no Supabase
       const isHoje = dateStr === hoje;
       const isSel = dateStr === agendaSelectedDay;
       const hasNote = diasComNota.has(dateStr);
+      const pendente = diasPendentes.has(dateStr);
+      const tudoFeito = hasNote && !pendente;
       const bg = isSel ? cor : (hasNote ? cor : '');
-      const opacity = hasNote && !isSel ? '0.75' : '1';
+      const opacity = isSel ? '1' : (pendente ? '1' : (tudoFeito ? '0.28' : '1'));
       const style = bg ? `style="background:${bg};opacity:${opacity};"` : '';
       cells += `<div class="agenda-cal-day">
-        <button class="agenda-day-btn${isHoje?' today':''}${isSel?' selected':''}${hasNote?' has-note':''}"
+        <button class="agenda-day-btn${isHoje?' today':''}${isSel?' selected':''}${hasNote?' has-note':''}${pendente?' pendente':''}${tudoFeito?' feito':''}"
           data-pick-day="${dateStr}" ${style}>${d}${diasComTarefa.has(dateStr) ? '<i class="ag-ponto"></i>' : ''}</button>
       </div>`;
     }
